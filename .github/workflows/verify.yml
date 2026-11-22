@@ -22,6 +22,14 @@ jobs:
         run: .venv/bin/python -m unittest discover -s tests -v
       - name: Build Home Assistant app image
         run: docker build --tag home-tunnel-check home-assistant
+      - name: Verify isolated connector reads its destination option
+        run: |
+          set -eu
+          options="$(mktemp)"
+          trap 'rm -f "$options"' EXIT
+          printf '{"homeassistant_url":"http://ha.example.test:8123"}\n' > "$options"
+          chmod 600 "$options"
+          docker run --rm --network none --volume "$options:/data/options.json:ro" --entrypoint /app/start.sh home-tunnel-check python -c "from policy import LOCAL; assert LOCAL == 'http://ha.example.test:8123'; print('Connector option loaded through restricted environment')"
       - name: Load custom integration at its minimum supported Core version
         run: |
           docker run --rm --network none --volume "$PWD/custom_components/home_tunnel:/work/home_tunnel:ro" --workdir /work --entrypoint python3 ghcr.io/home-assistant/home-assistant:2026.9.0 -c "import home_tunnel.config_flow, home_tunnel.coordinator, home_tunnel.diagnostics, home_tunnel.sensor, home_tunnel.binary_sensor"

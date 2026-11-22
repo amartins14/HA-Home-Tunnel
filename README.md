@@ -36,4 +36,4 @@ See [configuration](docs/CONFIGURATION.md), [relay deployment](docs/RELAY-DEPLOY
 
 ## Status
 
-This repository is a public-oriented extraction from an existing installation and is licensed under MIT. It is not yet a supported general-purpose release. The `0.4.0-dev` version must not be treated as production-ready. A stable release requires green verification checks for the exact commit, fresh IIS deployment and rollback validation, and review of the documented security limits. See [contribution and release checks](CONTRIBUTING.md).
+This repository is a public-oriented extraction from an existing installation and is licensed under MIT. It is not yet a supported general-purpose release. The `0.4.1-dev` version must not be treated as production-ready. A stable release requires green verification checks for the exact commit, fresh IIS deployment and rollback validation, and review of the documented security limits. See [contribution and release checks](CONTRIBUTING.md).

@@ -34,6 +34,15 @@ def request(**changes):
     return message
 
 class SecurityPolicyTests(unittest.TestCase):
+    def test_root_only_options_use_the_explicit_url_environment(self):
+        original_read_text = Path.read_text
+        def read_text(path, *args, **kwargs):
+            if path.name == "options.json" and path.parent.name == "data":
+                raise PermissionError("root-only supervisor options")
+            return original_read_text(path, *args, **kwargs)
+        with patch.dict("os.environ", {"HOMEASSISTANT_URL": "http://ha.example.test:8123"}):
+            with patch.object(Path, "read_text", read_text):
+                self.assertEqual(policy._settings()["homeassistant_url"], "http://ha.example.test:8123")
     def test_no_alternate_destinations_or_traversal(self):
         paths = ["http://evil/", "//evil/", "/\\evil", "/%2fexample.com", "/%252fexample.com", "/../api/", "/%2e%2e/api/", "/api\r\nHost: evil", "/api#fragment", "/%00", "/%25252e%25252e/api/"]
         for value in paths:

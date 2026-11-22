@@ -10,7 +10,7 @@ from urllib.parse import unquote, urlsplit
 def _settings():
     try:
         options = json.loads(Path('/data/options.json').read_text(encoding='utf-8'))
-    except FileNotFoundError:
+    except (FileNotFoundError, PermissionError):
         options = {
             'homeassistant_url': os.environ.get('HOMEASSISTANT_URL', 'http://homeassistant:8123'),
         }
