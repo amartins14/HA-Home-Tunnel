@@ -381,9 +381,11 @@ async def main():
     AUDIT = AuditLog()
     runner = None
     try:
-        metrics_token = token_from_file(METRICS_TOKEN_PATH)
+        metrics_token = os.environ.get("HOME_TUNNEL_METRICS_TOKEN", "") or token_from_file(METRICS_TOKEN_PATH)
+        if not re.fullmatch(r"[0-9a-f]{64}", metrics_token):
+            raise ProtocolError("missing or invalid metrics token")
     except (OSError, ProtocolError):
-        LOG.warning("Metrics endpoint disabled; add its private key file to enable the HA dashboard")
+        LOG.warning("Metrics endpoint disabled; configure a private metrics token to enable dashboard telemetry")
     else:
         runner = web.AppRunner(application(METRICS, metrics_token), access_log=None)
         await runner.setup()

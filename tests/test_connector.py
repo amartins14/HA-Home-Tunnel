@@ -55,6 +55,18 @@ class SecurityPolicyTests(unittest.TestCase):
         with patch.dict("os.environ", {"HOMEASSISTANT_URL": "http://legacy.example.test:8123"}):
             with patch.object(Path, "read_text", read_text):
                 self.assertEqual(policy._settings()["homeassistant_url"], "https://ha.example.test:8443")
+    def test_updated_app_option_overrides_saved_dashboard_value(self):
+        original_read_text = Path.read_text
+        def read_text(path, *args, **kwargs):
+            if path.name == "options.json" and path.parent.name == "data":
+                return '{"homeassistant_url":"http://new-option.example.test:8123"}'
+            if path.name == "settings.json" and path.parent.name == "state":
+                return '{"homeassistant_url":"http://dashboard.example.test:8123","app_option_url":"http://old-option.example.test:8123"}'
+            if path.name == "connection.json" and path.parent.name == "state":
+                return "{}"
+            return original_read_text(path, *args, **kwargs)
+        with patch.object(Path, "read_text", read_text):
+            self.assertEqual(policy._settings()["homeassistant_url"], "http://new-option.example.test:8123")
     def test_no_alternate_destinations_or_traversal(self):
         paths = ["http://evil/", "//evil/", "/\\evil", "/%2fexample.com", "/%252fexample.com", "/../api/", "/%2e%2e/api/", "/api\r\nHost: evil", "/api#fragment", "/%00", "/%25252e%25252e/api/"]
         for value in paths:
@@ -185,6 +197,30 @@ class FakeLocal:
         return self.response
 
 class ConnectorAsyncTests(unittest.IsolatedAsyncioTestCase):
+    async def test_app_configuration_and_dashboard_settings_reconcile(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            settings_path = Path(temporary) / "settings.json"
+            settings_path.write_text(json.dumps({
+                "homeassistant_url": "http://dashboard.example.test:8123",
+                "app_option_url": "http://option.example.test:8123",
+            }))
+            with patch.object(service, "SETTINGS", settings_path), patch.dict("os.environ", {"HOMEASSISTANT_URL": "http://option.example.test:8123"}):
+                self.assertEqual(service.ensure_settings(), "http://dashboard.example.test:8123")
+            with patch.object(service, "SETTINGS", settings_path), patch.dict("os.environ", {"HOMEASSISTANT_URL": "http://new-option.example.test:8123"}):
+                self.assertEqual(service.ensure_settings(), "http://new-option.example.test:8123")
+                saved = json.loads(settings_path.read_text())
+                self.assertEqual(saved["app_option_url"], "http://new-option.example.test:8123")
+
+    def test_dashboard_telemetry_strips_client_identity(self):
+        result = service.sanitize_telemetry({
+            "status": "online", "clients": [{"ip": "203.0.113.1"}],
+            "authenticated_sessions": [{"ip": "203.0.113.2"}], "authenticated_ips": 2,
+            "last_client_ip": "203.0.113.1",
+            "recent_requests": [{"ip": "203.0.113.3", "url": "/private?q=secret", "method": "GET", "route": "api", "status": 200}],
+        })
+        self.assertEqual(result["recent_requests"], [{"method": "GET", "route": "api", "status": 200}])
+        self.assertFalse({"clients", "authenticated_sessions", "authenticated_ips", "last_client_ip"} & result.keys())
+
     async def test_ingress_settings_save_url_and_restart_connector(self):
         class Request:
             async def json(self):
@@ -201,7 +237,10 @@ class ConnectorAsyncTests(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual(response.status, 200)
                 self.assertEqual(json.loads(response.text), {"homeassistant_url": "http://new-ha.example.test:8123", "restarting": True})
                 self.assertTrue(child.terminated)
-                self.assertEqual(json.loads(settings_path.read_text()), {"homeassistant_url": "http://new-ha.example.test:8123"})
+                self.assertEqual(json.loads(settings_path.read_text()), {
+                    "homeassistant_url": "http://new-ha.example.test:8123",
+                    "app_option_url": "http://legacy.example.test:8123",
+                })
                 class InvalidRequest:
                     async def json(self):
                         return {"homeassistant_url": "https://user:pass@ha.example.test/path"}

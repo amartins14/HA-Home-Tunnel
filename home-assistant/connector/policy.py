@@ -18,6 +18,10 @@ def _settings():
         settings = json.loads(Path('/data/state/settings.json').read_text(encoding='utf-8'))
     except FileNotFoundError:
         settings = {}
+    configured_url = options.get('homeassistant_url', os.environ.get('HOMEASSISTANT_URL', 'http://homeassistant:8123'))
+    configured_url = _origin(configured_url, {'http', 'https'}, 'homeassistant_url')
+    if settings and 'app_option_url' in settings and settings['app_option_url'] != configured_url:
+        settings = {'homeassistant_url': configured_url}
     try:
         connection = json.loads(Path('/data/state/connection.json').read_text(encoding='utf-8'))
     except FileNotFoundError:

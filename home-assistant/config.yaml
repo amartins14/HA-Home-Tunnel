@@ -1,5 +1,5 @@
 name: Home Tunnel
-version: "0.4.2-dev"
+version: "0.4.3-dev"
 slug: home_tunnel
 description: Secure setup and outgoing relay to your self-hosted endpoint
 homeassistant: "2026.9.0"
@@ -29,5 +29,7 @@ ports:
   8100/tcp: null
 options:
   homeassistant_url: http://homeassistant:8123
+  metrics_token: ""
 schema:
   homeassistant_url: str
+  metrics_token: password

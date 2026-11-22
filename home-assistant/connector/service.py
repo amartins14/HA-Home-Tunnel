@@ -25,10 +25,12 @@ FINALIZE = STATE / "finalize.json"
 TOKEN = STATE / "tunnel-token.txt"
 STATUS = STATE / "status.json"
 SETTINGS = STATE / "settings.json"
+METRICS_TOKEN = Path("/secrets/metrics-token.txt")
 RELAY_RELEASE = STATE / "relay-release.json"
 RELAY_VERSION = STATE / "relay-version.json"
 SETUP_PAGE = Path("/app/setup.html")
 APP_CONFIG = Path("/app/app-config.yaml")
+METRICS_URL = "http://127.0.0.1:8100/metrics"
 RELEASE_MANIFEST_URL = "https://raw.githubusercontent.com/amartins14/HA-Home-Tunnel/main/release-manifest.json"
 RELEASE_CHECK_INTERVAL = 6 * 60 * 60
 RELAY_VERSION_CHECK_INTERVAL = 5 * 60
@@ -62,16 +64,30 @@ def save_json(path, data):
 
 
 def ensure_settings():
+    configured_url = policy.homeassistant_origin(os.environ.get("HOMEASSISTANT_URL", "http://homeassistant:8123"))
     settings = read_json(SETTINGS)
     if settings is None:
         if SETTINGS.exists():
             raise ValueError("Home Tunnel settings file is unreadable")
-        value = policy.homeassistant_origin(os.environ.get("HOMEASSISTANT_URL", "http://homeassistant:8123"))
-        save_json(SETTINGS, {"homeassistant_url": value})
-        return value
+        save_json(SETTINGS, {"homeassistant_url": configured_url, "app_option_url": configured_url})
+        return configured_url
+    if not isinstance(settings, dict):
+        raise ValueError("Home Tunnel settings file is invalid")
+    changed = False
+    if "app_option_url" not in settings:
+        settings["app_option_url"] = configured_url
+        changed = True
+    elif settings["app_option_url"] != configured_url:
+        settings["homeassistant_url"] = configured_url
+        settings["app_option_url"] = configured_url
+        changed = True
     value = policy.homeassistant_origin(settings.get("homeassistant_url"))
     if value != settings.get("homeassistant_url"):
+        # Keep the app's Supervisor option as a fallback while preserving the
+        # value saved in this dashboard until the option itself changes.
         settings["homeassistant_url"] = value
+        changed = True
+    if changed:
         save_json(SETTINGS, settings)
     return value
 
@@ -272,6 +288,49 @@ async def status(request):
     return web.json_response(result, headers={"Cache-Control": "no-store"})
 
 
+def sanitize_telemetry(data):
+    if not isinstance(data, dict):
+        return None
+    fields = {
+        "version", "status", "healthy", "public_reachable", "risk_status", "risk_issues",
+        "requests_per_minute", "http_kib_per_second", "recent_latency_ms", "active_http",
+        "active_ws", "uptime_seconds", "automatic_reconnects", "public_check_age_seconds",
+        "public_check_failures", "telemetry_age_seconds", "denied_5m", "failures_5m",
+        "events_dropped", "audit_healthy", "recent_requests",
+    }
+    safe = {key: value for key, value in data.items() if key in fields}
+    events = safe.get("recent_requests")
+    if isinstance(events, list):
+        safe["recent_requests"] = [
+            {key: event[key] for key in ("method", "route", "status", "duration_ms", "request_bytes", "response_bytes", "observed_at") if key in event}
+            for event in events if isinstance(event, dict)
+        ]
+    return safe
+
+
+async def telemetry(request):
+    token = os.environ.get("HOME_TUNNEL_METRICS_TOKEN", "").strip()
+    if not token:
+        try:
+            token = METRICS_TOKEN.read_text(encoding="ascii").strip()
+        except OSError:
+            token = ""
+    if not CODE_PATTERN.fullmatch(token):
+        return web.json_response({"available": False}, headers={"Cache-Control": "no-store"})
+    timeout = aiohttp.ClientTimeout(total=2)
+    try:
+        async with aiohttp.ClientSession(timeout=timeout, trust_env=False) as session:
+            async with session.get(METRICS_URL, headers={"Authorization": f"Bearer {token}"}) as response:
+                if response.status != 200:
+                    return web.json_response({"available": False}, headers={"Cache-Control": "no-store"})
+                data = sanitize_telemetry(await response.json())
+    except (aiohttp.ClientError, asyncio.TimeoutError, ValueError, OSError):
+        return web.json_response({"available": False}, headers={"Cache-Control": "no-store"})
+    if data is None:
+        return web.json_response({"available": False}, headers={"Cache-Control": "no-store"})
+    return web.json_response({"available": True, "metrics": data}, headers={"Cache-Control": "no-store"})
+
+
 async def update_settings(request):
     data = await request.json()
     if not isinstance(data, dict) or set(data) != {"homeassistant_url"}:
@@ -283,7 +342,8 @@ async def update_settings(request):
     current = ensure_settings()
     restarting = value != current and child is not None and child.returncode is None
     if value != current:
-        save_json(SETTINGS, {"homeassistant_url": value})
+        settings = read_json(SETTINGS) or {"app_option_url": current}
+        save_json(SETTINGS, {**settings, "homeassistant_url": value})
         if restarting:
             child.terminate()
     return web.json_response({"homeassistant_url": value, "restarting": restarting}, headers={"Cache-Control": "no-store"})
@@ -513,6 +573,7 @@ def make_app():
     app = web.Application(middlewares=[restrict_to_ingress], client_max_size=4096)
     app.router.add_get("/", setup_page)
     app.router.add_get("/api/status", status)
+    app.router.add_get("/api/telemetry", telemetry)
     app.router.add_post("/api/settings", update_settings)
     app.router.add_post("/api/claim-code", generate_claim_code)
     app.router.add_post("/api/pair", begin_pairing)

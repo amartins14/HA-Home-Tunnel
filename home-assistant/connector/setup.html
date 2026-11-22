@@ -7,13 +7,31 @@
   <meta name="ingress-base" content="__INGRESS_BASE__">
   <title>Home Tunnel</title>
   <style>
-    :root{font-family:system-ui,sans-serif;color-scheme:light dark}*{box-sizing:border-box}body{margin:0;min-height:100vh;background:var(--primary-background-color,#101820);color:var(--primary-text-color,#f3f6f8);display:grid;place-items:center;padding:20px}.panel{width:min(100%,720px);background:var(--card-background-color,#1b2833);border:1px solid var(--divider-color,#405361);border-radius:18px;padding:clamp(20px,5vw,36px);box-shadow:0 14px 50px #0004}header{display:flex;align-items:center;gap:14px;margin-bottom:24px}.mark{width:46px;height:46px;display:grid;place-items:center;border-radius:14px;background:#00a884;color:#fff;font-size:1.5rem}h1{font-size:1.55rem;margin:0}h2{font-size:1.1rem;margin:0 0 8px}.subtle{color:var(--secondary-text-color,#aebdc7);margin:4px 0 0;line-height:1.5}.status{display:flex;gap:12px;align-items:center;margin:18px 0;padding:14px 16px;border-radius:12px;background:#263743}.dot{width:11px;height:11px;border-radius:50%;background:#d79b32;flex:none}.dot.ok{background:#38bd80}.section{border-top:1px solid var(--divider-color,#405361);padding-top:22px;margin-top:22px}label{display:block;font-weight:650;margin:0 0 8px}input,textarea,button{width:100%;min-height:48px;border-radius:10px;font:inherit}input,textarea{background:var(--secondary-background-color,#111b23);color:inherit;border:1px solid #637785;padding:10px 12px}textarea{resize:vertical;font-family:ui-monospace,monospace;font-size:.85rem}button{margin-top:12px;border:0;background:#00a884;color:#fff;font-weight:700;cursor:pointer;padding:10px 14px}button.secondary{background:#384b58}button:disabled{opacity:.55;cursor:wait}.code{display:block;overflow-wrap:anywhere;padding:14px;background:var(--secondary-background-color,#111b23);border:1px solid #637785;border-radius:10px;font:600 1rem ui-monospace,monospace;letter-spacing:.05em;margin:12px 0}.actions{display:grid;grid-template-columns:1fr 1fr;gap:10px}.message{min-height:1.5em;margin-top:12px;color:#efc879}.small{font-size:.9rem;color:var(--secondary-text-color,#aebdc7);line-height:1.5}.hidden{display:none!important}.url{overflow-wrap:anywhere}@media(max-width:480px){body{padding:12px}.panel{padding:20px}.actions{grid-template-columns:1fr}}
+    :root{font-family:system-ui,sans-serif;color-scheme:light dark}*{box-sizing:border-box}body{margin:0;min-height:100vh;background:var(--primary-background-color,#101820);color:var(--primary-text-color,#f3f6f8);display:grid;place-items:start center;padding:20px}.panel{width:min(100%,1040px);background:var(--card-background-color,#1b2833);border:1px solid var(--divider-color,#405361);border-radius:18px;padding:clamp(20px,4vw,36px);box-shadow:0 14px 50px #0004}header{display:flex;align-items:center;gap:14px;margin-bottom:24px}.mark{width:46px;height:46px;display:grid;place-items:center;border-radius:14px;background:#00a884;color:#fff;font-size:1.5rem}h1{font-size:1.55rem;margin:0}h2{font-size:1.1rem;margin:0 0 8px}h3{font-size:1rem;margin:24px 0 10px}.subtle{color:var(--secondary-text-color,#aebdc7);margin:4px 0 0;line-height:1.5}.status{display:flex;gap:12px;align-items:center;margin:18px 0;padding:14px 16px;border-radius:12px;background:#263743}.dot{width:11px;height:11px;border-radius:50%;background:#d79b32;flex:none}.dot.ok{background:#38bd80}.section{border-top:1px solid var(--divider-color,#405361);padding-top:22px;margin-top:22px}label{display:block;font-weight:650;margin:0 0 8px}input,textarea,button{width:100%;min-height:48px;border-radius:10px;font:inherit}input,textarea{background:var(--secondary-background-color,#111b23);color:inherit;border:1px solid #637785;padding:10px 12px}textarea{resize:vertical;font-family:ui-monospace,monospace;font-size:.85rem}button{margin-top:12px;border:0;background:#00a884;color:#fff;font-weight:700;cursor:pointer;padding:10px 14px}button.secondary{background:#384b58}button:disabled{opacity:.55;cursor:wait}.code{display:block;overflow-wrap:anywhere;padding:14px;background:var(--secondary-background-color,#111b23);border:1px solid #637785;border-radius:10px;font:600 1rem ui-monospace,monospace;letter-spacing:.05em;margin:12px 0}.actions{display:grid;grid-template-columns:1fr 1fr;gap:10px}.message{min-height:1.5em;margin-top:12px;color:#efc879}.small{font-size:.9rem;color:var(--secondary-text-color,#aebdc7);line-height:1.5}.hidden{display:none!important}.url{overflow-wrap:anywhere}.metrics-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,190px),1fr));gap:12px;margin-top:16px}.metric{min-width:0;padding:16px;border:1px solid var(--divider-color,#405361);border-radius:12px;background:var(--secondary-background-color,#111b23)}.metric span{display:block;color:var(--secondary-text-color,#aebdc7);font-size:.88rem}.metric strong{display:block;margin-top:8px;font-size:1.35rem;overflow-wrap:anywhere}.events{list-style:none;margin:0;padding:0;display:grid;gap:8px}.events li{padding:12px 14px;border-radius:10px;background:var(--secondary-background-color,#111b23);overflow-wrap:anywhere}.events small{display:block;margin-top:3px;color:var(--secondary-text-color,#aebdc7)}@media(max-width:480px){body{padding:12px}.panel{padding:20px}.actions{grid-template-columns:1fr}}
   </style>
 </head>
 <body>
   <main class="panel">
     <header><div class="mark" aria-hidden="true">↗</div><div><h1>Home Tunnel</h1><p class="subtle">Secure connection to your Home Assistant</p></div></header>
     <div class="status" role="status" aria-live="polite"><span id="dot" class="dot"></span><div><strong id="state-title">Checking status…</strong><div id="state-detail" class="small"></div></div></div>
+
+    <section id="telemetry" class="section" aria-labelledby="telemetry-title">
+      <h2 id="telemetry-title">Dashboard</h2>
+      <p class="subtle">Connection health and recent relay activity</p>
+      <div class="metrics-grid">
+        <div class="metric"><span>Tunnel health</span><strong id="metric-health">Checking…</strong></div>
+        <div class="metric"><span>Requests per minute</span><strong id="metric-rate">—</strong></div>
+        <div class="metric"><span>Traffic</span><strong id="metric-traffic">—</strong></div>
+        <div class="metric"><span>Recent latency</span><strong id="metric-latency">—</strong></div>
+        <div class="metric"><span>Active connections</span><strong id="metric-connections">—</strong></div>
+        <div class="metric"><span>Active WebSockets</span><strong id="metric-websockets">—</strong></div>
+        <div class="metric"><span>Relay uptime</span><strong id="metric-uptime">—</strong></div>
+        <div class="metric"><span>Security review</span><strong id="metric-security">—</strong></div>
+      </div>
+      <p id="telemetry-message" class="small" role="status" aria-live="polite">Loading telemetry…</p>
+      <h3>Recent activity</h3>
+      <ol id="recent-requests" class="events"><li class="small">Waiting for metrics</li></ol>
+    </section>
 
     <section id="settings" class="section">
       <h2>Settings</h2>
@@ -59,7 +77,6 @@
       <p class="small">Update the IIS relay manually. The Home Tunnel app updates through Home Assistant.</p>
       <p class="small"><a id="relay-release-link" target="_blank" rel="noopener noreferrer">Releases</a> · <a id="relay-changelog-link" target="_blank" rel="noopener noreferrer">Changelog</a> · <a id="relay-manual-link" target="_blank" rel="noopener noreferrer">Manual update guide</a></p>
     </section>
-    <p class="small section">The relay setup page accepts pairing only. Manage the tunnel here in Home Assistant.</p>
   </main>
 <script>
 (() => {
@@ -113,6 +130,38 @@
       dot.classList.toggle('ok',data.connected && data.forwarding_enabled);
     } catch (error) { byId('state-title').textContent='Setup service unavailable'; byId('state-detail').textContent=error.message; }
   }
+  function metric(id,value) { byId(id).textContent=String(value); }
+  async function refreshTelemetry() {
+    try {
+      const result=await api('telemetry');
+      if(!result.available) {
+        metric('metric-health','No data');
+        byId('telemetry-message').textContent='Add a metrics token in the Home Tunnel app Configuration tab, then restart the app to show relay activity here.';
+        byId('recent-requests').replaceChildren(Object.assign(document.createElement('li'),{textContent:'No telemetry available'}));
+        return;
+      }
+      const data=result.metrics;
+      metric('metric-health',data.healthy?'Online':(data.status||'Unknown'));
+      metric('metric-rate',`${data.requests_per_minute ?? 0} req/min`);
+      metric('metric-traffic',`${data.http_kib_per_second ?? 0} KiB/s`);
+      metric('metric-latency',`${data.recent_latency_ms ?? 0} ms`);
+      metric('metric-connections',data.active_http ?? 0);
+      metric('metric-websockets',data.active_ws ?? 0);
+      metric('metric-uptime',`${Math.floor((data.uptime_seconds ?? 0)/3600)} h`);
+      metric('metric-security',data.risk_status==='normal'?'Normal':(data.risk_status||'Unknown'));
+      const issues=Array.isArray(data.risk_issues)?data.risk_issues:[];
+      byId('telemetry-message').textContent=issues.length?issues.join(' · '):`Metrics updated ${data.telemetry_age_seconds ?? '—'} seconds ago`;
+      const list=byId('recent-requests');list.replaceChildren();
+      const events=Array.isArray(data.recent_requests)?data.recent_requests.slice(-10).reverse():[];
+      for(const event of events) {
+        const item=document.createElement('li');
+        const title=document.createElement('strong');title.textContent=`${event.method||'Request'} ${event.route||'route'} · ${event.status??'—'}`;
+        const detail=document.createElement('small');detail.textContent=`${event.duration_ms??'—'} ms · ${event.observed_at||'time unavailable'}`;
+        item.append(title,detail);list.append(item);
+      }
+      if(!events.length)list.append(Object.assign(document.createElement('li'),{textContent:'No recent requests'}));
+    } catch(error) { byId('telemetry-message').textContent='Telemetry unavailable'; }
+  }
   byId('save-settings').addEventListener('click',async()=>{
     const button=byId('save-settings');button.disabled=true;byId('settings-message').textContent='Saving…';
     try {
@@ -139,7 +188,7 @@
     } catch(error) { byId('setup-message').textContent=error.message; button.disabled=false; }
   });
   for(const [id,action] of [['enable','enable'],['disable','disable']]) byId(id).addEventListener('click',async()=>{byId('control-message').textContent='Updating…';try{await api(action,{});byId('control-message').textContent='Updated.';await refresh()}catch(error){byId('control-message').textContent=error.message}});
-  refresh(); setInterval(refresh,3000);
+  refresh(); refreshTelemetry(); setInterval(refresh,3000); setInterval(refreshTelemetry,10000);
 })();
 </script>
 </body>

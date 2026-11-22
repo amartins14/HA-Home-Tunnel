@@ -11,6 +11,12 @@ Release notes for Home Tunnel. Relay releases are installed manually on IIS; the
 - Add automated connector, relay, container-build, and custom-integration import checks.
 - Add the MIT license, contribution instructions, and explicit stable-release gates.
 
+## 0.4.3-dev
+
+- Combine connection management and private relay telemetry in the single Home Tunnel ingress dashboard.
+- Keep the Home Assistant URL and optional metrics token available in the app's Configuration tab, with changed app options reconciled on restart.
+- Remove the separate Lovelace dashboard; the custom integration remains optional for HA entities.
+
 ## 0.4.2-dev
 
 - Add a named Home Tunnel ingress sidebar panel and manage the local Home Assistant URL from the app web UI.

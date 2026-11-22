@@ -12,7 +12,7 @@
       },
       "reconfigure": {
         "title": "Update Home Tunnel metrics token",
-        "description": "Enter the current metrics token from the Home Tunnel app configuration folder.",
+        "description": "Enter the metrics token from the Home Tunnel app Configuration tab.",
         "data": {
           "token": "Metrics token"
         }

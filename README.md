@@ -8,7 +8,7 @@ The relay is not an identity provider or an access-control layer. Home Assistant
 
 - `home-assistant/` — installable Home Assistant app and connector.
 - `custom_components/home_tunnel/` — GUI-configured HA integration that creates status entities.
-- `dashboard/tunnel.yaml` — bundled administrator dashboard view.
+- The app's ingress page is the single Home Tunnel dashboard for settings, controls, status, and telemetry.
 - `relay/` — ASP.NET Framework 4.8 handlers and IIS configuration for the public endpoint.
 - `tools/rotate_key.py` — legacy manual-key tool; the setup UI does not use it.
 - `tests/` — protocol and connector regression checks.
@@ -28,12 +28,11 @@ The relay is not an identity provider or an access-control layer. Home Assistant
 3. Replace the blank `HaTunnelBootstrapCodeHash` setting in the existing `<appSettings>` section with the displayed `web.config` line. Use the host's File Manager or FTP; keep the hash private because it acts as a setup credential.
 4. Return to the Home Assistant UI, enter the IIS site's public HTTPS URL, and start pairing. HA and IIS authenticate each other using challenge-response; the one-time code is never sent. They exchange a unique permanent connector key and consume the setup code automatically.
 5. In the Home Tunnel app UI, enable forwarding after the connector reports connected.
-6. To add the optional dashboard, install the bundled **Home Tunnel** integration from HACS or copy `custom_components/home_tunnel/` into HA's `custom_components` folder. Configure it with the app's internal hostname and the optional metrics token.
-7. Install the administrator-only YAML dashboard by following `dashboard/README.md`.
-8. Verify the public endpoint and HA login from an external network.
+6. To show traffic telemetry in the single Home Tunnel dashboard, set a private metrics token in the app's **Configuration** tab and restart the app. The bundled integration remains optional for exposing the same data as Home Assistant entities.
+7. Verify the public endpoint and HA login from an external network.
 
 See [configuration](docs/CONFIGURATION.md), [relay deployment](docs/RELAY-DEPLOYMENT.md), and [security](docs/SECURITY.md) before exposing the endpoint.
 
 ## Status
 
-This repository is a public-oriented extraction from an existing installation and is licensed under MIT. It is not yet a supported general-purpose release. The `0.4.2-dev` version must not be treated as production-ready. A stable release requires green verification checks for the exact commit, fresh IIS deployment and rollback validation, and review of the documented security limits. See [contribution and release checks](CONTRIBUTING.md).
+This repository is a public-oriented extraction from an existing installation and is licensed under MIT. It is not yet a supported general-purpose release. The `0.4.3-dev` version must not be treated as production-ready. A stable release requires green verification checks for the exact commit, fresh IIS deployment and rollback validation, and review of the documented security limits. See [contribution and release checks](CONTRIBUTING.md).
