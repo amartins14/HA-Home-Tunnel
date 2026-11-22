@@ -15,6 +15,14 @@
     <header><div class="mark" aria-hidden="true">↗</div><div><h1>Home Tunnel</h1><p class="subtle">Secure connection to your Home Assistant</p></div></header>
     <div class="status" role="status" aria-live="polite"><span id="dot" class="dot"></span><div><strong id="state-title">Checking status…</strong><div id="state-detail" class="small"></div></div></div>
 
+    <section id="settings" class="section">
+      <h2>Settings</h2>
+      <label for="homeassistant-url">Home Assistant URL</label>
+      <input id="homeassistant-url" type="url" inputmode="url" placeholder="http://homeassistant:8123" autocomplete="url" required>
+      <p class="small">Use the local Home Assistant address. Saving restarts the connector, so active remote sessions may briefly disconnect.</p>
+      <button id="save-settings" class="secondary" type="button">Save settings</button>
+      <div id="settings-message" class="message" role="status" aria-live="polite"></div>
+    </section>
     <section id="setup" class="section">
       <h2>Set up your relay</h2>
       <p class="subtle">Generate one setup code. Add its hash to the relay's web.config, then enter the relay URL to pair.</p>
@@ -67,6 +75,8 @@
     try {
       const data = await api('status');
       const dot=byId('dot'), title=byId('state-title'), detail=byId('state-detail');
+      const localUrl=byId('homeassistant-url');
+      if(document.activeElement!==localUrl)localUrl.value=data.homeassistant_url || "";
       byId('setup').classList.toggle('hidden',data.paired);
       byId('paired').classList.toggle('hidden',!data.paired);
       byId('relay-updates').classList.toggle('hidden',!data.paired);
@@ -103,6 +113,15 @@
       dot.classList.toggle('ok',data.connected && data.forwarding_enabled);
     } catch (error) { byId('state-title').textContent='Setup service unavailable'; byId('state-detail').textContent=error.message; }
   }
+  byId('save-settings').addEventListener('click',async()=>{
+    const button=byId('save-settings');button.disabled=true;byId('settings-message').textContent='Saving…';
+    try {
+      const result=await api('settings',{homeassistant_url:byId('homeassistant-url').value.trim()});
+      byId('settings-message').textContent=result.restarting?'Saved. Connector restarting; remote sessions may briefly disconnect.':'Saved.';
+      await refresh();
+    } catch(error) { byId('settings-message').textContent=error.message; }
+    finally { button.disabled=false; }
+  });
   byId('generate-code').addEventListener('click',async()=>{
     const button=byId('generate-code');button.disabled=true;byId('setup-message').textContent='Generating…';
     try { await api('claim-code',{});await refresh();byId('setup-message').textContent='Add the hash line to web.config before pairing.'; }

@@ -1,5 +1,5 @@
 name: Home Tunnel
-version: "0.4.1-dev"
+version: "0.4.2-dev"
 slug: home_tunnel
 description: Secure setup and outgoing relay to your self-hosted endpoint
 homeassistant: "2026.9.0"
@@ -23,6 +23,8 @@ map:
 ingress: true
 ingress_port: 8099
 panel_admin: true
+panel_icon: mdi:lan-connect
+panel_title: Home Tunnel
 ports:
   8100/tcp: null
 options:

@@ -1,6 +1,6 @@
 # Home Tunnel dashboard
 
-This dashboard uses Home Assistant's built-in Lovelace cards and entities from the bundled `home_tunnel` integration.
+This optional dashboard uses Home Assistant's built-in Lovelace cards and entities from the bundled `home_tunnel` integration. It shows tunnel telemetry; app configuration and tunnel controls are managed in the Home Tunnel app's ingress web UI.
 
 1. Install and configure the integration first.
 2. Copy `tunnel.yaml` into `/config/dashboards/home_tunnel.yaml`.

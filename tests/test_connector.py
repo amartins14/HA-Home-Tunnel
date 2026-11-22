@@ -21,6 +21,7 @@ from yarl import URL
 from yarl import URL
 import connector
 import policy
+import service
 from metrics import Metrics, application
 spec = importlib.util.spec_from_file_location("rotate_key", ROOT / "tools" / "rotate_key.py")
 rotation = importlib.util.module_from_spec(spec)
@@ -43,6 +44,17 @@ class SecurityPolicyTests(unittest.TestCase):
         with patch.dict("os.environ", {"HOMEASSISTANT_URL": "http://ha.example.test:8123"}):
             with patch.object(Path, "read_text", read_text):
                 self.assertEqual(policy._settings()["homeassistant_url"], "http://ha.example.test:8123")
+    def test_web_ui_setting_overrides_initial_option(self):
+        original_read_text = Path.read_text
+        def read_text(path, *args, **kwargs):
+            if path.name == "options.json" and path.parent.name == "data":
+                raise PermissionError("root-only supervisor options")
+            if path.name == "settings.json" and path.parent.name == "state":
+                return '{"homeassistant_url":"https://ha.example.test:8443"}'
+            return original_read_text(path, *args, **kwargs)
+        with patch.dict("os.environ", {"HOMEASSISTANT_URL": "http://legacy.example.test:8123"}):
+            with patch.object(Path, "read_text", read_text):
+                self.assertEqual(policy._settings()["homeassistant_url"], "https://ha.example.test:8443")
     def test_no_alternate_destinations_or_traversal(self):
         paths = ["http://evil/", "//evil/", "/\\evil", "/%2fexample.com", "/%252fexample.com", "/../api/", "/%2e%2e/api/", "/api\r\nHost: evil", "/api#fragment", "/%00", "/%25252e%25252e/api/"]
         for value in paths:
@@ -173,6 +185,28 @@ class FakeLocal:
         return self.response
 
 class ConnectorAsyncTests(unittest.IsolatedAsyncioTestCase):
+    async def test_ingress_settings_save_url_and_restart_connector(self):
+        class Request:
+            async def json(self):
+                return {"homeassistant_url": "http://new-ha.example.test:8123/"}
+        class Child:
+            returncode = None
+            def __init__(self): self.terminated = False
+            def terminate(self): self.terminated = True
+        with tempfile.TemporaryDirectory() as temporary:
+            settings_path = Path(temporary) / "settings.json"
+            child = Child()
+            with patch.object(service, "SETTINGS", settings_path), patch.object(service, "child", child), patch.dict("os.environ", {"HOMEASSISTANT_URL": "http://legacy.example.test:8123"}):
+                response = await service.update_settings(Request())
+                self.assertEqual(response.status, 200)
+                self.assertEqual(json.loads(response.text), {"homeassistant_url": "http://new-ha.example.test:8123", "restarting": True})
+                self.assertTrue(child.terminated)
+                self.assertEqual(json.loads(settings_path.read_text()), {"homeassistant_url": "http://new-ha.example.test:8123"})
+                class InvalidRequest:
+                    async def json(self):
+                        return {"homeassistant_url": "https://user:pass@ha.example.test/path"}
+                with self.assertRaises(web.HTTPBadRequest):
+                    await service.update_settings(InvalidRequest())
     async def test_large_model_streams_in_bounded_acknowledged_chunks(self):
         # A standalone fixture keeps tunnel tests independent of the 3D app.
         data = gzip.compress(random.Random(42).randbytes(5 * 1024 * 1024), mtime=0)

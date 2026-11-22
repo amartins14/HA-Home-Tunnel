@@ -11,6 +11,11 @@ Release notes for Home Tunnel. Relay releases are installed manually on IIS; the
 - Add automated connector, relay, container-build, and custom-integration import checks.
 - Add the MIT license, contribution instructions, and explicit stable-release gates.
 
+## 0.4.2-dev
+
+- Add a named Home Tunnel ingress sidebar panel and manage the local Home Assistant URL from the app web UI.
+- Store the editable URL in private app state and restart the connector when it changes.
+
 ## 0.4.1-dev
 
 - Fix connector startup when Home Assistant keeps `/data/options.json` root-only by passing only the configured destination URL into the isolated connector environment.

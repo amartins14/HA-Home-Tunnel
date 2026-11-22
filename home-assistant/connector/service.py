@@ -16,6 +16,7 @@ from urllib.parse import urlsplit
 
 import aiohttp
 from aiohttp import web
+import policy
 
 STATE = Path("/data/state")
 PAIRING = STATE / "pairing.json"
@@ -23,6 +24,7 @@ CONNECTION = STATE / "connection.json"
 FINALIZE = STATE / "finalize.json"
 TOKEN = STATE / "tunnel-token.txt"
 STATUS = STATE / "status.json"
+SETTINGS = STATE / "settings.json"
 RELAY_RELEASE = STATE / "relay-release.json"
 RELAY_VERSION = STATE / "relay-version.json"
 SETUP_PAGE = Path("/app/setup.html")
@@ -58,6 +60,20 @@ def write_private(path, content):
 def save_json(path, data):
     write_private(path, json.dumps(data, separators=(",", ":")))
 
+
+def ensure_settings():
+    settings = read_json(SETTINGS)
+    if settings is None:
+        if SETTINGS.exists():
+            raise ValueError("Home Tunnel settings file is unreadable")
+        value = policy.homeassistant_origin(os.environ.get("HOMEASSISTANT_URL", "http://homeassistant:8123"))
+        save_json(SETTINGS, {"homeassistant_url": value})
+        return value
+    value = policy.homeassistant_origin(settings.get("homeassistant_url"))
+    if value != settings.get("homeassistant_url"):
+        settings["homeassistant_url"] = value
+        save_json(SETTINGS, settings)
+    return value
 
 def app_version():
     try:
@@ -231,6 +247,7 @@ async def status(request):
     comparison = compare_versions(latest_relay, installed_relay) if latest_relay and installed_relay else None
     current_app = app_version()
     result = {
+        "homeassistant_url": ensure_settings(),
         "paired": bool(connection and TOKEN.exists()),
         "claim_ready": bool(pairing and not pairing.get("started")),
         "pairing_pending": bool(pairing and pairing.get("started")),
@@ -254,6 +271,22 @@ async def status(request):
     }
     return web.json_response(result, headers={"Cache-Control": "no-store"})
 
+
+async def update_settings(request):
+    data = await request.json()
+    if not isinstance(data, dict) or set(data) != {"homeassistant_url"}:
+        raise web.HTTPBadRequest(text="Set only the Home Assistant URL")
+    try:
+        value = policy.homeassistant_origin(data.get("homeassistant_url"))
+    except ValueError as error:
+        raise web.HTTPBadRequest(text=str(error))
+    current = ensure_settings()
+    restarting = value != current and child is not None and child.returncode is None
+    if value != current:
+        save_json(SETTINGS, {"homeassistant_url": value})
+        if restarting:
+            child.terminate()
+    return web.json_response({"homeassistant_url": value, "restarting": restarting}, headers={"Cache-Control": "no-store"})
 
 async def generate_claim_code(request):
     if CONNECTION.exists() or TOKEN.exists():
@@ -480,6 +513,7 @@ def make_app():
     app = web.Application(middlewares=[restrict_to_ingress], client_max_size=4096)
     app.router.add_get("/", setup_page)
     app.router.add_get("/api/status", status)
+    app.router.add_post("/api/settings", update_settings)
     app.router.add_post("/api/claim-code", generate_claim_code)
     app.router.add_post("/api/pair", begin_pairing)
     app.router.add_post("/api/enable", enable)
@@ -489,6 +523,7 @@ def make_app():
 
 async def main():
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(message)s")
+    ensure_settings()
     app = make_app()
     app["tasks"] = []
     app.on_shutdown.append(on_shutdown)

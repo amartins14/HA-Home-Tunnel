@@ -15,10 +15,14 @@ def _settings():
             'homeassistant_url': os.environ.get('HOMEASSISTANT_URL', 'http://homeassistant:8123'),
         }
     try:
+        settings = json.loads(Path('/data/state/settings.json').read_text(encoding='utf-8'))
+    except FileNotFoundError:
+        settings = {}
+    try:
         connection = json.loads(Path('/data/state/connection.json').read_text(encoding='utf-8'))
     except FileNotFoundError:
         connection = {}
-    return {**options, **connection}
+    return {**options, **settings, **connection}
 
 def _origin(value, schemes, name):
     if not isinstance(value, str) or not value or len(value) > 2048:
@@ -40,7 +44,10 @@ def _origin(value, schemes, name):
 
 _OPTIONS = _settings()
 OPTIONS = _OPTIONS
-LOCAL = _origin(_OPTIONS.get('homeassistant_url'), {'http', 'https'}, 'homeassistant_url')
+def homeassistant_origin(value):
+    return _origin(value, {'http', 'https'}, 'homeassistant_url')
+
+LOCAL = homeassistant_origin(_OPTIONS.get('homeassistant_url'))
 ORIGIN = _origin(_OPTIONS.get('public_origin'), {'https'}, 'public_origin') if _OPTIONS.get('public_origin') else None
 REMOTE = _OPTIONS.get('relay_url')
 _remote = urlsplit(REMOTE) if isinstance(REMOTE, str) else None
