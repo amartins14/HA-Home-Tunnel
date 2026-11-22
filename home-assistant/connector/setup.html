@@ -57,6 +57,20 @@
     .metric strong { display: block; margin-top: 12px; color: #f7f8fa; font-size: 1.35rem; font-weight: 500; overflow-wrap: anywhere; }
     .metric:nth-child(4n + 2) strong { color: #68aaff; }
     .metric:nth-child(4n + 3) strong { color: #e3b13c; }
+    .chart-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 16px; }
+    .chart-card { min-width: 0; padding: 14px; border: 1px solid #3d3d3d; border-radius: 4px; background: var(--surface-raised); }
+    .chart-card h3 { margin: 0; font-size: .86rem; }
+    .chart-value { display: block; margin-top: 7px; font-size: 1.15rem; font-weight: 600; }
+    .chart-card svg { display: block; width: 100%; height: 132px; margin-top: 8px; overflow: visible; }
+    #charts { margin-top: 16px; }
+    .chart-axis, .chart-gridline { stroke: #42464d; stroke-width: 1; }
+    .chart-gridline { stroke-dasharray: 3 5; }
+    .chart-label { fill: #a8adb5; font: 11px Arial, sans-serif; }
+    .chart-line { fill: none; stroke: var(--chart-color); stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+    .chart-area { fill: var(--chart-color); opacity: .12; }
+    .chart-point { fill: var(--chart-color); stroke: #1c1c1c; stroke-width: 3; }
+    .chart-empty { fill: #a8adb5; font: 13px Arial, sans-serif; }
+    .chart-note { margin: 0; color: var(--muted); font-size: .72rem; }
     #telemetry-message { min-height: 1.4em; margin: 13px 0 0; }
     .events { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 18px; margin: 0; padding: 0; list-style: none; }
     .events li { min-width: 0; padding: 11px 4px; border-top: 1px solid #383838; overflow-wrap: anywhere; }
@@ -88,6 +102,7 @@
       .top-nav { grid-row: 2; grid-column: 1 / -1; min-height: 44px; gap: 22px; }
       .connection-state { grid-column: 2; grid-row: 1; justify-self: end; }
       .metrics-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .chart-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     }
     @media (max-width: 620px) {
       .app-shell { padding: 0 12px 22px; }
@@ -100,6 +115,7 @@
       .page-heading .subtle { max-width: 40ch; }
       .page-heading > button { width: auto; flex: none; }
       .management-grid, .about-grid { grid-template-columns: minmax(0, 1fr); gap: 12px; margin-top: 12px; }
+      .chart-grid { grid-template-columns: minmax(0, 1fr); }
       .events { grid-template-columns: minmax(0, 1fr); }
     }
     @media (max-width: 420px) {
@@ -160,10 +176,19 @@
           </div>
           <p id="telemetry-message" class="small" role="status" aria-live="polite">Loading telemetry…</p>
         </section>
+        <section id="charts" class="section" aria-labelledby="charts-title">
+          <div class="section-heading"><div><h2 id="charts-title">Live trends</h2><p class="subtle">Sampled while this dashboard is open</p></div><label for="chart-range" class="small">Window <select id="chart-range" style="width:auto;min-height:36px;margin-left:6px"><option value="5">5 min</option><option value="15" selected>15 min</option><option value="30">30 min</option></select></label></div>
+          <div class="chart-grid">
+            <section class="chart-card" aria-label="Requests per minute trend" style="--chart-color:#68aaff"><h3>Requests / min</h3><strong id="chart-rate-value" class="chart-value">—</strong><svg id="chart-rate" viewBox="0 0 400 180" role="img" aria-label="Requests per minute over the selected window"></svg><p id="chart-rate-note" class="chart-note">Waiting for telemetry</p></section>
+            <section class="chart-card" aria-label="Traffic trend" style="--chart-color:#e3b13c"><h3>Traffic · KiB/s</h3><strong id="chart-traffic-value" class="chart-value">—</strong><svg id="chart-traffic" viewBox="0 0 400 180" role="img" aria-label="Traffic in kibibytes per second over the selected window"></svg><p id="chart-traffic-note" class="chart-note">Waiting for telemetry</p></section>
+            <section class="chart-card" aria-label="Recent latency trend" style="--chart-color:#65cf38"><h3>Recent latency</h3><strong id="chart-latency-value" class="chart-value">—</strong><svg id="chart-latency" viewBox="0 0 400 180" role="img" aria-label="Recent latency in milliseconds over the selected window"></svg><p id="chart-latency-note" class="chart-note">Waiting for telemetry</p></section>
+          </div>
+          <p class="chart-note" style="margin-top:12px">Trend samples clear when this page reloads or closes.</p>
+        </section>
       </section>
 
       <section class="view hidden" id="settings" aria-labelledby="settings-title">
-        <div class="page-heading"><div><h1 id="settings-title">Settings</h1><p class="subtle">Connection, relay controls, and setup</p></div></div>
+        <div class="page-heading"><div><h1 id="settings-title">Settings</h1><p class="subtle">Relay controls and setup</p></div></div>
         <div class="management-grid">
           <section id="paired" class="section hidden">
             <div class="section-heading"><div><h2>Relay controls</h2><p class="subtle">Manage forwarding</p></div></div>
@@ -171,14 +196,6 @@
             <p id="paired-detail" class="subtle"></p>
             <div class="actions"><button id="enable" type="button">Enable forwarding</button><button id="disable" class="secondary" type="button">Disable forwarding</button></div>
             <div id="control-message" class="message" role="status" aria-live="polite"></div>
-          </section>
-          <section id="connection-settings" class="section" aria-labelledby="settings-card-title">
-            <div class="section-heading"><div><h2 id="settings-card-title">Home Assistant connection</h2><p class="subtle">Local destination for the tunnel</p></div></div>
-            <label for="homeassistant-url">Home Assistant URL</label>
-            <input id="homeassistant-url" type="url" inputmode="url" placeholder="http://homeassistant:8123" autocomplete="url" required>
-            <p class="small">Saving restarts the connector, so active remote sessions may briefly disconnect.</p>
-            <button id="save-settings" class="secondary" type="button">Save settings</button>
-            <div id="settings-message" class="message" role="status" aria-live="polite"></div>
           </section>
           <section id="setup" class="section">
             <div class="section-heading"><div><h2>Set up your relay</h2><p class="subtle">Pair this app with your IIS relay</p></div></div>
@@ -235,6 +252,44 @@
   const base = document.querySelector('meta[name="ingress-base"]').content.replace(/\/$/, '');
   const byId = id => document.getElementById(id);
   const pages = ['dashboard','settings','about','activity'];
+  const samples=[];
+  const chartWindow=byId('chart-range');
+  const chartSpecs=[
+    {key:'rate',value:'chart-rate-value',svg:'chart-rate',note:'chart-rate-note',field:'requests_per_minute',unit:'req/min',digits:1},
+    {key:'traffic',value:'chart-traffic-value',svg:'chart-traffic',note:'chart-traffic-note',field:'http_kib_per_second',unit:'KiB/s',digits:1},
+    {key:'latency',value:'chart-latency-value',svg:'chart-latency',note:'chart-latency-note',field:'recent_latency_ms',unit:'ms',digits:0}
+  ];
+  const svgNode=(name,attrs={})=>{const node=document.createElementNS('http://www.w3.org/2000/svg',name);for(const [key,value] of Object.entries(attrs))node.setAttribute(key,value);return node;};
+  function drawChart(spec,now=Date.now()) {
+    const minutes=Number(chartWindow.value)||15, cutoff=now-minutes*60000;
+    const points=samples.filter(sample=>sample.at>=cutoff);
+    const current=points[points.length-1]?.[spec.key];
+    byId(spec.value).textContent=current==null?'—':`${current.toFixed(spec.digits)} ${spec.unit}`;
+    byId(spec.note).textContent=points.length<2?'Collecting live samples':`${points.length} samples · last ${minutes} min`;
+    const svg=byId(spec.svg);svg.replaceChildren();
+    const left=40,right=392,top=12,bottom=148,width=right-left,height=bottom-top;
+    for(let tick=0;tick<=4;tick++) {
+      const y=top+height*tick/4;
+      svg.append(svgNode('line',{x1:left,y1:y,x2:right,y2:y,class:tick===4?'chart-axis':'chart-gridline'}));
+      const label=svgNode('text',{x:left-7,y:y+4,'text-anchor':'end',class:'chart-label'});
+      const max=Math.max(1,...points.map(point=>point[spec.key]));
+      label.textContent=(max*(4-tick)/4).toFixed(spec.digits);svg.append(label);
+    }
+    const oldLabel=svgNode('text',{x:left,y:168,class:'chart-label'});oldLabel.textContent=`${minutes} min ago`;svg.append(oldLabel);
+    const nowLabel=svgNode('text',{x:right,y:168,'text-anchor':'end',class:'chart-label'});nowLabel.textContent='Now';svg.append(nowLabel);
+    if(!points.length) {
+      const empty=svgNode('text',{x:width/2+left,y:top+height/2,'text-anchor':'middle',class:'chart-empty'});empty.textContent='Waiting for telemetry';svg.append(empty);return;
+    }
+    const max=Math.max(1,...points.map(point=>point[spec.key]));
+    const xy=points.map(point=>[left+width*(point.at-cutoff)/(minutes*60000),bottom-height*point[spec.key]/max]);
+    if(xy.length>1) {
+      const line=xy.map((point,index)=>`${index?'L':'M'}${point[0].toFixed(1)},${point[1].toFixed(1)}`).join(' ');
+      const area=svgNode('path',{d:`${line} L${xy[xy.length-1][0].toFixed(1)},${bottom} L${xy[0][0].toFixed(1)},${bottom} Z`,class:'chart-area'});
+      const path=svgNode('path',{d:line,class:'chart-line'});svg.append(area,path);
+    }
+    const last=xy[xy.length-1];svg.append(svgNode('circle',{cx:last[0],cy:last[1],r:5,class:'chart-point'}));
+  }
+  function drawCharts(){for(const spec of chartSpecs)drawChart(spec);}
   function showPage() {
     const requested=location.hash.slice(1);
     const active=pages.includes(requested)?requested:'dashboard';
@@ -258,8 +313,6 @@
     try {
       const data = await api('status');
       const dot=byId('dot'), title=byId('state-title'), detail=byId('state-detail');
-      const localUrl=byId('homeassistant-url');
-      if(document.activeElement!==localUrl)localUrl.value=data.homeassistant_url || "";
       byId('setup').classList.toggle('hidden',data.paired);
       byId('paired').classList.toggle('hidden',!data.paired);
       byId('claim-details').classList.toggle('hidden',!data.claim_ready);
@@ -313,6 +366,10 @@
         return;
       }
       const data=result.metrics;
+      const numeric=value=>Number.isFinite(Number(value))?Number(value):0;
+      const sample={at:Date.now(),rate:numeric(data.requests_per_minute),traffic:numeric(data.http_kib_per_second),latency:numeric(data.recent_latency_ms)};
+      samples.push(sample);if(samples.length>180)samples.splice(0,samples.length-180);
+      drawCharts();
       metric('metric-health',data.healthy?'Online':(data.status||'Unknown'));
       metric('metric-rate',`${data.requests_per_minute ?? 0} req/min`);
       metric('metric-traffic',`${data.http_kib_per_second ?? 0} KiB/s`);
@@ -334,15 +391,7 @@
       if(!events.length)list.append(Object.assign(document.createElement('li'),{textContent:'No recent requests'}));
     } catch(error) { byId('telemetry-message').textContent='Telemetry unavailable'; }
   }
-  byId('save-settings').addEventListener('click',async()=>{
-    const button=byId('save-settings');button.disabled=true;byId('settings-message').textContent='Saving…';
-    try {
-      const result=await api('settings',{homeassistant_url:byId('homeassistant-url').value.trim()});
-      byId('settings-message').textContent=result.restarting?'Saved. Connector restarting; remote sessions may briefly disconnect.':'Saved.';
-      await refresh();
-    } catch(error) { byId('settings-message').textContent=error.message; }
-    finally { button.disabled=false; }
-  });
+  chartWindow.addEventListener('change',drawCharts);
   byId('refresh-statistics').addEventListener('click',async()=>{
     const button=byId('refresh-statistics');button.disabled=true;
     await Promise.all([refresh(),refreshTelemetry()]);

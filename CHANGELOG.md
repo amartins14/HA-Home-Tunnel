@@ -4,22 +4,21 @@ Release notes for Home Tunnel. Relay releases are installed manually on IIS; the
 
 ## Unreleased
 
-- Split the dashboard, relay controls and settings, about information, and activity into four navigable views.
+- No changes yet.
+
+## 0.4.7
+
+- Split the app into Dashboard, Settings, About, and Activity views.
+- Add live graphs for request rate, traffic, and latency with a selectable time window.
+- Use Home Assistant's internal destination automatically; retain the Configuration-tab override for advanced networks.
 - Restyle the dashboard with a dark overview, metric cards, and responsive management panels.
-- Keep settings, setup, connection controls, and relay information on the same dashboard.
-- Distinguish development relay metadata from a published stable release in the dashboard.
-- Publish tagged development builds as GitHub prereleases with a relay ZIP after CI passes.
+- Keep relay controls, setup, version information, and activity in the Home Tunnel app.
 - The Home Assistant app reports the paired relay version and checks the public compatibility manifest.
-- Added an authenticated relay version action and a manual IIS update guide.
-- Existing relay deployments that do not support version reporting continue to connect; their version is shown as unavailable.
+- Add an authenticated relay version action and a manual IIS update guide.
+- Keep older relay deployments connected when version reporting is unavailable.
 - Declare Home Assistant Core 2026.9.0 as the minimum version for the app and optional integration.
 - Add automated connector, relay, container-build, and custom-integration import checks.
 - Add the MIT license, contribution instructions, and explicit stable-release gates.
-
-## 0.4.7-dev
-
-- Add separate Dashboard, Settings, About, and Activity views within the single Home Tunnel app.
-- Keep all setup and relay controls in Settings and preserve the Home Assistant app Configuration tab.
 
 ## 0.4.6-dev
 

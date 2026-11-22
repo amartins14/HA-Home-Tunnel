@@ -230,7 +230,7 @@ public static class RelayPolicy
 public static class RelayBuild
 {
     // Keep this aligned with release-manifest.json when publishing a relay build.
-    public const string Version = "0.4.0-dev";
+    public const string Version = "0.4.0";
 }
 
 public sealed class RelayLease : IDisposable

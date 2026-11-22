@@ -6,10 +6,10 @@ Set these through the Home Assistant app configuration UI:
 
 | Option | Required value | Purpose |
 | --- | --- | --- |
-| `homeassistant_url` | `http://` or `https://` origin | The one HA server this connector may reach. No path, query, credentials, or fragment. |
+| `homeassistant_url` | Defaults automatically | Advanced override for the HA server this connector may reach. Normal installs use `http://homeassistant:8123`. No path, query, credentials, or fragment. |
 | `metrics_token` | 64 lowercase hexadecimal characters, or blank | Optional shared key for the Home Tunnel integration. Blank lets the app create a private key for its own dashboard automatically. |
 
-Enter the public HTTPS URL once in the app's ingress setup page. It derives the relay WebSocket address and the browser-facing origin from that URL. The local HA URL remains an advanced app option and defaults to `http://homeassistant:8123`.
+Enter the public HTTPS URL once in the app's ingress setup page. It derives the relay WebSocket address and the browser-facing origin from that URL. The app connects to Home Assistant automatically at `http://homeassistant:8123`; only change `homeassistant_url` in the app's Configuration tab for an unusual network layout.
 
 The connector accepts only relative paths from the relay and joins them to the configured local HA origin. Redirects are rejected. The destination cannot be selected by a browser request.
 
