@@ -35,4 +35,4 @@ See [configuration](docs/CONFIGURATION.md), [relay deployment](docs/RELAY-DEPLOY
 
 ## Status
 
-This repository is licensed under MIT. The current `0.4.6-dev` build is a development version, not a supported production release. A stable release requires green verification checks for the exact commit, a fresh IIS deployment with pairing and rollback validated, and review of the documented security limits. See [contribution and release checks](CONTRIBUTING.md) and [GitHub Releases](https://github.com/amartins14/HA-Home-Tunnel/releases).
+This repository is licensed under MIT. The current `0.4.7-dev` build is a development version, not a supported production release. A stable release requires green verification checks for the exact commit, an IIS deployment with pairing and rollback validated, and review of the documented security limits. See [contribution and release checks](CONTRIBUTING.md) and [GitHub Releases](https://github.com/amartins14/HA-Home-Tunnel/releases).

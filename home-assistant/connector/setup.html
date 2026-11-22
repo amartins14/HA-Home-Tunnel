@@ -62,7 +62,7 @@
     .events li { min-width: 0; padding: 11px 4px; border-top: 1px solid #383838; overflow-wrap: anywhere; }
     .events li strong { font-size: .82rem; font-weight: 500; }
     .events small { display: block; margin-top: 4px; color: var(--muted); font-size: .74rem; }
-    .management-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; gap: 16px; margin-top: 16px; }
+    .management-grid, .about-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; gap: 16px; margin-top: 16px; }
     .management-grid > .section { margin: 0; }
     label { display: block; margin: 0 0 7px; font-size: .82rem; font-weight: 600; }
     input, textarea, button { width: 100%; min-height: 42px; border-radius: 4px; font: inherit; }
@@ -99,7 +99,7 @@
       .page-heading { align-items: flex-start; margin-top: 21px; }
       .page-heading .subtle { max-width: 40ch; }
       .page-heading > button { width: auto; flex: none; }
-      .management-grid { grid-template-columns: minmax(0, 1fr); gap: 12px; margin-top: 12px; }
+      .management-grid, .about-grid { grid-template-columns: minmax(0, 1fr); gap: 12px; margin-top: 12px; }
       .events { grid-template-columns: minmax(0, 1fr); }
     }
     @media (max-width: 420px) {
@@ -124,14 +124,15 @@
 <body>
   <div class="app-shell">
     <header class="topbar">
-      <a class="brand" href="#telemetry" aria-label="Home Tunnel dashboard">
+      <a class="brand" href="#dashboard" aria-label="Home Tunnel dashboard">
         <span class="brand-mark" aria-hidden="true">↗</span>
         <span><span class="brand-name">HOME TUNNEL</span><span class="brand-caption">Secure relay</span></span>
       </a>
       <nav class="top-nav" aria-label="Dashboard sections">
-        <a class="active" href="#telemetry">Dashboard</a>
+        <a class="active" href="#dashboard">Dashboard</a>
         <a href="#settings">Settings</a>
-        <a href="#setup">Setup guide</a>
+        <a href="#about">About</a>
+        <a href="#activity">Activity</a>
       </nav>
       <div class="connection-state" role="status" aria-live="polite">
         <span id="dot" class="dot"></span>
@@ -139,81 +140,114 @@
       </div>
     </header>
 
-    <main>
-      <div class="page-heading">
-        <div><h1>Dashboard</h1><p class="subtle">Connection health and recent relay activity</p></div>
-        <button id="refresh-statistics" type="button">Refresh statistics</button>
-      </div>
+    <main id="app-content">
+      <section class="view" id="dashboard" aria-labelledby="dashboard-title">
+        <div class="page-heading">
+          <div><h1 id="dashboard-title">Dashboard</h1><p class="subtle">Connection health and relay statistics</p></div>
+          <button id="refresh-statistics" type="button">Refresh statistics</button>
+        </div>
+        <section id="telemetry" class="section" aria-labelledby="telemetry-title">
+          <div class="section-heading"><div><h2 id="telemetry-title">General statistics</h2><p class="subtle">Current relay status</p></div></div>
+          <div class="metrics-grid" aria-label="Relay statistics">
+            <div class="metric"><span>Tunnel health</span><strong id="metric-health">Checking…</strong></div>
+            <div class="metric"><span>Requests per minute</span><strong id="metric-rate">—</strong></div>
+            <div class="metric"><span>Traffic</span><strong id="metric-traffic">—</strong></div>
+            <div class="metric"><span>Recent latency</span><strong id="metric-latency">—</strong></div>
+            <div class="metric"><span>Active connections</span><strong id="metric-connections">—</strong></div>
+            <div class="metric"><span>Active WebSockets</span><strong id="metric-websockets">—</strong></div>
+            <div class="metric"><span>Relay uptime</span><strong id="metric-uptime">—</strong></div>
+            <div class="metric"><span>Security review</span><strong id="metric-security">—</strong></div>
+          </div>
+          <p id="telemetry-message" class="small" role="status" aria-live="polite">Loading telemetry…</p>
+        </section>
+      </section>
 
-    <section id="telemetry" class="section" aria-labelledby="telemetry-title">
-      <div class="section-heading"><div><h2 id="telemetry-title">General statistics</h2><p class="subtle">Current relay status</p></div></div>
-      <div class="metrics-grid" aria-label="Relay statistics">
-        <div class="metric"><span>Tunnel health</span><strong id="metric-health">Checking…</strong></div>
-        <div class="metric"><span>Requests per minute</span><strong id="metric-rate">—</strong></div>
-        <div class="metric"><span>Traffic</span><strong id="metric-traffic">—</strong></div>
-        <div class="metric"><span>Recent latency</span><strong id="metric-latency">—</strong></div>
-        <div class="metric"><span>Active connections</span><strong id="metric-connections">—</strong></div>
-        <div class="metric"><span>Active WebSockets</span><strong id="metric-websockets">—</strong></div>
-        <div class="metric"><span>Relay uptime</span><strong id="metric-uptime">—</strong></div>
-        <div class="metric"><span>Security review</span><strong id="metric-security">—</strong></div>
-      </div>
-      <p id="telemetry-message" class="small" role="status" aria-live="polite">Loading telemetry…</p>
-      <h3>Recent activity</h3>
-      <ol id="recent-requests" class="events"><li class="small">Waiting for metrics</li></ol>
-    </section>
+      <section class="view hidden" id="settings" aria-labelledby="settings-title">
+        <div class="page-heading"><div><h1 id="settings-title">Settings</h1><p class="subtle">Connection, relay controls, and setup</p></div></div>
+        <div class="management-grid">
+          <section id="paired" class="section hidden">
+            <div class="section-heading"><div><h2>Relay controls</h2><p class="subtle">Manage forwarding</p></div></div>
+            <p id="relay-url" class="subtle url"></p>
+            <p id="paired-detail" class="subtle"></p>
+            <div class="actions"><button id="enable" type="button">Enable forwarding</button><button id="disable" class="secondary" type="button">Disable forwarding</button></div>
+            <div id="control-message" class="message" role="status" aria-live="polite"></div>
+          </section>
+          <section id="connection-settings" class="section" aria-labelledby="settings-card-title">
+            <div class="section-heading"><div><h2 id="settings-card-title">Home Assistant connection</h2><p class="subtle">Local destination for the tunnel</p></div></div>
+            <label for="homeassistant-url">Home Assistant URL</label>
+            <input id="homeassistant-url" type="url" inputmode="url" placeholder="http://homeassistant:8123" autocomplete="url" required>
+            <p class="small">Saving restarts the connector, so active remote sessions may briefly disconnect.</p>
+            <button id="save-settings" class="secondary" type="button">Save settings</button>
+            <div id="settings-message" class="message" role="status" aria-live="polite"></div>
+          </section>
+          <section id="setup" class="section">
+            <div class="section-heading"><div><h2>Set up your relay</h2><p class="subtle">Pair this app with your IIS relay</p></div></div>
+            <p class="subtle">Generate one setup code. Add its hash to the relay's web.config, then enter the relay URL to pair.</p>
+            <button id="generate-code" type="button">Generate setup code</button>
+            <div id="claim-details" class="hidden">
+              <label for="claim-code" style="margin-top:16px">One-time setup code</label>
+              <input id="claim-code" type="text" readonly autocomplete="off" spellcheck="false">
+              <p class="small">Keep this code in Home Assistant. Only its hash goes into web.config; the app uses the code to authenticate pairing without sending it.</p>
+              <div class="actions"><button id="copy-code" class="secondary" type="button">Copy setup code</button><button id="replace-code" class="secondary" type="button">Generate a new code</button></div>
+              <label for="config-snippet">Replace the blank HaTunnelBootstrapCodeHash line in web.config</label>
+              <textarea id="config-snippet" rows="2" readonly spellcheck="false"></textarea>
+              <button id="copy-config" class="secondary" type="button">Copy web.config line</button>
+              <form id="pair-form">
+                <label for="public-url">Public URL</label>
+                <input id="public-url" name="public_url" type="url" placeholder="https://tunnel.example.com" autocomplete="url" required>
+                <button id="pair-button" type="submit">Start setup</button>
+              </form>
+            </div>
+            <div id="setup-message" class="message" role="status" aria-live="polite"></div>
+          </section>
+        </div>
+      </section>
 
-    <div class="management-grid">
-    <section id="paired" class="section hidden">
-      <div class="section-heading"><div><h2>Relay controls</h2><p class="subtle">Manage forwarding</p></div></div>
-      <p id="relay-url" class="subtle url"></p>
-      <p id="paired-detail" class="subtle"></p>
-      <div class="actions"><button id="enable" type="button">Enable forwarding</button><button id="disable" class="secondary" type="button">Disable forwarding</button></div>
-      <div id="control-message" class="message" role="status" aria-live="polite"></div>
-    </section>
-    <section id="relay-updates" class="section hidden" aria-labelledby="relay-updates-title">
-      <div class="section-heading"><div><h2 id="relay-updates-title">Relay version</h2><p class="subtle">Compatibility and release information</p></div></div>
-      <p id="relay-version-detail" class="subtle"></p>
-      <p id="relay-update-status" class="small" role="status" aria-live="polite"></p>
-      <p id="relay-compatibility" class="message hidden" role="status"></p>
-      <p class="small">Update the IIS relay manually. The Home Tunnel app updates through Home Assistant.</p>
-      <p class="small"><a id="relay-release-link" target="_blank" rel="noopener noreferrer">Releases</a> · <a id="relay-changelog-link" target="_blank" rel="noopener noreferrer">Changelog</a> · <a id="relay-manual-link" target="_blank" rel="noopener noreferrer">Manual update guide</a></p>
-    </section>
-    <section id="settings" class="section">
-      <div class="section-heading"><div><h2>Settings</h2><p class="subtle">Home Assistant connection</p></div></div>
-      <label for="homeassistant-url">Home Assistant URL</label>
-      <input id="homeassistant-url" type="url" inputmode="url" placeholder="http://homeassistant:8123" autocomplete="url" required>
-      <p class="small">Use the local Home Assistant address. Saving restarts the connector, so active remote sessions may briefly disconnect.</p>
-      <button id="save-settings" class="secondary" type="button">Save settings</button>
-      <div id="settings-message" class="message" role="status" aria-live="polite"></div>
-    </section>
-    <section id="setup" class="section">
-      <div class="section-heading"><div><h2>Set up your relay</h2><p class="subtle">Pair this app with your IIS relay</p></div></div>
-      <p class="subtle">Generate one setup code. Add its hash to the relay's web.config, then enter the relay URL to pair.</p>
-      <button id="generate-code" type="button">Generate setup code</button>
-      <div id="claim-details" class="hidden">
-        <label for="claim-code" style="margin-top:16px">One-time setup code</label>
-        <input id="claim-code" type="text" readonly autocomplete="off" spellcheck="false">
-        <p class="small">Keep this code in Home Assistant. Only its hash goes into web.config; the app uses the code to authenticate pairing without sending it.</p>
-        <div class="actions"><button id="copy-code" class="secondary" type="button">Copy setup code</button><button id="replace-code" class="secondary" type="button">Generate a new code</button></div>
-        <label for="config-snippet">Replace the blank HaTunnelBootstrapCodeHash line in web.config</label>
-        <textarea id="config-snippet" rows="2" readonly spellcheck="false"></textarea>
-        <button id="copy-config" class="secondary" type="button">Copy web.config line</button>
-        <form id="pair-form">
-        <label for="public-url">Public URL</label>
-        <input id="public-url" name="public_url" type="url" placeholder="https://tunnel.example.com" autocomplete="url" required>
-        <button id="pair-button" type="submit">Start setup</button>
-        </form>
-      </div>
-      <div id="setup-message" class="message" role="status" aria-live="polite"></div>
-    </section>
+      <section class="view hidden" id="about" aria-labelledby="about-title">
+        <div class="page-heading"><div><h1 id="about-title">About</h1><p class="subtle">Home Tunnel and relay information</p></div></div>
+        <div class="about-grid">
+          <section class="section" aria-labelledby="about-product-title">
+            <div class="section-heading"><div><h2 id="about-product-title">Home Tunnel</h2><p class="subtle">Self-hosted access to Home Assistant</p></div></div>
+            <p class="small">Home Tunnel forwards requests through your IIS relay. Home Assistant remains responsible for sign-in, MFA, and permissions.</p>
+          </section>
+          <section id="relay-updates" class="section" aria-labelledby="relay-updates-title">
+            <div class="section-heading"><div><h2 id="relay-updates-title">Relay version</h2><p class="subtle">Compatibility and release information</p></div></div>
+            <p id="relay-version-detail" class="subtle"></p>
+            <p id="relay-update-status" class="small" role="status" aria-live="polite"></p>
+            <p id="relay-compatibility" class="message hidden" role="status"></p>
+            <p class="small">The relay updates manually. The Home Tunnel app updates through Home Assistant.</p>
+            <p class="small"><a id="relay-release-link" target="_blank" rel="noopener noreferrer">Releases</a> · <a id="relay-changelog-link" target="_blank" rel="noopener noreferrer">Changelog</a> · <a id="relay-manual-link" target="_blank" rel="noopener noreferrer">Manual update guide</a></p>
+          </section>
+        </div>
+      </section>
 
-    </div>
+      <section class="view hidden" id="activity" aria-labelledby="activity-title">
+        <div class="page-heading"><div><h1 id="activity-title">Activity</h1><p class="subtle">Recent relay requests</p></div></div>
+        <section class="section" aria-labelledby="activity-list-title">
+          <div class="section-heading"><div><h2 id="activity-list-title">Recent activity</h2><p class="subtle">Most recent requests first</p></div><button id="refresh-activity" class="secondary" type="button" aria-label="Refresh activity">↻</button></div>
+          <ol id="recent-requests" class="events"><li class="small">Waiting for metrics</li></ol>
+        </section>
+      </section>
     </main>
   </div>
 <script>
 (() => {
   const base = document.querySelector('meta[name="ingress-base"]').content.replace(/\/$/, '');
   const byId = id => document.getElementById(id);
+  const pages = ['dashboard','settings','about','activity'];
+  function showPage() {
+    const requested=location.hash.slice(1);
+    const active=pages.includes(requested)?requested:'dashboard';
+    for(const name of pages) {
+      byId(name).classList.toggle('hidden',name!==active);
+      const link=document.querySelector(`.top-nav a[href="#${name}"]`);
+      link.classList.toggle('active',name===active);
+      if(name===active)link.setAttribute('aria-current','page'); else link.removeAttribute('aria-current');
+    }
+    window.scrollTo(0,0);
+  }
+  window.addEventListener('hashchange',showPage);
+  showPage();
   async function api(path, body) {
     const response = await fetch(`${base}/api/${path}`, body ? {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)} : {cache:'no-store'});
     const text = await response.text();
@@ -227,9 +261,7 @@
       const localUrl=byId('homeassistant-url');
       if(document.activeElement!==localUrl)localUrl.value=data.homeassistant_url || "";
       byId('setup').classList.toggle('hidden',data.paired);
-      document.querySelector('.top-nav a[href="#setup"]').classList.toggle('hidden',data.paired);
       byId('paired').classList.toggle('hidden',!data.paired);
-      byId('relay-updates').classList.toggle('hidden',!data.paired);
       byId('claim-details').classList.toggle('hidden',!data.claim_ready);
       byId('generate-code').classList.toggle('hidden',data.claim_ready);
       byId('generate-code').textContent=data.pairing_pending?'Restart setup with a new code':'Generate setup code';
@@ -248,22 +280,24 @@
         byId('paired-detail').textContent=`${data.connected?'Connector connected':'Waiting for connector'} · Forwarding ${data.forwarding_enabled?'enabled':'disabled'}`;
         byId('enable').disabled=!data.connected || data.forwarding_enabled;
         byId('disable').disabled=!data.forwarding_enabled;
-        byId('relay-version-detail').textContent=`Relay ${data.relay_version || 'version unavailable'} · Home Tunnel app ${data.home_tunnel_version || 'unknown'}`;
-        const latestRelayIsDev=/-dev(?:\.|$)/i.test(data.latest_relay_version || '');
-        byId('relay-update-status').textContent=data.relay_update_available
+      }
+      byId('relay-version-detail').textContent=`Relay ${data.relay_version || 'version unavailable'} · Home Tunnel app ${data.home_tunnel_version || 'unknown'}`;
+      const latestRelayIsDev=/-dev(?:\.|$)/i.test(data.latest_relay_version || '');
+      byId('relay-update-status').textContent=data.relay_update_available
+        ? latestRelayIsDev
+          ? `Development relay ${data.latest_relay_version} is available. No stable relay release is published.`
+          : `Relay ${data.latest_relay_version} is available. Update the IIS files using the guide below.`
+        : data.relay_version && data.latest_relay_version
           ? latestRelayIsDev
-            ? `Development relay ${data.latest_relay_version} is available. No stable relay release is published.`
-            : `Relay ${data.latest_relay_version} is available. Update the IIS files using the guide below.`
-          : data.relay_version && data.latest_relay_version
-            ? latestRelayIsDev
-              ? `Relay matches the development manifest (${data.relay_version}). No stable relay release is published.`
-              : `Relay is up to date (${data.relay_version}).`
+            ? `Relay matches the development manifest (${data.relay_version}). No stable relay release is published.`
+            : `Relay is up to date (${data.relay_version}).`
+          : latestRelayIsDev
+            ? `Development relay manifest: ${data.latest_relay_version}. No stable relay release is published.`
             : 'Release information or relay version is not available yet.';
-        byId('relay-compatibility').classList.toggle('hidden',data.relay_compatible !== false);
-        if(data.relay_compatible === false)byId('relay-compatibility').textContent='Compatibility for this Home Tunnel app version is not confirmed. Review the release notes before updating.';
-        for(const [id,url] of [['relay-release-link',data.release_url],['relay-changelog-link',data.changelog_url],['relay-manual-link',data.manual_update_url]]) {
-          const link=byId(id); if(url)link.href=url; else link.removeAttribute('href');
-        }
+      byId('relay-compatibility').classList.toggle('hidden',data.relay_compatible !== false);
+      if(data.relay_compatible === false)byId('relay-compatibility').textContent='Compatibility for this Home Tunnel app version is not confirmed. Review the release notes before updating.';
+      for(const [id,url] of [['relay-release-link',data.release_url],['relay-changelog-link',data.changelog_url],['relay-manual-link',data.manual_update_url]]) {
+        const link=byId(id); if(url)link.href=url; else link.removeAttribute('href');
       }
       dot.classList.toggle('ok',data.connected && data.forwarding_enabled);
     } catch (error) { byId('state-title').textContent='Setup service unavailable'; byId('state-detail').textContent=error.message; }
@@ -312,6 +346,11 @@
   byId('refresh-statistics').addEventListener('click',async()=>{
     const button=byId('refresh-statistics');button.disabled=true;
     await Promise.all([refresh(),refreshTelemetry()]);
+    button.disabled=false;
+  });
+  byId('refresh-activity').addEventListener('click',async()=>{
+    const button=byId('refresh-activity');button.disabled=true;
+    await refreshTelemetry();
     button.disabled=false;
   });
   byId('generate-code').addEventListener('click',async()=>{

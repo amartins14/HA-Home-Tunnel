@@ -4,6 +4,7 @@ Release notes for Home Tunnel. Relay releases are installed manually on IIS; the
 
 ## Unreleased
 
+- Split the dashboard, relay controls and settings, about information, and activity into four navigable views.
 - Restyle the dashboard with a dark overview, metric cards, and responsive management panels.
 - Keep settings, setup, connection controls, and relay information on the same dashboard.
 - Distinguish development relay metadata from a published stable release in the dashboard.
@@ -14,6 +15,11 @@ Release notes for Home Tunnel. Relay releases are installed manually on IIS; the
 - Declare Home Assistant Core 2026.9.0 as the minimum version for the app and optional integration.
 - Add automated connector, relay, container-build, and custom-integration import checks.
 - Add the MIT license, contribution instructions, and explicit stable-release gates.
+
+## 0.4.7-dev
+
+- Add separate Dashboard, Settings, About, and Activity views within the single Home Tunnel app.
+- Keep all setup and relay controls in Settings and preserve the Home Assistant app Configuration tab.
 
 ## 0.4.6-dev
 

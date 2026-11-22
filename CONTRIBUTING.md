@@ -39,8 +39,11 @@ The supported hosting target is currently IIS with classic ASP.NET Framework 4.8
 and URL Rewrite. Pull requests should not imply support for other relay hosts.
 Before a stable release, require green verification checks for the exact commit,
 validate a fresh relay deployment on a clean IIS host, verify pairing and rollback,
-and review the security limitations in `docs/SECURITY.md`. The development version
-must remain marked as a development build until those checks are complete.
+and review the security limitations in `docs/SECURITY.md`. If a separate IIS test
+host is unavailable, the owner may approve a production maintenance deployment
+after a private recovery copy is verified and a rollback path is ready. The
+development version must remain marked as a development build until those checks
+are complete.
 
 Development tags matching `v*-dev` publish GitHub prereleases only after the
 verification workflow succeeds. They include a relay ZIP and changelog notes and
