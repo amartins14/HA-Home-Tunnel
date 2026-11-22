@@ -35,4 +35,4 @@ See [configuration](docs/CONFIGURATION.md), [relay deployment](docs/RELAY-DEPLOY
 
 ## Status
 
-This repository is licensed under MIT. Version `0.4.7` is the stable release candidate; install the published GitHub release after its exact-commit checks, IIS deployment, pairing, rollback, and security review are complete. See [contribution and release checks](CONTRIBUTING.md) and [GitHub Releases](https://github.com/amartins14/HA-Home-Tunnel/releases).
+This repository is licensed under MIT. The current stable release is Home Tunnel `0.4.7` with relay `0.4.0`. Install the Home Assistant app through Supervisor and update the IIS relay from the [v0.4.7 release package](https://github.com/amartins14/HA-Home-Tunnel/releases/tag/v0.4.7). See [contribution and release checks](CONTRIBUTING.md) and [GitHub Releases](https://github.com/amartins14/HA-Home-Tunnel/releases).
