@@ -67,9 +67,13 @@ jobs:
       - name: Create stable GitHub release draft
         env:
           GH_TOKEN: ${{ github.token }}
+          STABLE_RELEASE_TAG: ${{ github.ref_name }}
         shell: powershell
         run: |
-          gh release create $env:GITHUB_REF_NAME '${{ steps.package.outputs.asset }}' `
+          $releaseTag = $env:STABLE_RELEASE_TAG
+          $expectedTag = 'v${{ steps.package.outputs.app_version }}'
+          if ($releaseTag -ne $expectedTag) { throw "Release tag $releaseTag does not match $expectedTag" }
+          gh release create $releaseTag '${{ steps.package.outputs.asset }}' `
             --repo $env:GITHUB_REPOSITORY `
             --title 'Home Tunnel ${{ steps.package.outputs.app_version }}' `
             --notes-file "$env:RUNNER_TEMP/release-notes.md" `
