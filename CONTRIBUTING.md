@@ -35,6 +35,10 @@ keys, metrics tokens, cookies, signed URLs, or unredacted logs in a change.
 
 ## Release scope
 
+Keep `home-assistant/CHANGELOG.md` current alongside the repository changelog.
+Supervisor reads the file inside the app folder when it shows update notes; a
+root-only changelog is not displayed in the app update dialog.
+
 The supported hosting target is currently IIS with classic ASP.NET Framework 4.8
 and URL Rewrite. Pull requests should not imply support for other relay hosts.
 Before a stable release, require green verification checks for the exact commit,

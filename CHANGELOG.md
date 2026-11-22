@@ -2,9 +2,9 @@
 
 Release notes for Home Tunnel. Relay releases are installed manually on IIS; the Home Assistant app is updated through Supervisor.
 
-## Unreleased
+## 0.4.8
 
-- No changes yet.
+- Replace the dashboard's text arrow brand mark with an inline shield-and-route icon.
 
 ## 0.4.7
 
