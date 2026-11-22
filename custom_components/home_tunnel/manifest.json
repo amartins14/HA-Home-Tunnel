@@ -1,0 +1,11 @@
+{
+  "domain": "home_tunnel",
+  "name": "Home Tunnel",
+  "codeowners": ["@amartins14"],
+  "config_flow": true,
+  "documentation": "https://github.com/amartins14/HA-Home-Tunnel",
+  "homeassistant": "2026.9.0",
+  "iot_class": "local_polling",
+  "requirements": [],
+  "version": "0.1.0"
+}

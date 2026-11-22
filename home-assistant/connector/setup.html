@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark light">
+  <meta name="ingress-base" content="__INGRESS_BASE__">
+  <title>Home Tunnel</title>
+  <style>
+    :root{font-family:system-ui,sans-serif;color-scheme:light dark}*{box-sizing:border-box}body{margin:0;min-height:100vh;background:var(--primary-background-color,#101820);color:var(--primary-text-color,#f3f6f8);display:grid;place-items:center;padding:20px}.panel{width:min(100%,720px);background:var(--card-background-color,#1b2833);border:1px solid var(--divider-color,#405361);border-radius:18px;padding:clamp(20px,5vw,36px);box-shadow:0 14px 50px #0004}header{display:flex;align-items:center;gap:14px;margin-bottom:24px}.mark{width:46px;height:46px;display:grid;place-items:center;border-radius:14px;background:#00a884;color:#fff;font-size:1.5rem}h1{font-size:1.55rem;margin:0}h2{font-size:1.1rem;margin:0 0 8px}.subtle{color:var(--secondary-text-color,#aebdc7);margin:4px 0 0;line-height:1.5}.status{display:flex;gap:12px;align-items:center;margin:18px 0;padding:14px 16px;border-radius:12px;background:#263743}.dot{width:11px;height:11px;border-radius:50%;background:#d79b32;flex:none}.dot.ok{background:#38bd80}.section{border-top:1px solid var(--divider-color,#405361);padding-top:22px;margin-top:22px}label{display:block;font-weight:650;margin:0 0 8px}input,textarea,button{width:100%;min-height:48px;border-radius:10px;font:inherit}input,textarea{background:var(--secondary-background-color,#111b23);color:inherit;border:1px solid #637785;padding:10px 12px}textarea{resize:vertical;font-family:ui-monospace,monospace;font-size:.85rem}button{margin-top:12px;border:0;background:#00a884;color:#fff;font-weight:700;cursor:pointer;padding:10px 14px}button.secondary{background:#384b58}button:disabled{opacity:.55;cursor:wait}.code{display:block;overflow-wrap:anywhere;padding:14px;background:var(--secondary-background-color,#111b23);border:1px solid #637785;border-radius:10px;font:600 1rem ui-monospace,monospace;letter-spacing:.05em;margin:12px 0}.actions{display:grid;grid-template-columns:1fr 1fr;gap:10px}.message{min-height:1.5em;margin-top:12px;color:#efc879}.small{font-size:.9rem;color:var(--secondary-text-color,#aebdc7);line-height:1.5}.hidden{display:none!important}.url{overflow-wrap:anywhere}@media(max-width:480px){body{padding:12px}.panel{padding:20px}.actions{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+  <main class="panel">
+    <header><div class="mark" aria-hidden="true">↗</div><div><h1>Home Tunnel</h1><p class="subtle">Secure connection to your Home Assistant</p></div></header>
+    <div class="status" role="status" aria-live="polite"><span id="dot" class="dot"></span><div><strong id="state-title">Checking status…</strong><div id="state-detail" class="small"></div></div></div>
+
+    <section id="setup" class="section">
+      <h2>Set up your relay</h2>
+      <p class="subtle">Generate one setup code. Add its hash to the relay's web.config, then enter the relay URL to pair.</p>
+      <button id="generate-code" type="button">Generate setup code</button>
+      <div id="claim-details" class="hidden">
+        <label for="claim-code" style="margin-top:16px">One-time setup code</label>
+        <input id="claim-code" type="text" readonly autocomplete="off" spellcheck="false">
+        <p class="small">Keep this code in Home Assistant. Only its hash goes into web.config; the app uses the code to authenticate pairing without sending it.</p>
+        <div class="actions"><button id="copy-code" class="secondary" type="button">Copy setup code</button><button id="replace-code" class="secondary" type="button">Generate a new code</button></div>
+        <label for="config-snippet">Replace the blank HaTunnelBootstrapCodeHash line in web.config</label>
+        <textarea id="config-snippet" rows="2" readonly spellcheck="false"></textarea>
+        <button id="copy-config" class="secondary" type="button">Copy web.config line</button>
+        <form id="pair-form">
+        <label for="public-url">Public URL</label>
+        <input id="public-url" name="public_url" type="url" placeholder="https://tunnel.example.com" autocomplete="url" required>
+        <button id="pair-button" type="submit">Start setup</button>
+        </form>
+      </div>
+      <div id="setup-message" class="message" role="status" aria-live="polite"></div>
+    </section>
+
+    <section id="paired" class="section hidden">
+      <h2>Relay</h2>
+      <p id="relay-url" class="subtle url"></p>
+      <p id="paired-detail" class="subtle"></p>
+      <div class="actions"><button id="enable" type="button">Enable forwarding</button><button id="disable" class="secondary" type="button">Disable forwarding</button></div>
+      <div id="control-message" class="message" role="status" aria-live="polite"></div>
+    </section>
+    <section id="relay-updates" class="section hidden" aria-labelledby="relay-updates-title">
+      <h2 id="relay-updates-title">Relay updates</h2>
+      <p id="relay-version-detail" class="subtle"></p>
+      <p id="relay-update-status" class="small" role="status" aria-live="polite"></p>
+      <p id="relay-compatibility" class="message hidden" role="status"></p>
+      <p class="small">Update the IIS relay manually. The Home Tunnel app updates through Home Assistant.</p>
+      <p class="small"><a id="relay-release-link" target="_blank" rel="noopener noreferrer">Releases</a> · <a id="relay-changelog-link" target="_blank" rel="noopener noreferrer">Changelog</a> · <a id="relay-manual-link" target="_blank" rel="noopener noreferrer">Manual update guide</a></p>
+    </section>
+    <p class="small section">The relay setup page accepts pairing only. Manage the tunnel here in Home Assistant.</p>
+  </main>
+<script>
+(() => {
+  const base = document.querySelector('meta[name="ingress-base"]').content.replace(/\/$/, '');
+  const byId = id => document.getElementById(id);
+  async function api(path, body) {
+    const response = await fetch(`${base}/api/${path}`, body ? {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)} : {cache:'no-store'});
+    const text = await response.text();
+    if (!response.ok) throw new Error(text || `Request failed (${response.status})`);
+    return text ? JSON.parse(text) : {};
+  }
+  async function refresh() {
+    try {
+      const data = await api('status');
+      const dot=byId('dot'), title=byId('state-title'), detail=byId('state-detail');
+      byId('setup').classList.toggle('hidden',data.paired);
+      byId('paired').classList.toggle('hidden',!data.paired);
+      byId('relay-updates').classList.toggle('hidden',!data.paired);
+      byId('claim-details').classList.toggle('hidden',!data.claim_ready);
+      byId('generate-code').classList.toggle('hidden',data.claim_ready);
+      byId('generate-code').textContent=data.pairing_pending?'Restart setup with a new code':'Generate setup code';
+      byId('pair-button').disabled=data.pairing_pending;
+      if (data.claim_ready) {
+        byId('claim-code').value=data.setup_code || '';
+        byId('config-snippet').value=data.bootstrap_snippet || '';
+      }
+      if (!data.paired && data.pairing_pending) { title.textContent='Pairing in progress'; detail.textContent=data.error || `Connecting to the relay · expires in ${data.pairing_expires_in}s`; byId('setup-message').textContent=data.error || 'Pairing is being completed. Keep this app running.'; }
+      else if (!data.paired) { title.textContent='Awaiting setup'; detail.textContent=data.error || (data.claim_ready?'Add the hash to web.config, then pair the relay.':'Generate a setup code to begin.'); if(data.error)byId('setup-message').textContent=data.error; }
+      else if (data.connected && data.forwarding_enabled) { title.textContent='Tunnel online'; detail.textContent='Forwarding is enabled.'; dot.classList.add('ok'); }
+      else if (data.connected) { title.textContent='Connector connected'; detail.textContent='Forwarding is off until you enable it.'; }
+      else { title.textContent='Connector connecting'; detail.textContent=data.error || 'The app is trying to reach the relay.'; }
+      if (data.paired) {
+        byId('relay-url').textContent=data.relay_url || '';
+        byId('paired-detail').textContent=`${data.connected?'Connector connected':'Waiting for connector'} · Forwarding ${data.forwarding_enabled?'enabled':'disabled'}`;
+        byId('enable').disabled=!data.connected || data.forwarding_enabled;
+        byId('disable').disabled=!data.forwarding_enabled;
+        byId('relay-version-detail').textContent=`Relay ${data.relay_version || 'version unavailable'} · Home Tunnel app ${data.home_tunnel_version || 'unknown'}`;
+        byId('relay-update-status').textContent=data.relay_update_available
+          ? `Relay ${data.latest_relay_version} is available. Update the IIS files using the guide below.`
+          : data.relay_version && data.latest_relay_version
+            ? `Relay is up to date (${data.relay_version}).`
+            : 'Release information or relay version is not available yet.';
+        byId('relay-compatibility').classList.toggle('hidden',data.relay_compatible !== false);
+        if(data.relay_compatible === false)byId('relay-compatibility').textContent='Compatibility for this Home Tunnel app version is not confirmed. Review the release notes before updating.';
+        for(const [id,url] of [['relay-release-link',data.release_url],['relay-changelog-link',data.changelog_url],['relay-manual-link',data.manual_update_url]]) {
+          const link=byId(id); if(url)link.href=url; else link.removeAttribute('href');
+        }
+      }
+      dot.classList.toggle('ok',data.connected && data.forwarding_enabled);
+    } catch (error) { byId('state-title').textContent='Setup service unavailable'; byId('state-detail').textContent=error.message; }
+  }
+  byId('generate-code').addEventListener('click',async()=>{
+    const button=byId('generate-code');button.disabled=true;byId('setup-message').textContent='Generating…';
+    try { await api('claim-code',{});await refresh();byId('setup-message').textContent='Add the hash line to web.config before pairing.'; }
+    catch(error){byId('setup-message').textContent=error.message;button.disabled=false;}
+  });
+  byId('replace-code').addEventListener('click',async()=>{if(!confirm('Generate a new code? You will need to replace the hash in web.config.'))return;try{await api('claim-code',{});await refresh();byId('setup-message').textContent='Replace the hash line in web.config before pairing.'}catch(error){byId('setup-message').textContent=error.message}});
+  byId('copy-code').addEventListener('click',async()=>{try{await navigator.clipboard.writeText(byId('claim-code').value);byId('setup-message').textContent='Copied.'}catch(error){byId('setup-message').textContent='Select and copy the setup code.'}});
+  byId('copy-config').addEventListener('click',async()=>{try{await navigator.clipboard.writeText(byId('config-snippet').value);byId('setup-message').textContent='Copied.'}catch(error){byId('setup-message').textContent='Select and copy the web.config line.'}});
+  byId('pair-form').addEventListener('submit',async event=>{
+    event.preventDefault(); const button=byId('pair-button'); button.disabled=true; byId('setup-message').textContent='Contacting relay…';
+    try {
+      await api('pair',{public_url:byId('public-url').value});
+      byId('setup-message').textContent='Pairing started. The app is authenticating the relay and exchanging its permanent key.';
+      await refresh();
+    } catch(error) { byId('setup-message').textContent=error.message; button.disabled=false; }
+  });
+  for(const [id,action] of [['enable','enable'],['disable','disable']]) byId(id).addEventListener('click',async()=>{byId('control-message').textContent='Updating…';try{await api(action,{});byId('control-message').textContent='Updated.';await refresh()}catch(error){byId('control-message').textContent=error.message}});
+  refresh(); setInterval(refresh,3000);
+})();
+</script>
+</body>
+</html>

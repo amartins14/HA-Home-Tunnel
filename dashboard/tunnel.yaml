@@ -1,0 +1,85 @@
+title: Home Tunnel
+views:
+  - title: Tunnel
+    path: tunnel
+    icon: mdi:lan-connect
+    cards:
+      - type: entities
+        title: Connection
+        show_header_toggle: false
+        entities:
+          - entity: binary_sensor.home_tunnel_healthy
+            name: Tunnel health
+          - entity: sensor.home_tunnel_status
+            name: Status
+          - entity: binary_sensor.home_tunnel_public_endpoint_reachable
+            name: Public endpoint
+          - entity: binary_sensor.home_tunnel_audit_storage_healthy
+            name: Audit storage
+          - entity: sensor.home_tunnel_connector_version
+            name: Connector version
+          - entity: sensor.home_tunnel_relay_uptime
+            name: Relay uptime
+          - entity: sensor.home_tunnel_reconnects
+            name: Automatic reconnects
+          - entity: sensor.home_tunnel_public_check_age
+            name: Last public check age
+      - type: entities
+        title: Activity
+        show_header_toggle: false
+        entities:
+          - entity: sensor.home_tunnel_requests_per_minute
+            name: Requests per minute
+          - entity: sensor.home_tunnel_traffic
+            name: Traffic
+          - entity: sensor.home_tunnel_recent_latency
+            name: Recent latency
+          - entity: sensor.home_tunnel_active_connections
+            name: Active HTTP connections
+          - entity: sensor.home_tunnel_active_websockets
+            name: Active WebSockets
+      - type: conditional
+        conditions:
+          - entity: sensor.home_tunnel_security_review
+            state: attention
+        card:
+          type: markdown
+          title: Activity to review
+          content: >-
+            {% for issue in state_attr('sensor.home_tunnel_security_review', 'risk_issues') or [] %}
+            - {{ issue }}
+            {% else %}
+            No current issue details.
+            {% endfor %}
+      - type: history-graph
+        title: Tunnel health
+        hours_to_show: 24
+        entities:
+          - binary_sensor.home_tunnel_healthy
+          - binary_sensor.home_tunnel_public_endpoint_reachable
+      - type: entities
+        title: Recent security signals
+        show_header_toggle: false
+        entities:
+          - entity: sensor.home_tunnel_security_review
+            name: Review status
+          - entity: sensor.home_tunnel_denied_requests
+            name: Denied requests (5 min)
+          - entity: sensor.home_tunnel_server_failures
+            name: Server failures (5 min)
+          - entity: sensor.home_tunnel_dropped_events
+            name: Dropped audit events
+          - entity: sensor.home_tunnel_telemetry_age
+            name: Metrics age
+      - type: markdown
+        title: Recent requests
+        content: >-
+          {% set events = state_attr('sensor.home_tunnel_recent_activity', 'recent_requests') or [] %}
+          {% for event in events|reverse %}
+          **{{ event.method }} {{ event.route }} — {{ event.status }}**<br>
+          {{ event.duration_ms }} ms · {{ event.observed_at }}
+
+          ---
+          {% else %}
+          No requests recorded yet.
+          {% endfor %}

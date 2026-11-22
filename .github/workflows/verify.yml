@@ -1,0 +1,47 @@
+name: Verify
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  connector:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Install pinned test dependencies
+        run: |
+          python3 -m venv .venv
+          .venv/bin/python -m pip install -r requirements-test.txt
+      - name: Run connector tests
+        run: .venv/bin/python -m unittest discover -s tests -v
+      - name: Build Home Assistant app image
+        run: docker build --tag home-tunnel-check home-assistant
+      - name: Load custom integration at its minimum supported Core version
+        run: |
+          docker run --rm --network none --volume "$PWD/custom_components/home_tunnel:/work/home_tunnel:ro" --workdir /work --entrypoint python3 ghcr.io/home-assistant/home-assistant:2026.9.0 -c "import home_tunnel.config_flow, home_tunnel.coordinator, home_tunnel.diagnostics, home_tunnel.sensor, home_tunnel.binary_sensor"
+      - name: Load custom integration at current stable Core
+        run: |
+          docker run --rm --network none --volume "$PWD/custom_components/home_tunnel:/work/home_tunnel:ro" --workdir /work --entrypoint python3 ghcr.io/home-assistant/home-assistant:stable -c "import home_tunnel.config_flow, home_tunnel.coordinator, home_tunnel.diagnostics, home_tunnel.sensor, home_tunnel.binary_sensor"
+
+  relay:
+    runs-on: windows-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Compile and run relay checks
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $compiler = Join-Path $env:WINDIR 'Microsoft.NET\Framework64\v4.0.30319\csc.exe'
+          $source = (Resolve-Path 'relay\App_Code').Path
+          & $compiler /nologo /out:RelayTests.exe /r:System.Web.dll /r:System.Web.Extensions.dll /r:System.Configuration.dll /r:System.Core.dll (Join-Path $source 'HaTunnel.cs') (Join-Path $source 'RelayState.cs') (Resolve-Path 'tests\RelayTests.cs').Path
+          if ($LASTEXITCODE -ne 0) { throw 'Relay compilation failed' }
+          Copy-Item 'tests\RelayTests.exe.config' 'RelayTests.exe.config'
+          & .\RelayTests.exe
+          if ($LASTEXITCODE -ne 0) { throw 'Relay checks failed' }

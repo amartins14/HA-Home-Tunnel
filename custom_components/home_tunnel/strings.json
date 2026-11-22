@@ -1,0 +1,30 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Connect to Home Tunnel",
+        "description": "Enter the Home Tunnel app's internal hostname, metrics port, and metrics token.",
+        "data": {
+          "host": "App hostname",
+          "port": "Metrics port",
+          "token": "Metrics token"
+        }
+      },
+      "reconfigure": {
+        "title": "Update Home Tunnel metrics token",
+        "description": "Enter the current metrics token from the Home Tunnel app configuration folder.",
+        "data": {
+          "token": "Metrics token"
+        }
+      }
+    },
+    "error": {
+      "invalid_host": "Enter a valid app hostname, IP address, and port.",
+      "invalid_token": "The metrics token is invalid or was rejected.",
+      "cannot_connect": "Cannot reach the Home Tunnel metrics endpoint."
+    },
+    "abort": {
+      "already_configured": "This Home Tunnel endpoint is already configured."
+    }
+  }
+}
