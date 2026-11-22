@@ -11,6 +11,10 @@ Release notes for Home Tunnel. Relay releases are installed manually on IIS; the
 - Add automated connector, relay, container-build, and custom-integration import checks.
 - Add the MIT license, contribution instructions, and explicit stable-release gates.
 
+## 0.4.4-dev
+
+- Generate and persist a private metrics credential when none is configured, so the unified dashboard shows telemetry without extra setup.
+
 ## 0.4.3-dev
 
 - Combine connection management and private relay telemetry in the single Home Tunnel ingress dashboard.

@@ -26,6 +26,7 @@ TOKEN = STATE / "tunnel-token.txt"
 STATUS = STATE / "status.json"
 SETTINGS = STATE / "settings.json"
 METRICS_TOKEN = Path("/secrets/metrics-token.txt")
+METRICS_TOKEN_STATE = STATE / "metrics-token.txt"
 RELAY_RELEASE = STATE / "relay-release.json"
 RELAY_VERSION = STATE / "relay-version.json"
 SETUP_PAGE = Path("/app/setup.html")
@@ -90,6 +91,23 @@ def ensure_settings():
     if changed:
         save_json(SETTINGS, settings)
     return value
+
+
+def ensure_metrics_token():
+    configured = os.environ.get("HOME_TUNNEL_METRICS_TOKEN", "").strip()
+    if configured:
+        return configured
+    for path in (METRICS_TOKEN, METRICS_TOKEN_STATE):
+        try:
+            value = path.read_text(encoding="ascii").strip()
+        except OSError:
+            continue
+        if CODE_PATTERN.fullmatch(value):
+            return value
+    value = secrets.token_hex(32)
+    write_private(METRICS_TOKEN_STATE, value + "\n")
+    return value
+
 
 def app_version():
     try:
@@ -309,25 +327,20 @@ def sanitize_telemetry(data):
 
 
 async def telemetry(request):
-    token = os.environ.get("HOME_TUNNEL_METRICS_TOKEN", "").strip()
-    if not token:
-        try:
-            token = METRICS_TOKEN.read_text(encoding="ascii").strip()
-        except OSError:
-            token = ""
+    token = ensure_metrics_token()
     if not CODE_PATTERN.fullmatch(token):
-        return web.json_response({"available": False}, headers={"Cache-Control": "no-store"})
+        return web.json_response({"available": False, "reason": "invalid_configuration"}, headers={"Cache-Control": "no-store"})
     timeout = aiohttp.ClientTimeout(total=2)
     try:
         async with aiohttp.ClientSession(timeout=timeout, trust_env=False) as session:
             async with session.get(METRICS_URL, headers={"Authorization": f"Bearer {token}"}) as response:
                 if response.status != 200:
-                    return web.json_response({"available": False}, headers={"Cache-Control": "no-store"})
+                    return web.json_response({"available": False, "reason": "endpoint_unavailable"}, headers={"Cache-Control": "no-store"})
                 data = sanitize_telemetry(await response.json())
     except (aiohttp.ClientError, asyncio.TimeoutError, ValueError, OSError):
-        return web.json_response({"available": False}, headers={"Cache-Control": "no-store"})
+        return web.json_response({"available": False, "reason": "endpoint_unavailable"}, headers={"Cache-Control": "no-store"})
     if data is None:
-        return web.json_response({"available": False}, headers={"Cache-Control": "no-store"})
+        return web.json_response({"available": False, "reason": "endpoint_unavailable"}, headers={"Cache-Control": "no-store"})
     return web.json_response({"available": True, "metrics": data}, headers={"Cache-Control": "no-store"})
 
 
@@ -545,6 +558,7 @@ async def connector_supervisor():
                 env["HOME_TUNNEL_RELAY_URL"] = connection["relay_url"]
                 env["HOME_TUNNEL_PUBLIC_ORIGIN"] = connection["public_origin"]
                 env["HOME_TUNNEL_TOKEN_FILE"] = str(TOKEN)
+                env["HOME_TUNNEL_METRICS_TOKEN"] = ensure_metrics_token()
                 child = await asyncio.create_subprocess_exec(sys.executable, "-u", "/app/connector.py", env=env)
                 LOG.info("Home Tunnel connector process started")
                 await child.wait()
@@ -585,6 +599,7 @@ def make_app():
 async def main():
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(message)s")
     ensure_settings()
+    ensure_metrics_token()
     app = make_app()
     app["tasks"] = []
     app.on_shutdown.append(on_shutdown)

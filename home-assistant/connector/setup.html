@@ -136,7 +136,7 @@
       const result=await api('telemetry');
       if(!result.available) {
         metric('metric-health','No data');
-        byId('telemetry-message').textContent='Add a metrics token in the Home Tunnel app Configuration tab, then restart the app to show relay activity here.';
+        byId('telemetry-message').textContent=result.reason==='invalid_configuration'?'Check the metrics token in the app Configuration tab.':'Telemetry will appear when the connector is connected.';
         byId('recent-requests').replaceChildren(Object.assign(document.createElement('li'),{textContent:'No telemetry available'}));
         return;
       }

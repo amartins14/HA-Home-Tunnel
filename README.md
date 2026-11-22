@@ -28,11 +28,11 @@ The relay is not an identity provider or an access-control layer. Home Assistant
 3. Replace the blank `HaTunnelBootstrapCodeHash` setting in the existing `<appSettings>` section with the displayed `web.config` line. Use the host's File Manager or FTP; keep the hash private because it acts as a setup credential.
 4. Return to the Home Assistant UI, enter the IIS site's public HTTPS URL, and start pairing. HA and IIS authenticate each other using challenge-response; the one-time code is never sent. They exchange a unique permanent connector key and consume the setup code automatically.
 5. In the Home Tunnel app UI, enable forwarding after the connector reports connected.
-6. To show traffic telemetry in the single Home Tunnel dashboard, set a private metrics token in the app's **Configuration** tab and restart the app. The bundled integration remains optional for exposing the same data as Home Assistant entities.
+6. The dashboard generates a private metrics token automatically. Set a token in the app's **Configuration** tab only if you also want to configure the optional Home Tunnel integration for Home Assistant entities.
 7. Verify the public endpoint and HA login from an external network.
 
 See [configuration](docs/CONFIGURATION.md), [relay deployment](docs/RELAY-DEPLOYMENT.md), and [security](docs/SECURITY.md) before exposing the endpoint.
 
 ## Status
 
-This repository is a public-oriented extraction from an existing installation and is licensed under MIT. It is not yet a supported general-purpose release. The `0.4.3-dev` version must not be treated as production-ready. A stable release requires green verification checks for the exact commit, fresh IIS deployment and rollback validation, and review of the documented security limits. See [contribution and release checks](CONTRIBUTING.md).
+This repository is a public-oriented extraction from an existing installation and is licensed under MIT. It is not yet a supported general-purpose release. The `0.4.4-dev` version must not be treated as production-ready. A stable release requires green verification checks for the exact commit, fresh IIS deployment and rollback validation, and review of the documented security limits. See [contribution and release checks](CONTRIBUTING.md).

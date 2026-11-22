@@ -11,15 +11,17 @@ Home Assistant Core 2026.9.0 or newer is required.
 | Option | Example | Description |
 | --- | --- | --- |
 | `homeassistant_url` | `http://homeassistant:8123` | The local Home Assistant origin, with no path or credentials. The default works for typical Home Assistant OS installs. |
-| `metrics_token` | 64 lowercase hexadecimal characters | Optional private key for dashboard traffic telemetry and the read-only metrics endpoint. Leave blank to hide telemetry. |
+| `metrics_token` | 64 lowercase hexadecimal characters | Optional key for the read-only metrics endpoint and custom integration. When blank, the app generates and stores a private key for its dashboard automatically. |
 
-For older installations, the app configuration folder's `metrics-token.txt` remains a fallback if the new `metrics_token` field is blank. The connector key is created automatically during setup and stored in the app's private data folder. The tunnel works without a metrics token; connection controls and status remain available.
+For older installations, the app configuration folder's `metrics-token.txt` remains a fallback if the new `metrics_token` field is blank and no generated key exists. The generated metrics key stays in private app state and is shared only with the connector inside the app. The connector key is created separately during pairing.
 
 ## Start and verify
 
 Start the app and open **Home Tunnel** from the sidebar, or use **Settings → Apps → Home Tunnel → Open Web UI**. This single dashboard contains connection and traffic status, recent activity, settings, pairing, relay information, and forwarding controls. Generate the one-time setup code and copy the displayed hash line into the relay's `web.config`, replacing the blank `HaTunnelBootstrapCodeHash` setting. Then enter the public relay URL and start pairing. The app derives the WebSocket address and public origin, authenticates the relay using HMAC challenge-response without sending the code, and stores the newly derived permanent key in private app data. The setup code expires after 24 hours. Then wait for the connector to connect and choose **Enable forwarding**. The connector verifies it runs as its dedicated unprivileged user, has no Linux capabilities, has no HA configuration or Supervisor token, and reads its key only from private app data. A failed isolation check prevents connector startup.
 
-The dashboard reads telemetry directly from the app's private metrics endpoint. It does not require a separate Lovelace dashboard or custom integration. Install the optional **Home Tunnel** integration from this repository only if you also want telemetry entities in Home Assistant; configure it with the app's internal hostname, port `8100`, and the metrics token.
+Home Assistant chooses the sidebar URL from the app's repository and slug. `panel_title` changes the label, not that URL; use the Home Tunnel sidebar item instead of bookmarking a path manually.
+
+The dashboard reads telemetry directly from the app's private metrics endpoint. It does not require a separate Lovelace dashboard or custom integration. Install the optional **Home Tunnel** integration from this repository only if you also want telemetry entities in Home Assistant; configure it with the app's internal hostname, port `8100`, and a metrics token entered in the app Configuration tab.
 
 Enable forwarding from the Home Tunnel dashboard after the connector establishes a healthy connection. Review the full setup steps in the repository's [README](../README.md) and [relay deployment guide](../docs/RELAY-DEPLOYMENT.md).
 

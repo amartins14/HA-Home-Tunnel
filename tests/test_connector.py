@@ -211,6 +211,47 @@ class ConnectorAsyncTests(unittest.IsolatedAsyncioTestCase):
                 saved = json.loads(settings_path.read_text())
                 self.assertEqual(saved["app_option_url"], "http://new-option.example.test:8123")
 
+    def test_dashboard_metrics_token_is_generated_and_persisted_privately(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            state_path = Path(temporary) / "metrics-token.txt"
+            legacy_path = Path(temporary) / "legacy-metrics-token.txt"
+            with patch.object(service, "METRICS_TOKEN_STATE", state_path), patch.object(service, "METRICS_TOKEN", legacy_path), patch.dict("os.environ", {"HOME_TUNNEL_METRICS_TOKEN": ""}):
+                first = service.ensure_metrics_token()
+                second = service.ensure_metrics_token()
+            self.assertRegex(first, r"\A[0-9a-f]{64}\Z")
+            self.assertEqual(second, first)
+            self.assertEqual(state_path.read_text().strip(), first)
+
+    async def test_dashboard_telemetry_proxies_metrics_without_client_identity(self):
+        token = "a" * 64
+        metrics_payload = {
+            "status": "online", "healthy": True, "risk_status": "normal",
+            "clients": [{"ip": "203.0.113.1"}], "authenticated_ips": 1,
+            "recent_requests": [{"ip": "203.0.113.1", "method": "GET", "route": "api", "status": 200, "url": "/private?token=secret"}],
+        }
+        metric_app = web.Application()
+        async def read_metrics(request):
+            self.assertEqual(request.headers.get("Authorization"), f"Bearer {token}")
+            return web.json_response(metrics_payload)
+        metric_app.router.add_get("/metrics", read_metrics)
+        runner = web.AppRunner(metric_app)
+        await runner.setup()
+        site = web.TCPSite(runner, "127.0.0.1", 0)
+        await site.start()
+        port = site._server.sockets[0].getsockname()[1]
+        class Request:
+            pass
+        try:
+            with patch.object(service, "METRICS_URL", f"http://127.0.0.1:{port}/metrics"), patch.dict("os.environ", {"HOME_TUNNEL_METRICS_TOKEN": token}):
+                response = await service.telemetry(Request())
+            result = json.loads(response.text)
+            self.assertTrue(result["available"])
+            self.assertEqual(result["metrics"]["recent_requests"], [{"method": "GET", "route": "api", "status": 200}])
+            self.assertNotIn("clients", result["metrics"])
+            self.assertNotIn("authenticated_ips", result["metrics"])
+        finally:
+            await runner.cleanup()
+
     def test_dashboard_telemetry_strips_client_identity(self):
         result = service.sanitize_telemetry({
             "status": "online", "clients": [{"ip": "203.0.113.1"}],

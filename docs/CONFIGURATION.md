@@ -7,6 +7,7 @@ Set these through the Home Assistant app configuration UI:
 | Option | Required value | Purpose |
 | --- | --- | --- |
 | `homeassistant_url` | `http://` or `https://` origin | The one HA server this connector may reach. No path, query, credentials, or fragment. |
+| `metrics_token` | 64 lowercase hexadecimal characters, or blank | Optional shared key for the Home Tunnel integration. Blank lets the app create a private key for its own dashboard automatically. |
 
 Enter the public HTTPS URL once in the app's ingress setup page. It derives the relay WebSocket address and the browser-facing origin from that URL. The local HA URL remains an advanced app option and defaults to `http://homeassistant:8123`.
 
@@ -14,7 +15,7 @@ The connector accepts only relative paths from the relay and joins them to the c
 
 ## Private key files
 
-Generate a one-time 64-character setup code in the Home Tunnel dashboard. The UI also gives you a `web.config` line containing its SHA-256 hash. Replace the blank `HaTunnelBootstrapCodeHash` value in the site's existing `<appSettings>` section with that line. The setup code is never sent to IIS; HA and the relay prove they know it through HMAC challenge-response. After verification, they derive a unique permanent connector key, and the setup state is consumed. The optional `metrics_token` in the app's Configuration tab is a separate 64-character lowercase hexadecimal secret for dashboard telemetry and the read-only private metrics endpoint. Older installs can continue using `metrics-token.txt` in the app configuration folder. The tunnel works without this setting. Do not expose the metrics port 8100 through the public host.
+Generate a one-time 64-character setup code in the Home Tunnel dashboard. The UI also gives you a `web.config` line containing its SHA-256 hash. Replace the blank `HaTunnelBootstrapCodeHash` value in the site's existing `<appSettings>` section with that line. The setup code is never sent to IIS; HA and the relay prove they know it through HMAC challenge-response. After verification, they derive a unique permanent connector key, and the setup state is consumed. A private metrics token is generated automatically for dashboard telemetry. Set `metrics_token` in the app's Configuration tab only if you also want a known token for the optional Home Tunnel integration. Older installs can continue using `metrics-token.txt` in the app configuration folder. Do not expose the metrics port 8100 through the public host.
 
 The relay stores its permanent key verifier and forwarding state in `App_Data`; the HA app stores its key in private app data. Do not publish either state directory or commit the one-time code. Treat the bootstrap hash in `web.config` as a credential: an attacker who reads it can impersonate the relay during setup. Do not expose configuration through custom diagnostics or logs.
 

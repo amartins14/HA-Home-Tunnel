@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "latest_relay_version": "0.4.0-dev",
-  "compatible_home_tunnel_versions": ["0.4.0-dev", "0.4.1-dev", "0.4.2-dev", "0.4.3-dev"],
+  "compatible_home_tunnel_versions": ["0.4.0-dev", "0.4.1-dev", "0.4.2-dev", "0.4.3-dev", "0.4.4-dev"],
   "release_url": "https://github.com/amartins14/HA-Home-Tunnel/releases",
   "changelog_url": "https://github.com/amartins14/HA-Home-Tunnel/blob/main/CHANGELOG.md",
   "manual_update_url": "https://github.com/amartins14/HA-Home-Tunnel/blob/main/docs/RELAY-DEPLOYMENT.md"
