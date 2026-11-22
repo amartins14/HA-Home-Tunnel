@@ -519,7 +519,9 @@ public class HaRelay : HttpTaskAsyncHandler
     }
     async Task RelayRequest(HttpContext context)
     {
-        if (context.Request.HttpMethod == "GET" && context.Request.Path == "/" && !HaTunnel.ForwardingEnabled) {
+        string originalUrl = context.Request.ServerVariables["UNENCODED_URL"] ?? context.Request.RawUrl;
+        bool rootRequest = originalUrl == "/" || originalUrl.StartsWith("/?", StringComparison.Ordinal);
+        if (context.Request.HttpMethod == "GET" && rootRequest && !HaTunnel.ForwardingEnabled) {
             if (!context.Request.IsSecureConnection) { context.Response.StatusCode = 403; return; }
             context.Response.Cache.SetCacheability(HttpCacheability.NoCache);
             context.Response.Cache.SetNoStore();
