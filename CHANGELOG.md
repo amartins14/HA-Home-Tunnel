@@ -4,7 +4,7 @@ Release notes for Home Tunnel. Relay releases are installed manually on IIS; the
 
 ## Unreleased
 
-- Ask crawlers not to access the IIS relay and add no-index response headers for crawled pages.
+- Let crawlers fetch the IIS relay so they can read its no-index response header.
 
 ## 0.4.8
 
