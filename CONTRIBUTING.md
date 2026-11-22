@@ -47,3 +47,9 @@ verification workflow succeeds. They include a relay ZIP and changelog notes and
 are explicitly marked as unsuitable for production. Stable releases remain a
 separate, deliberate step after all stable-release checks above pass; do not move
 the development manifest to a stable version before then.
+
+Pushing a stable `v*` tag runs the same verification and creates a **draft** GitHub
+Release with the relay ZIP and matching changelog section. Keep that release in
+draft until a clean IIS deployment, pairing, and rollback have been verified and
+the security review is complete. Then publish it and confirm the manifest and
+downloaded asset match the deployed relay version.

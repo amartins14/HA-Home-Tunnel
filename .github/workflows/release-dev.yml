@@ -33,6 +33,9 @@ jobs:
           $appVersion = $appMatch.Groups[1].Value
           if ($tagVersion -ne $appVersion) { throw "Tag $tagVersion does not match app version $appVersion" }
           if ($tagVersion -notmatch '-dev(?:\.|$)') { throw 'This workflow only publishes development prereleases' }
+          $metricsSource = Get-Content 'home-assistant/connector/metrics.py' -Raw
+          $metricsMatch = [regex]::Match($metricsSource, '(?m)^VERSION\s*=\s*["'']([^"'']+)["'']')
+          if (!$metricsMatch.Success -or $metricsMatch.Groups[1].Value -ne $appVersion) { throw 'Metrics version does not match the Home Assistant app version' }
 
           $relaySource = Get-Content 'relay/App_Code/HaTunnel.cs' -Raw
           $relayMatch = [regex]::Match($relaySource, 'public const string Version = "([^"\r\n]+)";')
