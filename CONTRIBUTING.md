@@ -41,3 +41,9 @@ Before a stable release, require green verification checks for the exact commit,
 validate a fresh relay deployment on a clean IIS host, verify pairing and rollback,
 and review the security limitations in `docs/SECURITY.md`. The development version
 must remain marked as a development build until those checks are complete.
+
+Development tags matching `v*-dev` publish GitHub prereleases only after the
+verification workflow succeeds. They include a relay ZIP and changelog notes and
+are explicitly marked as unsuitable for production. Stable releases remain a
+separate, deliberate step after all stable-release checks above pass; do not move
+the development manifest to a stable version before then.

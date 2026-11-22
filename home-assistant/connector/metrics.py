@@ -5,7 +5,7 @@ import hmac
 import time
 from aiohttp import web
 
-VERSION = "0.4.4-dev"
+VERSION = "0.4.5-dev"
 PUBLIC_HEALTH_MAX_AGE = 90
 
 class Metrics:

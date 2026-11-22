@@ -116,10 +116,15 @@
         byId('enable').disabled=!data.connected || data.forwarding_enabled;
         byId('disable').disabled=!data.forwarding_enabled;
         byId('relay-version-detail').textContent=`Relay ${data.relay_version || 'version unavailable'} · Home Tunnel app ${data.home_tunnel_version || 'unknown'}`;
+        const latestRelayIsDev=/-dev(?:\.|$)/i.test(data.latest_relay_version || '');
         byId('relay-update-status').textContent=data.relay_update_available
-          ? `Relay ${data.latest_relay_version} is available. Update the IIS files using the guide below.`
+          ? latestRelayIsDev
+            ? `Development relay ${data.latest_relay_version} is available. No stable relay release is published.`
+            : `Relay ${data.latest_relay_version} is available. Update the IIS files using the guide below.`
           : data.relay_version && data.latest_relay_version
-            ? `Relay is up to date (${data.relay_version}).`
+            ? latestRelayIsDev
+              ? `Relay matches the development manifest (${data.relay_version}). No stable relay release is published.`
+              : `Relay is up to date (${data.relay_version}).`
             : 'Release information or relay version is not available yet.';
         byId('relay-compatibility').classList.toggle('hidden',data.relay_compatible !== false);
         if(data.relay_compatible === false)byId('relay-compatibility').textContent='Compatibility for this Home Tunnel app version is not confirmed. Review the release notes before updating.';

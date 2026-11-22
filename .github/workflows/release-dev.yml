@@ -1,0 +1,70 @@
+name: Development prerelease
+
+on:
+  push:
+    tags:
+      - 'v*-dev'
+
+permissions:
+  contents: write
+
+jobs:
+  verify:
+    uses: ./.github/workflows/verify.yml
+
+  publish:
+    needs: verify
+    runs-on: windows-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.ref }}
+      - name: Package and validate development relay
+        id: package
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $tagVersion = $env:GITHUB_REF_NAME -replace '^v', ''
+          $config = Get-Content 'home-assistant/config.yaml' -Raw
+          $appMatch = [regex]::Match($config, '(?m)^version:\s*["'']?([^"''\s#]+)')
+          if (!$appMatch.Success) { throw 'Could not read the Home Assistant app version' }
+          $appVersion = $appMatch.Groups[1].Value
+          if ($tagVersion -ne $appVersion) { throw "Tag $tagVersion does not match app version $appVersion" }
+          if ($tagVersion -notmatch '-dev(?:\.|$)') { throw 'This workflow only publishes development prereleases' }
+
+          $relaySource = Get-Content 'relay/App_Code/HaTunnel.cs' -Raw
+          $relayMatch = [regex]::Match($relaySource, 'public const string Version = "([^"\r\n]+)";')
+          if (!$relayMatch.Success) { throw 'Could not read the relay version' }
+          $relayVersion = $relayMatch.Groups[1].Value
+          $manifest = Get-Content 'release-manifest.json' -Raw | ConvertFrom-Json
+          if ($manifest.latest_relay_version -ne $relayVersion) { throw 'Relay version does not match release-manifest.json' }
+          if ($manifest.compatible_home_tunnel_versions -notcontains $appVersion) { throw 'Manifest does not list this app version as relay-compatible' }
+
+          New-Item -ItemType Directory -Force -Path dist | Out-Null
+          $asset = "dist/home-tunnel-relay-$relayVersion.zip"
+          Compress-Archive -Path 'relay/*' -DestinationPath $asset -CompressionLevel Optimal
+          $output = [System.Text.UTF8Encoding]::new($false)
+          [System.IO.File]::AppendAllText($env:GITHUB_OUTPUT, "app_version=$appVersion`nrelay_version=$relayVersion`nasset=$asset`n", $output)
+      - name: Prepare release notes
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $version = '${{ steps.package.outputs.app_version }}'
+          $changelog = Get-Content 'CHANGELOG.md' -Raw
+          $pattern = '(?ms)^##\s+' + [regex]::Escape($version) + '\s*\r?\n(?<notes>.*?)(?=^##\s|\z)'
+          $match = [regex]::Match($changelog, $pattern)
+          if (!$match.Success) { throw "No changelog section found for $version" }
+          $notes = "Development prerelease. Not a supported production release.`r`n`r`n" + $match.Groups['notes'].Value.Trim()
+          Set-Content -Path "$env:RUNNER_TEMP/release-notes.md" -Value $notes -Encoding utf8
+      - name: Publish GitHub prerelease
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: powershell
+        run: |
+          gh release create $env:GITHUB_REF_NAME '${{ steps.package.outputs.asset }}' `
+            --repo $env:GITHUB_REPOSITORY `
+            --title 'Home Tunnel ${{ steps.package.outputs.app_version }}' `
+            --notes-file "$env:RUNNER_TEMP/release-notes.md" `
+            --prerelease --verify-tag
