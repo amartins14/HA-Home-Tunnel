@@ -200,8 +200,11 @@ def validate_telemetry(message):
                 ipaddress.ip_address(event["ip"])
             except ValueError as exc:
                 raise ProtocolError("invalid telemetry IP") from exc
-        if event["method"] not in METHODS | {"OTHER"} or event["route"] not in {"frontend", "auth", "api", "media", "root", "other", "websocket"}:
-            raise ProtocolError("invalid telemetry category")
+        route = event["route"]
+        legacy_route = isinstance(route, str) and route in {"frontend", "auth", "api", "media", "root", "other", "websocket"}
+        display_route = isinstance(route, str) and len(route) <= 512 and route.startswith("/") and "?" not in route and "#" not in route and not any(ord(c) < 32 or ord(c) == 127 for c in route)
+        if event["method"] not in METHODS | {"OTHER"} or not (legacy_route or display_route):
+            raise ProtocolError("invalid telemetry route")
         if any(type(event[name]) is not int or not 0 <= event[name] <= 2**63-1 for name in ("status", "duration_ms", "request_bytes", "response_bytes")) or not 100 <= event["status"] <= 599:
             raise ProtocolError("invalid telemetry measurements")
 

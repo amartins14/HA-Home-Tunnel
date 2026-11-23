@@ -9,20 +9,20 @@
   <style>
     :root {
       color-scheme: dark;
-      font-family: Arial, Helvetica, sans-serif;
-      background: #111;
-      color: #f2f4f8;
-      --surface: #1c1c1c;
-      --surface-raised: #222;
-      --border: #414141;
-      --muted: #a8adb5;
-      --blue: #1687ff;
-      --green: #65cf38;
+      font-family: Inter, "Segoe UI", Arial, sans-serif;
+      background: #0b1020;
+      color: #e8eef7;
+      --surface: #111a2b;
+      --surface-raised: #172237;
+      --border: #283750;
+      --muted: #98a9c0;
+      --blue: #64b5f6;
+      --green: #47d6bd;
     }
 
     * { box-sizing: border-box; }
     html { scroll-behavior: smooth; }
-    body { margin: 0; min-width: 320px; min-height: 100vh; background: #111; color: #f2f4f8; }
+    body { margin: 0; min-width: 320px; min-height: 100vh; background: #0b1020; color: #e8eef7; }
     .app-shell { width: min(100%, 1440px); margin: 0 auto; padding: 0 28px 36px; }
     .topbar { min-height: 66px; display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 30px; border-bottom: 1px solid #303030; }
     .brand { display: flex; align-items: center; gap: 10px; color: inherit; text-decoration: none; white-space: nowrap; }
@@ -136,13 +136,84 @@
       .page-heading > button { padding-inline: 9px; font-size: .75rem; }
     }
     @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+    /* Home Tunnel's own control-room layout and palette. */
+    .app-shell { display: grid; grid-template-columns: 218px minmax(0, 1fr); gap: 30px; width: min(100%, 1600px); padding: 20px 26px 34px; }
+    .topbar { position: sticky; top: 20px; grid-column: 1; grid-row: 1; height: calc(100vh - 40px); min-height: 560px; display: flex; flex-direction: column; align-items: stretch; gap: 28px; padding: 18px 12px; border: 1px solid var(--border); border-radius: 18px; background: linear-gradient(160deg,#121d30,#0e1728 70%); }
+    .brand { padding: 4px 5px 20px; border-bottom: 1px solid var(--border); }
+    .brand-mark { width: 42px; height: 42px; border: 1px solid #2c5361; border-radius: 13px; background: #12353c; color: var(--green); }
+    .brand-mark svg { width: 25px; height: 25px; }
+    .brand-name { letter-spacing: .09em; }
+    .brand-caption { letter-spacing: .04em; text-transform: none; }
+    .top-nav { display: flex; flex-direction: column; align-items: stretch; gap: 6px; }
+    .top-nav a { min-height: 44px; padding: 0 13px; border: 0; border-left: 3px solid transparent; border-radius: 8px; color: #b6c4d7; }
+    .top-nav a:hover, .top-nav a:focus-visible { background: #1a2940; color: #fff; }
+    .top-nav a.active { border-left-color: var(--green); background: #16313a; color: #80edda; }
+    .connection-state { margin-top: auto; max-width: none; padding: 11px; border-color: #2d4655; border-radius: 10px; background: #12232f; }
+    #app-content { grid-column: 2; grid-row: 1; min-width: 0; }
+    .page-heading { margin-top: 14px; }
+    h1 { font-size: 1.8rem; font-weight: 650; letter-spacing: -.025em; }
+    h2 { font-weight: 650; }
+    .section { padding: 20px; border-radius: 16px; background: linear-gradient(145deg,#121d30,#10192a); box-shadow: 0 12px 32px #03091430; }
+    .section-heading { margin: -20px -20px 18px; padding: 17px 20px; border-color: #24334a; }
+    .metrics-grid { grid-template-columns: repeat(4,minmax(0,1fr)); gap: 14px; }
+    .metric { min-height: 104px; padding: 16px; border-color: #2a3a52; border-radius: 14px; background: #17243a; }
+    .metric span { color: #a9bad0; }
+    .metric strong { margin-top: 16px; color: #e9f4ff; font-size: 1.45rem; font-weight: 650; }
+    .metric:nth-child(4n + 2), .metric:nth-child(4n + 3) { --value-color:#82d9ed; }
+    .metric strong { color: var(--value-color,#e9f4ff); }
+    .chart-grid { grid-template-columns: minmax(0,1fr); }
+    .chart-card { border-color: #293a52; border-radius: 14px; background: #131f33; }
+    .chart-card svg { height: 112px; }
+    .chart-line { stroke-width: 3.5; }
+    .events { grid-template-columns: minmax(0,1fr); }
+    .events li { margin: 5px 0; padding: 13px 15px; border: 1px solid #27374d; border-radius: 11px; background: #142036; }
+    .events li strong { color: #eaf3ff; font-size: .85rem; }
+    button { border-color: #2a9c9b; border-radius: 9px; background: #154749; color: #e6fffb; }
+    button:hover:not(:disabled) { background: #1c6260; }
+    button.secondary { border-color: #35465e; border-radius: 9px; background: #1b2a40; }
+    input, textarea { border-color: #35465e; border-radius: 9px; background: #0c1423; }
+    .management-grid, .about-grid { gap: 18px; }
+    .setting-row { display:flex; align-items:center; gap:10px; min-height:40px; margin:0; cursor:pointer; }
+    input[type="checkbox"] { width:20px; min-height:20px; margin:0; accent-color:#47d6bd; }
+    @media (max-width: 900px) {
+      .app-shell { display: block; padding: 14px 18px 28px; }
+      .topbar { position: static; height: auto; min-height: 0; display: grid; grid-template-columns: minmax(0,1fr) auto; grid-template-rows: auto auto; gap: 10px 16px; margin-bottom: 22px; padding: 12px; }
+      .brand { grid-column: 1; grid-row: 1; padding: 0; border: 0; }
+      .top-nav { grid-column: 1 / -1; grid-row: 2; flex-direction: row; overflow-x: auto; gap: 5px; }
+      .top-nav a { min-height: 40px; flex: 0 0 auto; border-left: 0; border-bottom: 2px solid transparent; padding: 0 12px; }
+      .top-nav a.active { border-bottom-color: var(--green); }
+      .connection-state { grid-column: 2; grid-row: 1; margin: 0; }
+      #app-content { min-width: 0; }
+      .metrics-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
+    }
+    @media (max-width: 620px) {
+      .app-shell { padding: 10px 12px 22px; }
+      .topbar { gap: 8px; margin-bottom: 16px; }
+      .brand-mark { width: 36px; height: 36px; }
+      .connection-state { max-width: 155px; }
+      #state-detail { display: none; }
+      .page-heading { margin-top: 18px; }
+      .section { padding: 15px; }
+      .section-heading { margin: -15px -15px 15px; padding: 14px 15px; }
+      .metric { min-height: 88px; padding: 12px; }
+      .metric strong { margin-top: 10px; font-size: 1.15rem; }
+    }
+    @media (max-width: 420px) {
+      .topbar { grid-template-columns: minmax(0,1fr) auto; }
+      .brand { min-width:0; gap:6px; }
+      .brand-mark { width:32px; height:32px; }
+      .brand-name { font-size:.82rem; }
+      .brand-caption { font-size:.52rem; }
+      .connection-state { max-width:130px; padding:6px; }
+      #state-title { font-size:.72rem; }
+    }
   </style>
 </head>
 <body>
   <div class="app-shell">
     <header class="topbar">
       <a class="brand" href="#dashboard" aria-label="Home Tunnel dashboard">
-        <span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 3 5 6v5c0 4.7 2.9 8.1 7 10 4.1-1.9 7-5.3 7-10V6l-7-3Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M8.5 12h7m-3-3 3 3-3 3" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        <span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3 18V9a9 9 0 0 1 18 0v9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M3 18h5m8 0h5M8 18v-3a4 4 0 0 1 8 0v3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M10 10h4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span>
         <span><span class="brand-name">HOME TUNNEL</span><span class="brand-caption">Secure relay</span></span>
       </a>
       <nav class="top-nav" aria-label="Dashboard sections">
@@ -168,21 +239,15 @@
           <div class="metrics-grid" aria-label="Relay statistics">
             <div class="metric"><span>Tunnel health</span><strong id="metric-health">Checking…</strong></div>
             <div class="metric"><span>Requests per minute</span><strong id="metric-rate">—</strong></div>
-            <div class="metric"><span>Traffic</span><strong id="metric-traffic">—</strong></div>
             <div class="metric"><span>Recent latency</span><strong id="metric-latency">—</strong></div>
-            <div class="metric"><span>Active connections</span><strong id="metric-connections">—</strong></div>
             <div class="metric"><span>Active WebSockets</span><strong id="metric-websockets">—</strong></div>
-            <div class="metric"><span>Relay uptime</span><strong id="metric-uptime">—</strong></div>
-            <div class="metric"><span>Security review</span><strong id="metric-security">—</strong></div>
           </div>
           <p id="telemetry-message" class="small" role="status" aria-live="polite">Loading telemetry…</p>
         </section>
         <section id="charts" class="section" aria-labelledby="charts-title">
           <div class="section-heading"><div><h2 id="charts-title">Live trends</h2><p class="subtle">Sampled while this dashboard is open</p></div><label for="chart-range" class="small">Window <select id="chart-range" style="width:auto;min-height:36px;margin-left:6px"><option value="5">5 min</option><option value="15" selected>15 min</option><option value="30">30 min</option></select></label></div>
           <div class="chart-grid">
-            <section class="chart-card" aria-label="Requests per minute trend" style="--chart-color:#68aaff"><h3>Requests / min</h3><strong id="chart-rate-value" class="chart-value">—</strong><svg id="chart-rate" viewBox="0 0 400 180" role="img" aria-label="Requests per minute over the selected window"></svg><p id="chart-rate-note" class="chart-note">Waiting for telemetry</p></section>
-            <section class="chart-card" aria-label="Traffic trend" style="--chart-color:#e3b13c"><h3>Traffic · KiB/s</h3><strong id="chart-traffic-value" class="chart-value">—</strong><svg id="chart-traffic" viewBox="0 0 400 180" role="img" aria-label="Traffic in kibibytes per second over the selected window"></svg><p id="chart-traffic-note" class="chart-note">Waiting for telemetry</p></section>
-            <section class="chart-card" aria-label="Recent latency trend" style="--chart-color:#65cf38"><h3>Recent latency</h3><strong id="chart-latency-value" class="chart-value">—</strong><svg id="chart-latency" viewBox="0 0 400 180" role="img" aria-label="Recent latency in milliseconds over the selected window"></svg><p id="chart-latency-note" class="chart-note">Waiting for telemetry</p></section>
+            <section class="chart-card" aria-label="Requests per minute trend" style="--chart-color:#47d6bd"><h3>Requests / min</h3><strong id="chart-rate-value" class="chart-value">—</strong><svg id="chart-rate" viewBox="0 0 400 180" role="img" aria-label="Requests per minute over the selected window"></svg><p id="chart-rate-note" class="chart-note">Waiting for telemetry</p></section>
           </div>
           <p class="chart-note" style="margin-top:12px">Trend samples clear when this page reloads or closes.</p>
         </section>
@@ -219,6 +284,12 @@
             <div id="setup-message" class="message" role="status" aria-live="polite"></div>
           </section>
         </div>
+        <section class="section" id="location-settings" style="margin-top:18px" aria-labelledby="location-title">
+          <div class="section-heading"><div><h2 id="location-title">Caller locations</h2><p class="subtle">Optional approximate IP lookup</p></div></div>
+          <label class="setting-row" for="geolocation-enabled"><input id="geolocation-enabled" type="checkbox"> Look up approximate caller locations</label>
+          <p class="small">When enabled, Home Tunnel sends public caller IPs to ipapi.co to estimate their city, region, and country. Results can be inaccurate. Lookups are cached for 24 hours, up to 200 new IPs per day.</p>
+          <p id="geolocation-message" class="message" role="status" aria-live="polite"></p>
+        </section>
       </section>
 
       <section class="view hidden" id="about" aria-labelledby="about-title">
@@ -254,11 +325,10 @@
   const byId = id => document.getElementById(id);
   const pages = ['dashboard','settings','about','activity'];
   const samples=[];
+  let geolocationEnabled=false;
   const chartWindow=byId('chart-range');
   const chartSpecs=[
-    {key:'rate',value:'chart-rate-value',svg:'chart-rate',note:'chart-rate-note',field:'requests_per_minute',unit:'req/min',digits:1},
-    {key:'traffic',value:'chart-traffic-value',svg:'chart-traffic',note:'chart-traffic-note',field:'http_kib_per_second',unit:'KiB/s',digits:1},
-    {key:'latency',value:'chart-latency-value',svg:'chart-latency',note:'chart-latency-note',field:'recent_latency_ms',unit:'ms',digits:0}
+    {key:'rate',value:'chart-rate-value',svg:'chart-rate',note:'chart-rate-note',field:'requests_per_minute',unit:'req/min',digits:1}
   ];
   const svgNode=(name,attrs={})=>{const node=document.createElementNS('http://www.w3.org/2000/svg',name);for(const [key,value] of Object.entries(attrs))node.setAttribute(key,value);return node;};
   function drawChart(spec,now=Date.now()) {
@@ -315,6 +385,10 @@
       const data = await api('status');
       const dot=byId('dot'), title=byId('state-title'), detail=byId('state-detail');
       byId('setup').classList.toggle('hidden',data.paired);
+      if(!byId('geolocation-enabled').disabled) {
+        geolocationEnabled=data.geolocation_enabled===true;
+        byId('geolocation-enabled').checked=geolocationEnabled;
+      }
       byId('paired').classList.toggle('hidden',!data.paired);
       byId('claim-details').classList.toggle('hidden',!data.claim_ready);
       byId('generate-code').classList.toggle('hidden',data.claim_ready);
@@ -368,25 +442,27 @@
       }
       const data=result.metrics;
       const numeric=value=>Number.isFinite(Number(value))?Number(value):0;
-      const sample={at:Date.now(),rate:numeric(data.requests_per_minute),traffic:numeric(data.http_kib_per_second),latency:numeric(data.recent_latency_ms)};
+      const sample={at:Date.now(),rate:numeric(data.requests_per_minute)};
       samples.push(sample);if(samples.length>180)samples.splice(0,samples.length-180);
       drawCharts();
       metric('metric-health',data.healthy?'Online':(data.status||'Unknown'));
       metric('metric-rate',`${data.requests_per_minute ?? 0} req/min`);
-      metric('metric-traffic',`${data.http_kib_per_second ?? 0} KiB/s`);
       metric('metric-latency',`${data.recent_latency_ms ?? 0} ms`);
-      metric('metric-connections',data.active_http ?? 0);
       metric('metric-websockets',data.active_ws ?? 0);
-      metric('metric-uptime',`${Math.floor((data.uptime_seconds ?? 0)/3600)} h`);
-      metric('metric-security',data.risk_status==='normal'?'Normal':(data.risk_status||'Unknown'));
       const issues=Array.isArray(data.risk_issues)?data.risk_issues:[];
       byId('telemetry-message').textContent=issues.length?issues.join(' · '):`Metrics updated ${data.telemetry_age_seconds ?? '—'} seconds ago`;
-      const list=byId('recent-requests');list.replaceChildren();
       const events=Array.isArray(data.recent_requests)?data.recent_requests.slice(-10).reverse():[];
+      let locations={};
+      if(geolocationEnabled && events.length) {
+        const ips=[...new Set(events.map(event=>event.ip).filter(ip=>typeof ip==='string' && ip!=='unknown'))].slice(0,10);
+        if(ips.length)try { const result=await api(`geolocation?ips=${encodeURIComponent(ips.join(','))}`);locations=result.locations||{}; } catch(error) {}
+      }
+      const list=byId('recent-requests');list.replaceChildren();
       for(const event of events) {
         const item=document.createElement('li');
-        const title=document.createElement('strong');title.textContent=`${event.method||'Request'} ${event.route||'route'} · ${event.status??'—'}`;
-        const detail=document.createElement('small');detail.textContent=`${event.duration_ms??'—'} ms · ${event.observed_at||'time unavailable'}`;
+        const title=document.createElement('strong');title.textContent=`${event.method||'Request'} ${event.route||'/'} · ${event.status??'—'}`;
+        const location=locations[event.ip];
+        const detail=document.createElement('small');detail.textContent=`${event.ip||'IP unavailable'}${location?` · ${location}`:''} · ${event.duration_ms??'—'} ms · ${event.observed_at||'time unavailable'}`;
         item.append(title,detail);list.append(item);
       }
       if(!events.length)list.append(Object.assign(document.createElement('li'),{textContent:'No recent requests'}));
@@ -402,6 +478,12 @@
     const button=byId('refresh-activity');button.disabled=true;
     await refreshTelemetry();
     button.disabled=false;
+  });
+  byId('geolocation-enabled').addEventListener('change',async event=>{
+    const input=event.currentTarget;input.disabled=true;byId('geolocation-message').textContent='Saving…';
+    try { await api('settings',{geolocation_enabled:input.checked});geolocationEnabled=input.checked;byId('geolocation-message').textContent=input.checked?'Approximate location lookups enabled.':'Approximate location lookups disabled.';await refreshTelemetry(); }
+    catch(error) { input.checked=!input.checked;byId('geolocation-message').textContent=`Could not save: ${error.message}`; }
+    finally { input.disabled=false; }
   });
   byId('generate-code').addEventListener('click',async()=>{
     const button=byId('generate-code');button.disabled=true;byId('setup-message').textContent='Generating…';

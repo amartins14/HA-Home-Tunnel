@@ -6,6 +6,15 @@ Release notes for Home Tunnel. Relay releases are installed manually on IIS; the
 
 - Let crawlers fetch the IIS relay so they can read its no-index response header.
 
+## 0.4.9
+
+- Replace the AdGuard-like layout with Home Tunnel's own responsive sidebar and navy-and-teal theme.
+- Keep the overview to core connection health, request rate, latency, active WebSockets, and one live graph.
+- Show caller IP addresses and sanitized request paths in the recent activity list.
+- Offer optional, disabled-by-default approximate geolocation through ipapi.co; the provider receives each public caller IP looked up.
+- Mask ingress tokens and login-flow IDs, and omit query strings from displayed paths.
+- Keep request identity and location cache data in bounded, in-memory buffers.
+
 ## 0.4.8
 
 - Replace the dashboard's text arrow brand mark with an inline shield-and-route icon.

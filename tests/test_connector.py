@@ -222,12 +222,12 @@ class ConnectorAsyncTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(second, first)
             self.assertEqual(state_path.read_text().strip(), first)
 
-    async def test_dashboard_telemetry_proxies_metrics_without_client_identity(self):
+    async def test_dashboard_telemetry_exposes_recent_callers_without_session_lists(self):
         token = "a" * 64
         metrics_payload = {
             "status": "online", "healthy": True, "risk_status": "normal",
             "clients": [{"ip": "203.0.113.1"}], "authenticated_ips": 1,
-            "recent_requests": [{"ip": "203.0.113.1", "method": "GET", "route": "api", "status": 200, "url": "/private?token=secret"}],
+            "recent_requests": [{"ip": "203.0.113.1", "method": "GET", "route": "/api/states/lamp", "status": 200, "url": "/private?token=secret"}],
         }
         metric_app = web.Application()
         async def read_metrics(request):
@@ -246,20 +246,20 @@ class ConnectorAsyncTests(unittest.IsolatedAsyncioTestCase):
                 response = await service.telemetry(Request())
             result = json.loads(response.text)
             self.assertTrue(result["available"])
-            self.assertEqual(result["metrics"]["recent_requests"], [{"method": "GET", "route": "api", "status": 200}])
+            self.assertEqual(result["metrics"]["recent_requests"], [{"ip": "203.0.113.1", "method": "GET", "route": "/api/states/lamp", "status": 200}])
             self.assertNotIn("clients", result["metrics"])
             self.assertNotIn("authenticated_ips", result["metrics"])
         finally:
             await runner.cleanup()
 
-    def test_dashboard_telemetry_strips_client_identity(self):
+    def test_dashboard_telemetry_keeps_recent_request_ip_but_strips_session_lists(self):
         result = service.sanitize_telemetry({
             "status": "online", "clients": [{"ip": "203.0.113.1"}],
             "authenticated_sessions": [{"ip": "203.0.113.2"}], "authenticated_ips": 2,
             "last_client_ip": "203.0.113.1",
-            "recent_requests": [{"ip": "203.0.113.3", "url": "/private?q=secret", "method": "GET", "route": "api", "status": 200}],
+            "recent_requests": [{"ip": "203.0.113.3", "url": "/private?q=secret", "method": "GET", "route": "/api/states/lamp", "status": 200}],
         })
-        self.assertEqual(result["recent_requests"], [{"method": "GET", "route": "api", "status": 200}])
+        self.assertEqual(result["recent_requests"], [{"ip": "203.0.113.3", "method": "GET", "route": "/api/states/lamp", "status": 200}])
         self.assertFalse({"clients", "authenticated_sessions", "authenticated_ips", "last_client_ip"} & result.keys())
 
     async def test_ingress_settings_save_url_and_restart_connector(self):

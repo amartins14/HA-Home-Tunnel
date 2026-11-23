@@ -230,7 +230,7 @@ public static class RelayPolicy
 public static class RelayBuild
 {
     // Keep this aligned with release-manifest.json when publishing a relay build.
-    public const string Version = "0.4.0";
+    public const string Version = "0.4.1";
 }
 
 public sealed class RelayLease : IDisposable
@@ -372,6 +372,15 @@ public static class HaTunnel
         if (route.StartsWith("/media/")) return "media";
         return route == "/" ? "root" : "other";
     }
+    public static string DisplayRoute(string path)
+    {
+        string route = (path ?? "/").Split('?')[0];
+        route = Regex.Replace(route, @"(?i)%3f.*$", "", RegexOptions.CultureInvariant);
+        route = Regex.Replace(route, @"(?i)(/api/hassio_ingress/)[A-Za-z0-9_-]{32,256}(/api/?$)", "$1[ingress-token]$2", RegexOptions.CultureInvariant);
+        route = Regex.Replace(route, @"(?i)(/auth/login_flow/)[a-f0-9]{32}(?=/|$)", "$1[flow-id]", RegexOptions.CultureInvariant);
+        if (route.Length > 512) route = route.Substring(0, 512);
+        return route;
+    }
     public static void Record(HttpContext context, long duration)
     {
         int status = context.Items["HaWsAccepted"] != null ? 101 : context.Response.StatusCode;
@@ -379,14 +388,14 @@ public static class HaTunnel
         Interlocked.Increment(ref requests); Interlocked.Add(ref responseBytes, bytes);
         if (status >= 500) Interlocked.Increment(ref error5xx);
         else if (status >= 400) Interlocked.Increment(ref error4xx);
-        string route = Route(context.Request.RawUrl);
-        if (route == "frontend" && status < 400) return;
+        string category = Route(context.Request.RawUrl);
+        if (category == "frontend" && status < 400) return;
         System.Net.IPAddress address;
         string ip = System.Net.IPAddress.TryParse(context.Request.UserHostAddress, out address) ? address.ToString() : "unknown";
         lock (AuditGate) {
             if (Audit.Count >= 256) { Interlocked.Increment(ref dropped); return; }
             Audit.Enqueue(new { ip = ip, method = RelayPolicy.Methods.Contains(context.Request.HttpMethod) ? context.Request.HttpMethod : "OTHER",
-                route = route, status = status, duration_ms = Math.Min(duration, 86400000), request_bytes = Math.Max(0, context.Request.ContentLength), response_bytes = bytes });
+                route = DisplayRoute(context.Request.RawUrl), status = status, duration_ms = Math.Min(duration, 86400000), request_bytes = Math.Max(0, context.Request.ContentLength), response_bytes = bytes });
         }
     }
     public static object Telemetry()

@@ -34,9 +34,11 @@ public static class RelayTests
     static async Task Run()
     {
         Check(HaTunnel.Connector == null && HaTunnel.Requests.IsEmpty && HaTunnel.Browsers.IsEmpty, "fresh worker starts with no connector or pending state");
-        Check(HaTunnel.Route("/auth/login_flow?token=SECRET") == "auth", "audit removes query credentials");
+        Check(HaTunnel.Route("/auth/login_flow?token=SECRET") == "auth", "audit route category ignores query credentials");
         Check(HaTunnel.Route("/api/states/private_entity?password=SECRET") == "api", "audit logs route category without private identifiers");
         Check(HaTunnel.Route("/SECRET/private_path") == "other", "audit does not expose arbitrary path content");
+        Check(HaTunnel.DisplayRoute("/api/states/lamp?token=SECRET") == "/api/states/lamp", "display route keeps path and removes query values");
+        Check(HaTunnel.DisplayRoute("/api/hassio_ingress/" + new string('a', 40) + "/api") == "/api/hassio_ingress/[ingress-token]/api", "display route hides ingress token");
         var html = Encoding.UTF8.GetBytes("<html><head></head><body>HA</body></html>");
         Check(Encoding.UTF8.GetString(RelayPolicy.LoginPage("/auth/authorize?client_id=x", 200, "text/html", html)).Contains("application/json"), "login page declares JSON auth requests");
         Check(Object.ReferenceEquals(html, RelayPolicy.LoginPage("/api/", 200, "text/html", html)), "API response is unchanged");

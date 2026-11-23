@@ -2,6 +2,15 @@
 
 Release notes for Home Tunnel. This copy is read by Home Assistant Supervisor. Relay releases are installed manually on IIS; the Home Assistant app is updated through Supervisor.
 
+## 0.4.9
+
+- Replace the AdGuard-like layout with Home Tunnel's own responsive sidebar and navy-and-teal visual style.
+- Reduce the overview to tunnel health, request rate, recent latency, active WebSockets, and one request-rate chart.
+- Show recent caller IPs and sanitized request paths in the activity view.
+- Mask ingress tokens and login-flow IDs, and omit query strings from displayed paths.
+- Keep request identity details within the short-lived in-memory dashboard audit buffer.
+- Add optional approximate caller geolocation, off by default, with a clear notice that IPs are sent to the lookup provider.
+
 ## 0.4.8
 
 - Replace the dashboard's text arrow brand mark with an inline shield-and-route icon.

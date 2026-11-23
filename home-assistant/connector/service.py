@@ -3,6 +3,7 @@ import asyncio
 import hashlib
 import hmac
 import html
+import ipaddress
 import json
 import logging
 import os
@@ -32,6 +33,12 @@ RELAY_VERSION = STATE / "relay-version.json"
 SETUP_PAGE = Path("/app/setup.html")
 APP_CONFIG = Path("/app/app-config.yaml")
 METRICS_URL = "http://127.0.0.1:8100/metrics"
+GEOLOCATION_CACHE_TTL = 24 * 60 * 60
+GEOLOCATION_CACHE_LIMIT = 512
+GEOLOCATION_LOOKUP_LIMIT = 200
+GEOLOCATION_CACHE = {}
+GEOLOCATION_WINDOW_STARTED = 0
+GEOLOCATION_LOOKUP_COUNT = 0
 RELEASE_MANIFEST_URL = "https://raw.githubusercontent.com/amartins14/HA-Home-Tunnel/main/release-manifest.json"
 RELEASE_CHECK_INTERVAL = 6 * 60 * 60
 RELAY_VERSION_CHECK_INTERVAL = 5 * 60
@@ -66,11 +73,17 @@ def save_json(path, data):
 
 def ensure_settings():
     configured_url = policy.homeassistant_origin(os.environ.get("HOMEASSISTANT_URL", "http://homeassistant:8123"))
+    try:
+        app_options = json.loads(Path("/data/options.json").read_text(encoding="utf-8"))
+    except (FileNotFoundError, PermissionError, ValueError):
+        app_options = {}
+    configured_geo = app_options.get("geolocation_lookup", False) is True
     settings = read_json(SETTINGS)
     if settings is None:
         if SETTINGS.exists():
             raise ValueError("Home Tunnel settings file is unreadable")
-        save_json(SETTINGS, {"homeassistant_url": configured_url, "app_option_url": configured_url})
+        save_json(SETTINGS, {"homeassistant_url": configured_url, "app_option_url": configured_url,
+                             "geolocation_enabled": configured_geo, "app_option_geolocation": configured_geo})
         return configured_url
     if not isinstance(settings, dict):
         raise ValueError("Home Tunnel settings file is invalid")
@@ -81,6 +94,17 @@ def ensure_settings():
     elif settings["app_option_url"] != configured_url:
         settings["homeassistant_url"] = configured_url
         settings["app_option_url"] = configured_url
+        changed = True
+    if "app_option_geolocation" not in settings:
+        settings["app_option_geolocation"] = configured_geo
+        settings["geolocation_enabled"] = configured_geo
+        changed = True
+    elif settings["app_option_geolocation"] != configured_geo:
+        settings["app_option_geolocation"] = configured_geo
+        settings["geolocation_enabled"] = configured_geo
+        changed = True
+    elif type(settings.get("geolocation_enabled")) is not bool:
+        settings["geolocation_enabled"] = configured_geo
         changed = True
     value = policy.homeassistant_origin(settings.get("homeassistant_url"))
     if value != settings.get("homeassistant_url"):
@@ -280,8 +304,11 @@ async def status(request):
     latest_relay = release.get("latest_relay_version")
     comparison = compare_versions(latest_relay, installed_relay) if latest_relay and installed_relay else None
     current_app = app_version()
+    homeassistant_url = ensure_settings()
+    app_settings = read_json(SETTINGS) or {}
     result = {
-        "homeassistant_url": ensure_settings(),
+        "homeassistant_url": homeassistant_url,
+        "geolocation_enabled": app_settings.get("geolocation_enabled", False) is True,
         "paired": bool(connection and TOKEN.exists()),
         "claim_ready": bool(pairing and not pairing.get("started")),
         "pairing_pending": bool(pairing and pairing.get("started")),
@@ -320,7 +347,7 @@ def sanitize_telemetry(data):
     events = safe.get("recent_requests")
     if isinstance(events, list):
         safe["recent_requests"] = [
-            {key: event[key] for key in ("method", "route", "status", "duration_ms", "request_bytes", "response_bytes", "observed_at") if key in event}
+            {key: event[key] for key in ("ip", "method", "route", "status", "duration_ms", "request_bytes", "response_bytes", "observed_at") if key in event}
             for event in events if isinstance(event, dict)
         ]
     return safe
@@ -346,8 +373,14 @@ async def telemetry(request):
 
 async def update_settings(request):
     data = await request.json()
+    if isinstance(data, dict) and set(data) == {"geolocation_enabled"} and type(data["geolocation_enabled"]) is bool:
+        ensure_settings()
+        settings = read_json(SETTINGS) or {}
+        settings["geolocation_enabled"] = data["geolocation_enabled"]
+        save_json(SETTINGS, settings)
+        return web.json_response({"geolocation_enabled": data["geolocation_enabled"]}, headers={"Cache-Control": "no-store"})
     if not isinstance(data, dict) or set(data) != {"homeassistant_url"}:
-        raise web.HTTPBadRequest(text="Set only the Home Assistant URL")
+        raise web.HTTPBadRequest(text="Set a supported Home Tunnel setting")
     try:
         value = policy.homeassistant_origin(data.get("homeassistant_url"))
     except ValueError as error:
@@ -360,6 +393,63 @@ async def update_settings(request):
         if restarting:
             child.terminate()
     return web.json_response({"homeassistant_url": value, "restarting": restarting}, headers={"Cache-Control": "no-store"})
+
+
+async def geolocation(request):
+    global GEOLOCATION_WINDOW_STARTED, GEOLOCATION_LOOKUP_COUNT
+    settings = read_json(SETTINGS) or {}
+    if settings.get("geolocation_enabled") is not True:
+        return web.json_response({"enabled": False, "locations": {}}, headers={"Cache-Control": "no-store"})
+    ips = list(dict.fromkeys(request.query.get("ips", "").split(",")))
+    if not ips or len(ips) > 10:
+        raise web.HTTPBadRequest(text="Request up to 10 recent IP addresses")
+    now = time.monotonic()
+    locations = {}
+    missing = []
+    for value in ips:
+        try:
+            address = ipaddress.ip_address(value)
+        except ValueError:
+            continue
+        if not address.is_global:
+            continue
+        cached = GEOLOCATION_CACHE.get(value)
+        cache_ttl = GEOLOCATION_CACHE_TTL if cached and cached[1] else 15 * 60
+        if cached and now - cached[0] < cache_ttl:
+            locations[value] = cached[1]
+        else:
+            missing.append(value)
+    if now - GEOLOCATION_WINDOW_STARTED >= GEOLOCATION_CACHE_TTL:
+        GEOLOCATION_WINDOW_STARTED = now
+        GEOLOCATION_LOOKUP_COUNT = 0
+    missing = missing[:max(0, GEOLOCATION_LOOKUP_LIMIT - GEOLOCATION_LOOKUP_COUNT)]
+    GEOLOCATION_LOOKUP_COUNT += len(missing)
+    timeout = aiohttp.ClientTimeout(total=5)
+    semaphore = asyncio.Semaphore(4)
+
+    async def lookup(session, value):
+        async with semaphore:
+            try:
+                async with session.get(f"https://ipapi.co/{value}/json/") as response:
+                    if response.status != 200:
+                        return value, ""
+                    data = await response.json(content_type=None)
+                if not isinstance(data, dict) or data.get("error"):
+                    return value, ""
+                parts = [data.get("city"), data.get("region"), data.get("country_name")]
+                label = ", ".join(dict.fromkeys(part.strip() for part in parts if isinstance(part, str) and part.strip()))[:160]
+                return value, label
+            except (aiohttp.ClientError, asyncio.TimeoutError, ValueError, OSError):
+                return value, ""
+
+    if missing:
+        async with aiohttp.ClientSession(timeout=timeout, trust_env=False) as session:
+            for value, label in await asyncio.gather(*(lookup(session, ip) for ip in missing)):
+                locations[value] = label
+                if len(GEOLOCATION_CACHE) >= GEOLOCATION_CACHE_LIMIT:
+                    GEOLOCATION_CACHE.pop(next(iter(GEOLOCATION_CACHE)))
+                GEOLOCATION_CACHE[value] = (now, label)
+    return web.json_response({"enabled": True, "locations": locations}, headers={"Cache-Control": "no-store"})
 
 async def generate_claim_code(request):
     if CONNECTION.exists() or TOKEN.exists():
@@ -588,6 +678,7 @@ def make_app():
     app.router.add_get("/", setup_page)
     app.router.add_get("/api/status", status)
     app.router.add_get("/api/telemetry", telemetry)
+    app.router.add_get("/api/geolocation", geolocation)
     app.router.add_post("/api/settings", update_settings)
     app.router.add_post("/api/claim-code", generate_claim_code)
     app.router.add_post("/api/pair", begin_pairing)
