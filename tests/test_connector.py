@@ -281,6 +281,8 @@ class ConnectorAsyncTests(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual(json.loads(settings_path.read_text()), {
                     "homeassistant_url": "http://new-ha.example.test:8123",
                     "app_option_url": "http://legacy.example.test:8123",
+                    "geolocation_enabled": False,
+                    "app_option_geolocation": False,
                 })
                 class InvalidRequest:
                     async def json(self):
