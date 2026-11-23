@@ -2,6 +2,12 @@
 
 Release notes for Home Tunnel. This copy is read by Home Assistant Supervisor. Relay releases are installed manually on IIS; the Home Assistant app is updated through Supervisor.
 
+## 0.5.1
+
+- Filter recent activity with the caller IP search and authenticated or unknown status.
+- Click an IP to filter the caller list and recent activity to that address.
+- Label IPs with a confirmed Home Assistant login as “This device”.
+
 ## 0.5.0
 
 - Add a searchable caller IP list with authenticated and unknown status, request counts, first and last seen times, and a clear-history control.

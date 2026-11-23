@@ -6,6 +6,12 @@ Release notes for Home Tunnel. Relay releases are installed manually on IIS; the
 
 - Let crawlers fetch the IIS relay so they can read its no-index response header.
 
+## 0.5.1
+
+- Filter recent activity by caller search and authenticated or unknown status.
+- Click an IP in the caller list or request log to filter both views to that address.
+- Label IPs with a confirmed Home Assistant login as “This device”.
+
 ## 0.5.0
 
 - Show every sanitized relay path and keep a searchable, private caller IP history with confirmed HA login status.

@@ -82,6 +82,9 @@
     .caller-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin: 0; padding: 0; list-style: none; }
     .caller-list li { min-width: 0; padding: 12px; border: 1px solid #383838; border-radius: 6px; overflow-wrap: anywhere; }
     .caller-list strong { font-size: .86rem; font-weight: 600; }
+    .ip-link { display: inline; width: auto; min-height: 0; margin: 0; padding: 0; border: 0; background: transparent; color: #70b0ff; font: inherit; font-weight: 600; text-align: left; text-decoration: underline; text-underline-offset: 2px; overflow-wrap: anywhere; }
+    .ip-link:hover:not(:disabled) { background: transparent; color: #a8d2ff; }
+    .ip-link:focus-visible { outline: 2px solid #76b6ff; outline-offset: 2px; }
     .caller-list small { display: block; margin-top: 4px; color: var(--muted); font-size: .74rem; }
     .caller-status { display: inline-block; margin-left: 8px; padding: 2px 7px; border-radius: 999px; background: #273b35; color: #9be4c1; font-size: .68rem; }
     .caller-status.unknown { background: #3a3427; color: #f0d18a; }
@@ -329,7 +332,7 @@
           <button id="show-more-callers" class="secondary hidden" type="button">Show more</button>
         </section>
         <section class="section" aria-labelledby="activity-list-title">
-          <div class="section-heading"><div><h2 id="activity-list-title">Recent activity</h2><p class="subtle">Most recent requests first</p></div><button id="refresh-activity" class="secondary" type="button" aria-label="Refresh activity">↻</button></div>
+          <div class="section-heading"><div><h2 id="activity-list-title">Recent activity</h2><p id="activity-filter-note" class="subtle">Most recent requests first</p></div><button id="refresh-activity" class="secondary" type="button" aria-label="Refresh activity">↻</button></div>
           <ol id="recent-requests" class="events"><li class="small">Waiting for metrics</li></ol>
         </section>
       </section>
@@ -344,6 +347,7 @@
   let geolocationEnabled=false;
   let callerRecords=[];
   let callerLocations={};
+  let recentEvents=[];
   let callerShown=50;
   const chartWindow=byId('chart-range');
   const chartSpecs=[
@@ -457,7 +461,7 @@
         metric('metric-health','No data');
         byId('telemetry-message').textContent=result.reason==='invalid_configuration'?'Check the metrics token in the app Configuration tab.':'Telemetry will appear when the connector is connected.';
         byId('recent-requests').replaceChildren(Object.assign(document.createElement('li'),{textContent:'No telemetry available'}));
-        callerRecords=[];renderCallerIps();
+        callerRecords=[];recentEvents=[];renderCallerIps();renderRecentActivity();
         return;
       }
       const data=result.metrics;
@@ -471,25 +475,16 @@
       metric('metric-websockets',data.active_ws ?? 0);
       const issues=Array.isArray(data.risk_issues)?data.risk_issues:[];
       byId('telemetry-message').textContent=issues.length?issues.join(' · '):`Metrics updated ${data.telemetry_age_seconds ?? '—'} seconds ago`;
-      const events=Array.isArray(data.recent_requests)?data.recent_requests.slice(-20).reverse():[];
+      recentEvents=Array.isArray(data.recent_requests)?data.recent_requests.slice(-20).reverse():[];
       callerRecords=Array.isArray(data.caller_ips)?data.caller_ips:[];
       byId('caller-retention').textContent=data.caller_ip_history_ok===false?'Caller history storage unavailable':`Stored privately for up to ${data.caller_ip_retention_days||30} days · ${callerRecords.length} addresses`;
       const callerAddresses=callerRecords.slice(0,10).map(row=>row.ip).filter(ip=>typeof ip==='string');
       let locations={};
-      if(geolocationEnabled && (events.length || callerAddresses.length)) {
-        const ips=[...new Set([...callerAddresses,...events.map(event=>event.ip)].filter(ip=>typeof ip==='string' && ip!=='unknown'))].slice(0,10);
+      if(geolocationEnabled && (recentEvents.length || callerAddresses.length)) {
+        const ips=[...new Set([...callerAddresses,...recentEvents.map(event=>event.ip)].filter(ip=>typeof ip==='string' && ip!=='unknown'))].slice(0,10);
         if(ips.length)try { const result=await api(`geolocation?ips=${encodeURIComponent(ips.join(','))}`);locations=result.locations||{}; } catch(error) {}
       }
-      callerLocations=locations;renderCallerIps();
-      const list=byId('recent-requests');list.replaceChildren();
-      for(const event of events) {
-        const item=document.createElement('li');
-        const title=document.createElement('strong');title.textContent=`${event.method||'Request'} ${event.route||'/'} · ${event.status??'—'}`;
-        const location=locations[event.ip];
-        const detail=document.createElement('small');detail.textContent=`${event.ip||'IP unavailable'}${location?` · ${location}`:''} · ${event.duration_ms??'—'} ms · ${event.observed_at?displayTime(event.observed_at):'time unavailable'}`;
-        item.append(title,detail);list.append(item);
-      }
-      if(!events.length)list.append(Object.assign(document.createElement('li'),{textContent:'No recent requests'}));
+      callerLocations=locations;renderCallerIps();renderRecentActivity();
     } catch(error) { byId('telemetry-message').textContent='Telemetry unavailable'; }
   }
   chartWindow.addEventListener('change',drawCharts);
@@ -511,22 +506,53 @@
     byId('caller-results').textContent=rows.length?`Showing ${visible.length} of ${rows.length} callers`:' ';
     byId('show-more-callers').classList.toggle('hidden',rows.length<=visible.length);
     for(const row of visible) {
-      const item=document.createElement('li'), heading=document.createElement('div'), address=document.createElement('strong');
-      address.textContent=row.ip;const badge=document.createElement('span');badge.className=`caller-status${row.status==='unknown'?' unknown':''}`;badge.textContent=row.status==='authenticated'?'Authenticated':'Unknown';heading.append(address,badge);
+      const item=document.createElement('li'), heading=document.createElement('div');
+      heading.append(makeIpButton(row.ip));
+      const badge=document.createElement('span');badge.className=`caller-status${row.status==='unknown'?' unknown':''}`;badge.textContent=row.status==='authenticated'?'This device':'Unknown';
+      if(row.status==='authenticated')badge.title='A Home Assistant login was confirmed from this IP.';
+      heading.append(badge);
       const location=callerLocations[row.ip];const summary=document.createElement('small');summary.textContent=`${location?`${location} · `:''}${row.requests} requests · last seen ${displayTime(row.last_seen)}`;
       const auth=document.createElement('small');auth.textContent=row.authenticated_at?`HA login observed ${displayTime(row.authenticated_at)}`:'No HA login observed';
       item.append(heading,summary,auth);list.append(item);
     }
     if(!rows.length)list.append(Object.assign(document.createElement('li'),{textContent:callerRecords.length?'No callers match this filter':'No caller IPs recorded yet'}));
   }
+  function makeIpButton(ip) {
+    const button=document.createElement('button');button.type='button';button.className='ip-link';button.textContent=ip;
+    button.title=`Filter recent activity by ${ip}`;button.setAttribute('aria-label',`Filter recent activity by IP address ${ip}`);
+    button.addEventListener('click',()=>setCallerFilter(ip));return button;
+  }
+  function setCallerFilter(ip) {
+    byId('caller-search').value=ip;callerShown=50;renderCallerIps();renderRecentActivity();
+  }
+  function renderRecentActivity() {
+    const list=byId('recent-requests');list.replaceChildren();
+    const query=byId('caller-search').value.trim().toLowerCase(), filter=byId('caller-filter').value;
+    const statusByIp=new Map(callerRecords.map(row=>[row.ip,row.status]));
+    const events=recentEvents.filter(event=>{
+      const ip=typeof event.ip==='string'?event.ip:'';
+      return (!query||ip.toLowerCase().includes(query))&&(filter==='all'||(statusByIp.get(ip)||'unknown')===filter);
+    });
+    const note=byId('activity-filter-note');
+    note.textContent=query?`${events.length} requests from ${byId('caller-search').value.trim()}`:filter==='all'?`Most recent requests first · ${events.length} shown`:`${events.length} requests from ${filter} callers`;
+    for(const event of events) {
+      const item=document.createElement('li');
+      const title=document.createElement('strong');title.textContent=`${event.method||'Request'} ${event.route||'/'} · ${event.status??'—'}`;
+      const location=callerLocations[event.ip];const detail=document.createElement('small');
+      if(event.ip&&event.ip!=='unknown')detail.append(makeIpButton(event.ip));else detail.append(document.createTextNode(event.ip||'IP unavailable'));
+      detail.append(document.createTextNode(`${location?` · ${location}`:''} · ${event.duration_ms??'—'} ms · ${event.observed_at?displayTime(event.observed_at):'time unavailable'}`));
+      item.append(title,detail);list.append(item);
+    }
+    if(!events.length)list.append(Object.assign(document.createElement('li'),{textContent:recentEvents.length?'No requests match this filter':'No recent requests'}));
+  }
   function displayTime(value) { const date=new Date(value);return Number.isNaN(date.getTime())?value:date.toLocaleString(); }
-  byId('caller-search').addEventListener('input',()=>{callerShown=50;renderCallerIps();});
-  byId('caller-filter').addEventListener('change',()=>{callerShown=50;renderCallerIps();});
+  byId('caller-search').addEventListener('input',()=>{callerShown=50;renderCallerIps();renderRecentActivity();});
+  byId('caller-filter').addEventListener('change',()=>{callerShown=50;renderCallerIps();renderRecentActivity();});
   byId('show-more-callers').addEventListener('click',()=>{callerShown+=50;renderCallerIps();});
   byId('clear-caller-ips').addEventListener('click',async()=>{
     if(!window.confirm('Clear all stored caller IP history?'))return;
     const button=byId('clear-caller-ips');button.disabled=true;
-    try { await api('caller-ips/clear',{});callerRecords=[];renderCallerIps();byId('caller-retention').textContent='Stored privately for up to 30 days · 0 addresses'; }
+    try { await api('caller-ips/clear',{});callerRecords=[];renderCallerIps();renderRecentActivity();byId('caller-retention').textContent='Stored privately for up to 30 days · 0 addresses'; }
     catch(error) { byId('caller-retention').textContent='Could not clear caller history'; }
     finally { button.disabled=false; }
   });
