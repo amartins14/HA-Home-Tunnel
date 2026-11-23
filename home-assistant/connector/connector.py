@@ -175,10 +175,9 @@ class Connector:
                                 result = json.loads(frame.data)
                             except (ValueError, TypeError):
                                 result = None
-                            if isinstance(result, dict) and result.get("type") in {"auth_ok", "auth_invalid"}:
+                            if isinstance(result, dict) and result.get("type") == "auth_ok":
                                 auth_observed = True
-                                if result["type"] == "auth_ok":
-                                    METRICS.authenticated(connection_id, message.get("client_ip", "unknown"))
+                                METRICS.authenticated(connection_id, message.get("client_ip", "unknown"))
                         await self.send({"type": "ws_data", "id": connection_id, "kind": "text" if frame.type == aiohttp.WSMsgType.TEXT else "binary", "data": base64.b64encode(data).decode()})
                     elif frame.type == aiohttp.WSMsgType.ERROR:
                         raise ProtocolError("WebSocket failed")

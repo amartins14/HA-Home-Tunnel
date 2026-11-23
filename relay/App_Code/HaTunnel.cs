@@ -389,7 +389,6 @@ public static class HaTunnel
         if (status >= 500) Interlocked.Increment(ref error5xx);
         else if (status >= 400) Interlocked.Increment(ref error4xx);
         string category = Route(context.Request.RawUrl);
-        if (category == "frontend" && status < 400) return;
         System.Net.IPAddress address;
         string ip = System.Net.IPAddress.TryParse(context.Request.UserHostAddress, out address) ? address.ToString() : "unknown";
         lock (AuditGate) {

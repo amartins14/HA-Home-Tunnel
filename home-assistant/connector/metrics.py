@@ -2,14 +2,23 @@
 from collections import deque
 from datetime import datetime, timezone
 import hmac
+import ipaddress
+import json
+import os
+from pathlib import Path
 import time
+import logging
 from aiohttp import web
 
-VERSION = "0.4.9"
+VERSION = "0.5.0"
 PUBLIC_HEALTH_MAX_AGE = 90
+IP_HISTORY_PATH = Path("/data/state/caller-ips.json")
+IP_HISTORY_TTL = 30 * 24 * 60 * 60
+IP_HISTORY_LIMIT = 2048
+LOG = logging.getLogger("amdeploy-tunnel")
 
 class Metrics:
-    def __init__(self):
+    def __init__(self, history_path=IP_HISTORY_PATH):
         self.connected = False
         self.updated = None
         self.stats = {}
@@ -24,6 +33,96 @@ class Metrics:
         self.public_verified_at = None
         self.public_check_failures = 0
         self.automatic_reconnects = 0
+        self.ip_history = {}
+        self.ip_history_ok = True
+        self.ip_history_path = Path(history_path)
+        self.load_ip_history()
+
+    @staticmethod
+    def ip_value(value):
+        try:
+            address = ipaddress.ip_address(value)
+            return address.compressed
+        except (ValueError, TypeError):
+            return None
+
+    def load_ip_history(self):
+        try:
+            if self.ip_history_path.stat().st_size > 512 * 1024:
+                raise ValueError("IP history exceeds its storage limit")
+            raw = json.loads(self.ip_history_path.read_text(encoding="utf-8"))
+            if not isinstance(raw, list):
+                raise ValueError("IP history is invalid")
+            now = time.time()
+            for row in raw:
+                if not isinstance(row, dict):
+                    continue
+                ip = self.ip_value(row.get("ip"))
+                first = row.get("first_seen")
+                last = row.get("last_seen")
+                auth = row.get("authenticated_at")
+                calls = row.get("requests")
+                if (ip is None or type(first) not in (int, float) or type(last) not in (int, float)
+                        or (auth is not None and type(auth) not in (int, float)) or type(calls) is not int):
+                    continue
+                if (0 < first <= last <= now + 300 and (auth is None or 0 < auth <= now + 300)
+                        and 0 <= now - last <= IP_HISTORY_TTL):
+                    self.ip_history[ip] = {"ip": ip, "first_seen": first, "last_seen": last,
+                                           "authenticated_at": auth, "requests": max(0, calls)}
+            self.prune_ip_history(now)
+        except FileNotFoundError:
+            return
+        except (OSError, ValueError, TypeError):
+            self.ip_history_ok = False
+            LOG.warning("Could not read caller IP history")
+
+    def prune_ip_history(self, now):
+        expired = [ip for ip, row in self.ip_history.items() if now-row["last_seen"] > IP_HISTORY_TTL]
+        for ip in expired:
+            self.ip_history.pop(ip, None)
+        if len(self.ip_history) > IP_HISTORY_LIMIT:
+            oldest = sorted(self.ip_history, key=lambda ip: self.ip_history[ip]["last_seen"])
+            for ip in oldest[:len(self.ip_history)-IP_HISTORY_LIMIT]:
+                self.ip_history.pop(ip, None)
+
+    def save_ip_history(self):
+        try:
+            self.ip_history_path.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
+            rows = sorted(self.ip_history.values(), key=lambda row: row["last_seen"], reverse=True)
+            temporary = self.ip_history_path.with_suffix(".tmp")
+            temporary.write_text(json.dumps(rows, separators=(",", ":")), encoding="utf-8")
+            os.chmod(temporary, 0o600)
+            os.replace(temporary, self.ip_history_path)
+            self.ip_history_ok = True
+        except OSError:
+            self.ip_history_ok = False
+            LOG.warning("Could not save caller IP history")
+
+    def observe_ip(self, ip, now=None, authenticated=False, persist=True):
+        ip = self.ip_value(ip)
+        if ip is None:
+            return False
+        now = time.time() if now is None else now
+        self.prune_ip_history(now)
+        row = self.ip_history.get(ip)
+        if row is None:
+            if len(self.ip_history) >= IP_HISTORY_LIMIT:
+                oldest = min(self.ip_history, key=lambda value: self.ip_history[value]["last_seen"])
+                self.ip_history.pop(oldest, None)
+            row = {"ip": ip, "first_seen": now, "last_seen": now, "authenticated_at": None, "requests": 0}
+            self.ip_history[ip] = row
+        row["last_seen"] = max(now, row["last_seen"])
+        if authenticated:
+            row["authenticated_at"] = now
+        else:
+            row["requests"] += 1
+        if persist:
+            self.save_ip_history()
+        return True
+
+    def clear_ip_history(self):
+        self.ip_history.clear()
+        self.save_ip_history()
 
     def forwarding_ready(self, now=None):
         now = time.monotonic() if now is None else now
@@ -39,6 +138,7 @@ class Metrics:
 
     def authenticated(self, connection_id, ip):
         self.sessions[connection_id] = {"ip":ip, "authenticated_at":datetime.now(timezone.utc).isoformat()}
+        self.observe_ip(ip, authenticated=True)
 
     def closed(self, connection_id):
         self.sessions.pop(connection_id, None)
@@ -58,13 +158,17 @@ class Metrics:
         self.stats = {**current, **counters}
         timestamp = datetime.now(timezone.utc).isoformat()
         self.clients = {ip: row for ip, row in self.clients.items() if now-row["seen"] <= 900}
+        history_changed = False
         for event in message["events"]:
             self.events.append({**event, "observed_at": timestamp})
             self.security_events.append((now, event["status"]))
             ip = event["ip"]
+            history_changed = self.observe_ip(ip, persist=False) or history_changed
             if ip != "unknown" and (ip in self.clients or len(self.clients) < 1024):
                 old = self.clients.get(ip, {"calls":0})
                 self.clients[ip] = {"ip":ip, "seen":now, "last_seen":timestamp, "calls":old["calls"]+1}
+        if history_changed:
+            self.save_ip_history()
         self.updated = now
 
     def snapshot(self, now=None):
@@ -78,6 +182,14 @@ class Metrics:
         clients = [{k:v for k,v in row.items() if k != "seen"} for row in self.clients.values() if now-row["seen"] <= 900]
         clients.sort(key=lambda r:r["last_seen"], reverse=True)
         sessions = list(self.sessions.values()) if self.connected else []
+        callers = []
+        for row in self.ip_history.values():
+            callers.append({"ip": row["ip"], "status": "authenticated" if row["authenticated_at"] is not None else "unknown",
+                            "first_seen": datetime.fromtimestamp(row["first_seen"], timezone.utc).isoformat(),
+                            "last_seen": datetime.fromtimestamp(row["last_seen"], timezone.utc).isoformat(),
+                            "authenticated_at": datetime.fromtimestamp(row["authenticated_at"], timezone.utc).isoformat() if row["authenticated_at"] is not None else None,
+                            "requests": row["requests"]})
+        callers.sort(key=lambda row: row["last_seen"], reverse=True)
         status = "online" if healthy else ("disabled" if self.connected and self.stats.get("forwarding_enabled") == 0 else "waiting" if self.connected and age is None else "stale" if self.connected else "offline")
         window = [status for observed, status in self.security_events if now-observed <= 300]
         rejected = sum(status in (401,403) for status in window)
@@ -97,6 +209,7 @@ class Metrics:
             "http_kib_per_second": round(self.byte_rate, 2) if healthy else 0,
             "recent_latency_ms": round(sum(e["duration_ms"] for e in recent)/len(recent), 1) if recent else 0,
             "recent_requests": recent, "recent_request_count": len(recent),
+            "caller_ips": callers, "caller_ip_retention_days": 30, "caller_ip_history_ok": self.ip_history_ok,
             "unique_ips_15m":len(clients), "clients":clients[:100],
             "authenticated_connections":len(sessions), "authenticated_ips":len({s["ip"] for s in sessions if s["ip"] != "unknown"}), "authenticated_sessions":sessions,
             "last_client_ip": recent[-1]["ip"] if recent else "none"}
@@ -108,5 +221,14 @@ def application(metrics, token):
         if not hmac.compare_digest(value.encode("utf-8"), ("Bearer " + token).encode("ascii")):
             return web.json_response({"error":"unauthorized"}, status=401, headers={"Cache-Control":"no-store"})
         return web.json_response(metrics.snapshot(), headers={"Cache-Control":"no-store", "X-Content-Type-Options":"nosniff"})
+    async def clear_ip_history(request):
+        value = request.headers.get("Authorization", "")
+        if not hmac.compare_digest(value.encode("utf-8"), ("Bearer " + token).encode("ascii")):
+            return web.json_response({"error":"unauthorized"}, status=401, headers={"Cache-Control":"no-store"})
+        metrics.clear_ip_history()
+        if not metrics.ip_history_ok:
+            return web.json_response({"error":"storage_unavailable"}, status=503, headers={"Cache-Control":"no-store"})
+        return web.json_response({"cleared":True}, headers={"Cache-Control":"no-store", "X-Content-Type-Options":"nosniff"})
     app.router.add_get("/metrics", read)
+    app.router.add_post("/ip-history/clear", clear_ip_history)
     return app

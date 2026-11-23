@@ -6,6 +6,13 @@ Release notes for Home Tunnel. Relay releases are installed manually on IIS; the
 
 - Let crawlers fetch the IIS relay so they can read its no-index response header.
 
+## 0.5.0
+
+- Show every sanitized relay path and keep a searchable, private caller IP history with confirmed HA login status.
+- Keep caller IP history for 30 days, cap it at 2,048 addresses, and add a clear-history control.
+- Record all successful frontend requests in the recent activity list.
+- Show up to 20 recent relay requests instead of 10.
+
 ## 0.4.9
 
 - Replace the AdGuard-like layout with Home Tunnel's own responsive sidebar and navy-and-teal theme.

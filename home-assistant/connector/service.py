@@ -33,6 +33,7 @@ RELAY_VERSION = STATE / "relay-version.json"
 SETUP_PAGE = Path("/app/setup.html")
 APP_CONFIG = Path("/app/app-config.yaml")
 METRICS_URL = "http://127.0.0.1:8100/metrics"
+METRICS_CLEAR_IPS_URL = "http://127.0.0.1:8100/ip-history/clear"
 GEOLOCATION_CACHE_TTL = 24 * 60 * 60
 GEOLOCATION_CACHE_LIMIT = 512
 GEOLOCATION_LOOKUP_LIMIT = 200
@@ -342,6 +343,7 @@ def sanitize_telemetry(data):
         "active_ws", "uptime_seconds", "automatic_reconnects", "public_check_age_seconds",
         "public_check_failures", "telemetry_age_seconds", "denied_5m", "failures_5m",
         "events_dropped", "audit_healthy", "recent_requests",
+        "caller_ips", "caller_ip_retention_days", "caller_ip_history_ok",
     }
     safe = {key: value for key, value in data.items() if key in fields}
     events = safe.get("recent_requests")
@@ -369,6 +371,21 @@ async def telemetry(request):
     if data is None:
         return web.json_response({"available": False, "reason": "endpoint_unavailable"}, headers={"Cache-Control": "no-store"})
     return web.json_response({"available": True, "metrics": data}, headers={"Cache-Control": "no-store"})
+
+
+async def clear_caller_ips(request):
+    token = ensure_metrics_token()
+    if not CODE_PATTERN.fullmatch(token):
+        return web.json_response({"error": "endpoint_unavailable"}, status=503, headers={"Cache-Control": "no-store"})
+    timeout = aiohttp.ClientTimeout(total=2)
+    try:
+        async with aiohttp.ClientSession(timeout=timeout, trust_env=False) as session:
+            async with session.post(METRICS_CLEAR_IPS_URL, headers={"Authorization": f"Bearer {token}"}) as response:
+                if response.status != 200:
+                    return web.json_response({"error": "storage_unavailable"}, status=503, headers={"Cache-Control": "no-store"})
+    except (aiohttp.ClientError, asyncio.TimeoutError, OSError):
+        return web.json_response({"error": "endpoint_unavailable"}, status=503, headers={"Cache-Control": "no-store"})
+    return web.json_response({"cleared": True}, headers={"Cache-Control": "no-store"})
 
 
 async def update_settings(request):
@@ -678,6 +695,7 @@ def make_app():
     app.router.add_get("/", setup_page)
     app.router.add_get("/api/status", status)
     app.router.add_get("/api/telemetry", telemetry)
+    app.router.add_post("/api/caller-ips/clear", clear_caller_ips)
     app.router.add_get("/api/geolocation", geolocation)
     app.router.add_post("/api/settings", update_settings)
     app.router.add_post("/api/claim-code", generate_claim_code)

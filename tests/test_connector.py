@@ -9,6 +9,7 @@ from pathlib import Path
 import ssl
 import sys
 import tempfile
+import time
 import types
 import unittest
 from unittest.mock import patch
@@ -227,6 +228,7 @@ class ConnectorAsyncTests(unittest.IsolatedAsyncioTestCase):
         metrics_payload = {
             "status": "online", "healthy": True, "risk_status": "normal",
             "clients": [{"ip": "203.0.113.1"}], "authenticated_ips": 1,
+            "caller_ips": [{"ip":"203.0.113.1", "status":"authenticated", "requests":4}],
             "recent_requests": [{"ip": "203.0.113.1", "method": "GET", "route": "/api/states/lamp", "status": 200, "url": "/private?token=secret"}],
         }
         metric_app = web.Application()
@@ -247,6 +249,7 @@ class ConnectorAsyncTests(unittest.IsolatedAsyncioTestCase):
             result = json.loads(response.text)
             self.assertTrue(result["available"])
             self.assertEqual(result["metrics"]["recent_requests"], [{"ip": "203.0.113.1", "method": "GET", "route": "/api/states/lamp", "status": 200}])
+            self.assertEqual(result["metrics"]["caller_ips"], [{"ip":"203.0.113.1", "status":"authenticated", "requests":4}])
             self.assertNotIn("clients", result["metrics"])
             self.assertNotIn("authenticated_ips", result["metrics"])
         finally:
@@ -323,7 +326,9 @@ class ConnectorAsyncTests(unittest.IsolatedAsyncioTestCase):
             self.assertFalse(relay.http_acks)
     async def test_session_requires_real_ha_auth_ok_and_cleans_up(self):
         for result_type in ("auth_ok","auth_invalid"):
-            store = Metrics(); observed = []
+            temporary = tempfile.TemporaryDirectory()
+            self.addCleanup(temporary.cleanup)
+            store = Metrics(history_path=Path(temporary.name) / "caller-ips.json"); observed = []
             class Socket:
                 async def __aenter__(self): return self
                 async def __aexit__(self,*args): pass
@@ -341,7 +346,9 @@ class ConnectorAsyncTests(unittest.IsolatedAsyncioTestCase):
             self.assertFalse(store.sessions)
 
     async def test_client_summary_deduplicates_expires_and_tracks_confirmed_sessions(self):
-        store = Metrics()
+        temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(temporary.cleanup)
+        store = Metrics(history_path=Path(temporary.name) / "caller-ips.json")
         event = {"ip":"203.0.113.1", "method":"GET", "route":"api", "status":200, "duration_ms":20, "request_bytes":0, "response_bytes":10}
         store.connected = True
         store.audit_ok = True
@@ -358,8 +365,43 @@ class ConnectorAsyncTests(unittest.IsolatedAsyncioTestCase):
         store.closed("b"*32)
         self.assertEqual(store.snapshot(now=101)["authenticated_ips"],0)
         self.assertEqual(store.snapshot(now=1001)["unique_ips_15m"],0)
+
+    def test_caller_ip_history_persists_confirmed_login_and_can_be_cleared(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            path = Path(temporary) / "caller-ips.json"
+            store = Metrics(history_path=path)
+            store.observe_ip("203.0.113.7", now=time.time())
+            store.authenticated("session", "203.0.113.7")
+            first = store.snapshot()["caller_ips"][0]
+            self.assertEqual(first["status"], "authenticated")
+            self.assertEqual(first["requests"], 1)
+            self.assertTrue(path.exists())
+            restored = Metrics(history_path=path)
+            row = restored.snapshot()["caller_ips"][0]
+            self.assertEqual(row["ip"], "203.0.113.7")
+            self.assertEqual(row["status"], "authenticated")
+            restored.clear_ip_history()
+            self.assertEqual(restored.snapshot()["caller_ips"], [])
+            self.assertTrue(restored.ip_history_ok)
+
+    def test_caller_ip_history_expires_and_caps_records(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            store = Metrics(history_path=Path(temporary) / "caller-ips.json")
+            store.ip_history = {
+                "192.0.2.1": {"ip":"192.0.2.1", "first_seen":1, "last_seen":1, "authenticated_at":None, "requests":2},
+                "192.0.2.2": {"ip":"192.0.2.2", "first_seen":100, "last_seen":100, "authenticated_at":None, "requests":1},
+            }
+            store.prune_ip_history(30 * 24 * 60 * 60 + 2)
+            self.assertEqual(set(store.ip_history), {"192.0.2.2"})
+            store.ip_history = {f"192.0.2.{i}": {"ip":f"192.0.2.{i}", "first_seen":i, "last_seen":i, "authenticated_at":None, "requests":0} for i in range(1, 5)}
+            with patch("metrics.IP_HISTORY_LIMIT", 2):
+                store.prune_ip_history(10)
+            self.assertEqual(set(store.ip_history), {"192.0.2.3", "192.0.2.4"})
     async def test_private_metrics_requires_key_and_is_read_only(self):
-        store = Metrics()
+        temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(temporary.cleanup)
+        store = Metrics(history_path=Path(temporary.name) / "caller-ips.json")
+        store.observe_ip("203.0.113.7")
         runner = web.AppRunner(application(store, "a"*64))
         await runner.setup()
         site = web.TCPSite(runner, "127.0.0.1", 0)
@@ -378,13 +420,21 @@ class ConnectorAsyncTests(unittest.IsolatedAsyncioTestCase):
                     self.assertNotIn("a"*64, json.dumps(data))
                 async with session.post(url, headers={"Authorization":"Bearer " + "a"*64}) as response:
                     self.assertEqual(response.status, 405)
+                async with session.post(f"http://127.0.0.1:{port}/ip-history/clear") as response:
+                    self.assertEqual(response.status, 401)
+                async with session.post(f"http://127.0.0.1:{port}/ip-history/clear", headers={"Authorization":"Bearer " + "a"*64}) as response:
+                    self.assertEqual(response.status, 200)
+                    self.assertEqual(await response.json(), {"cleared": True})
+                self.assertEqual(store.snapshot()["caller_ips"], [])
                 async with session.get(f"http://127.0.0.1:{port}/api/states") as response:
                     self.assertEqual(response.status, 404)
         finally:
             await runner.cleanup()
 
     async def test_metrics_staleness_rates_reset_and_bounded_history(self):
-        store = Metrics()
+        temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(temporary.cleanup)
+        store = Metrics(history_path=Path(temporary.name) / "caller-ips.json")
         event = {"ip":"203.0.113.1", "method":"GET", "route":"api", "status":200, "duration_ms":20, "request_bytes":0, "response_bytes":10}
         store.connected = True
         store.audit_ok = True

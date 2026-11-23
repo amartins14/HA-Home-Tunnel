@@ -2,6 +2,13 @@
 
 Release notes for Home Tunnel. This copy is read by Home Assistant Supervisor. Relay releases are installed manually on IIS; the Home Assistant app is updated through Supervisor.
 
+## 0.5.0
+
+- Add a searchable caller IP list with authenticated and unknown status, request counts, first and last seen times, and a clear-history control.
+- Store caller IP metadata privately for up to 30 days, capped at 2,048 addresses. Authenticated means Home Assistant sent `auth_ok` on a relayed WebSocket.
+- Show every sanitized relay path and include successful frontend requests in activity.
+- Show up to 20 recent requests.
+
 ## 0.4.9
 
 - Replace the AdGuard-like layout with Home Tunnel's own responsive sidebar and navy-and-teal visual style.

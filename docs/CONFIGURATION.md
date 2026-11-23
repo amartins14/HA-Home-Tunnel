@@ -10,6 +10,8 @@ Set these through the Home Assistant app configuration UI:
 | `metrics_token` | 64 lowercase hexadecimal characters, or blank | Optional shared key for the Home Tunnel integration. Blank lets the app create a private key for its own dashboard automatically. |
 | `geolocation_lookup` | `false` by default | Enables approximate city/region/country lookups for public caller IPs through ipapi.co. The provider receives each IP looked up. Results are cached in memory for 24 hours, with a 200-new-IP daily cap. This can also be changed in the dashboard Settings page; changing this app option later resets the dashboard value. |
 
+Caller IP history is stored in the app's private state for up to 30 days and capped at 2,048 addresses. The Activity page can search and filter callers and clear the stored history. “Authenticated” is recorded only after the connector observes Home Assistant's `auth_ok` WebSocket response. “Unknown” means no such response was observed.
+
 Enter the public HTTPS URL once in the app's ingress setup page. It derives the relay WebSocket address and the browser-facing origin from that URL. The app connects to Home Assistant automatically at `http://homeassistant:8123`; only change `homeassistant_url` in the app's Configuration tab for an unusual network layout.
 
 The connector accepts only relative paths from the relay and joins them to the configured local HA origin. Redirects are rejected. The destination cannot be selected by a browser request.
