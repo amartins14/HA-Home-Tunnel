@@ -25,7 +25,7 @@ The dashboard reads telemetry directly from the app's private metrics endpoint. 
 
 Enable forwarding from the Home Tunnel dashboard after the connector establishes a healthy connection. Review the full setup steps in the repository's [README](../README.md) and [relay deployment guide](../docs/RELAY-DEPLOYMENT.md).
 
-The Activity page retains caller IP metadata in private app storage for up to 30 days (maximum 2,048 addresses). Use **Clear history** before uninstalling if you want to remove that list; removing the app's private data also deletes pairing and settings data, so only do that when you intend to unpair and reset the app.
+The Activity page retains caller IP metadata in private app storage for up to 30 days (maximum 2,048 addresses). **Clear history** removes that summary list; a separate bounded audit log also retains validated request IPs and paths. Removing the app's private data also deletes pairing and settings data, so only do that when you intend to unpair and reset the app.
 
 ## Limitations
 
