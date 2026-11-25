@@ -1,5 +1,14 @@
 # Contributing
 
+## CI and releases
+
+GitHub is the source of truth and this repository's GitHub Actions workflows are
+the only CI system. Do not use Jenkins or a local Jenkins runner for Home Tunnel.
+Add release notes to the changelog, push the commit to GitHub, wait for all
+required Actions checks on that exact commit to pass, then publish the GitHub tag
+and release with those changelog notes. Apply the same sequence to the Home
+Assistant app and the IIS relay.
+
 Home Tunnel is a self-hosted project with two separately deployed parts: a Home
 Assistant app and an IIS relay. Changes to their pairing protocol must preserve
 compatibility or document the required matched update for both sides.
