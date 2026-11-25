@@ -7,282 +7,246 @@
   <meta name="ingress-base" content="__INGRESS_BASE__">
   <title>Home Tunnel</title>
   <style>
-    :root {
-      color-scheme: dark;
-      font-family: Inter, "Segoe UI", Arial, sans-serif;
-      background: #0b1020;
-      color: #e8eef7;
-      --surface: #111a2b;
-      --surface-raised: #172237;
-      --border: #283750;
-      --muted: #98a9c0;
-      --blue: #64b5f6;
-      --green: #47d6bd;
-    }
-
-    * { box-sizing: border-box; }
-    html { scroll-behavior: smooth; }
-    body { margin: 0; min-width: 320px; min-height: 100vh; background: #0b1020; color: #e8eef7; }
-    .app-shell { width: min(100%, 1440px); margin: 0 auto; padding: 0 28px 36px; }
-    .topbar { min-height: 66px; display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 30px; border-bottom: 1px solid #303030; }
-    .brand { display: flex; align-items: center; gap: 10px; color: inherit; text-decoration: none; white-space: nowrap; }
-    .brand-mark { width: 34px; height: 34px; display: grid; place-items: center; border: 2px solid #f2f4f8; border-radius: 50% 50% 48% 48%; color: var(--blue); }
-    .brand-mark svg { width: 19px; height: 19px; }
-    .brand-name { display: block; font-size: .98rem; font-weight: 700; letter-spacing: .04em; }
-    .brand-caption { display: block; margin-top: 2px; color: var(--muted); font-size: .62rem; letter-spacing: .1em; text-transform: uppercase; }
-    .top-nav { align-self: stretch; display: flex; align-items: stretch; gap: 24px; }
-    .top-nav a { display: inline-flex; align-items: center; padding: 0 2px; border-bottom: 2px solid transparent; color: #c4c8ce; font-size: .84rem; text-decoration: none; white-space: nowrap; }
-    .top-nav a:hover, .top-nav a:focus-visible { color: #fff; }
-    .top-nav a.active { border-color: var(--green); color: var(--green); }
-    .connection-state { display: flex; align-items: center; gap: 9px; max-width: 260px; min-width: 0; padding: 8px 11px; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); }
-    .connection-copy { min-width: 0; }
-    #state-title { display: block; font-size: .83rem; }
-    #state-detail { display: block; overflow: hidden; color: var(--muted); font-size: .72rem; text-overflow: ellipsis; white-space: nowrap; }
-    .dot { width: 9px; height: 9px; flex: none; border-radius: 50%; background: #e0a32e; box-shadow: 0 0 0 3px #e0a32e22; }
-    .dot.ok { background: var(--green); box-shadow: 0 0 0 3px #65cf3822; }
-    .page-heading { display: flex; align-items: center; justify-content: space-between; gap: 20px; margin: 28px 0 18px; }
-    .page-heading > button { width: auto; min-height: 38px; margin: 0; }
-    h1 { margin: 0; font-size: 1.55rem; font-weight: 500; }
-    h2 { margin: 0; font-size: 1.02rem; font-weight: 500; }
-    h3 { margin: 22px 0 10px; font-size: .9rem; font-weight: 500; }
-    .subtle { margin: 4px 0 0; color: var(--muted); font-size: .84rem; line-height: 1.45; }
-    .small { color: var(--muted); font-size: .8rem; line-height: 1.5; }
-    .section { min-width: 0; padding: 18px; border: 1px solid var(--border); border-radius: 4px; background: var(--surface); scroll-margin-top: 18px; }
-    .section-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: -18px -18px 16px; padding: 15px 18px; border-bottom: 1px solid #373737; }
-    .section-heading .subtle { margin-top: 3px; }
-    .section-heading button { width: auto; min-width: 38px; min-height: 36px; margin: 0; padding: 6px 10px; }
-    .status { display: flex; align-items: center; gap: 10px; margin: 0 0 18px; padding: 11px 14px; border-left: 3px solid var(--blue); background: #1a2028; }
-    .metrics-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
-    .metric { min-width: 0; min-height: 96px; padding: 13px 14px; border: 1px solid #3d3d3d; border-radius: 4px; background: var(--surface-raised); }
-    .metric span { display: block; color: #c2c6cc; font-size: .78rem; line-height: 1.35; }
-    .metric strong { display: block; margin-top: 12px; color: #f7f8fa; font-size: 1.35rem; font-weight: 500; overflow-wrap: anywhere; }
-    .metric:nth-child(4n + 2) strong { color: #68aaff; }
-    .metric:nth-child(4n + 3) strong { color: #e3b13c; }
-    .chart-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 16px; }
-    .chart-card { min-width: 0; padding: 14px; border: 1px solid #3d3d3d; border-radius: 4px; background: var(--surface-raised); }
-    .chart-card h3 { margin: 0; font-size: .86rem; }
-    .chart-value { display: block; margin-top: 7px; font-size: 1.15rem; font-weight: 600; }
-    .chart-card svg { display: block; width: 100%; height: 132px; margin-top: 8px; overflow: visible; }
-    #charts { margin-top: 16px; }
-    .chart-axis, .chart-gridline { stroke: #42464d; stroke-width: 1; }
-    .chart-gridline { stroke-dasharray: 3 5; }
-    .chart-label { fill: #a8adb5; font: 11px Arial, sans-serif; }
-    .chart-line { fill: none; stroke: var(--chart-color); stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
-    .chart-area { fill: var(--chart-color); opacity: .12; }
-    .chart-point { fill: var(--chart-color); stroke: #1c1c1c; stroke-width: 3; }
-    .chart-empty { fill: #a8adb5; font: 13px Arial, sans-serif; }
-    .chart-note { margin: 0; color: var(--muted); font-size: .72rem; }
-    #telemetry-message { min-height: 1.4em; margin: 13px 0 0; }
-    .events { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 18px; margin: 0; padding: 0; list-style: none; }
-    .events li { min-width: 0; padding: 11px 4px; border-top: 1px solid #383838; overflow-wrap: anywhere; }
-    .events li strong { font-size: .82rem; font-weight: 500; }
-    .events small { display: block; margin-top: 4px; color: var(--muted); font-size: .74rem; }
-    .caller-tools { display: flex; flex-wrap: wrap; gap: 9px; margin: 0 0 12px; }
-    .caller-tools input, .caller-tools select { min-width: 0; flex: 1 1 180px; }
-    .caller-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin: 0; padding: 0; list-style: none; }
-    .caller-list li { min-width: 0; padding: 12px; border: 1px solid #383838; border-radius: 6px; overflow-wrap: anywhere; }
-    .caller-list strong { font-size: .86rem; font-weight: 600; }
-    .ip-link { display: inline; width: auto; min-height: 0; margin: 0; padding: 0; border: 0; background: transparent; color: #70b0ff; font: inherit; font-weight: 600; text-align: left; text-decoration: underline; text-underline-offset: 2px; overflow-wrap: anywhere; }
-    .ip-link:hover:not(:disabled) { background: transparent; color: #a8d2ff; }
-    .ip-link:focus-visible { outline: 2px solid #76b6ff; outline-offset: 2px; }
-    .caller-list small { display: block; margin-top: 4px; color: var(--muted); font-size: .74rem; }
-    .caller-status { display: inline-block; margin-left: 8px; padding: 2px 7px; border-radius: 999px; background: #273b35; color: #9be4c1; font-size: .68rem; }
-    .caller-status.unknown { background: #3a3427; color: #f0d18a; }
-    .management-grid, .about-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; gap: 16px; margin-top: 16px; }
-    .management-grid > .section { margin: 0; }
-    label { display: block; margin: 0 0 7px; font-size: .82rem; font-weight: 600; }
-    input, textarea, button { width: 100%; min-height: 42px; border-radius: 4px; font: inherit; }
-    input, textarea { padding: 9px 11px; border: 1px solid #575757; background: #151515; color: inherit; }
-    input:focus-visible, textarea:focus-visible, button:focus-visible, a:focus-visible { outline: 2px solid #76b6ff; outline-offset: 2px; }
-    textarea { resize: vertical; font-family: ui-monospace, monospace; font-size: .82rem; }
-    button { margin-top: 10px; padding: 9px 13px; border: 1px solid #4b9cff; background: #152234; color: #eaf3ff; font-size: .83rem; font-weight: 600; cursor: pointer; }
-    button:hover:not(:disabled) { background: #203d60; }
-    button.secondary { border-color: #595959; background: #303030; color: #f2f4f8; }
-    button:disabled { cursor: not-allowed; opacity: .55; }
-    .actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
-    .actions button { align-self: start; }
-    .message { min-height: 1.4em; margin: 10px 0 0; color: #edc66c; font-size: .8rem; line-height: 1.45; overflow-wrap: anywhere; }
-    .code { display: block; margin: 10px 0; padding: 12px; border: 1px solid #555; border-radius: 4px; background: #151515; font: 600 .9rem ui-monospace, monospace; letter-spacing: .04em; overflow-wrap: anywhere; }
-    .hidden { display: none !important; }
-    .url { overflow-wrap: anywhere; }
-    a { color: #70b0ff; }
-    .small a { text-underline-offset: 2px; }
-    @media (max-width: 900px) {
-      .app-shell { padding: 0 20px 28px; }
-      .topbar { grid-template-columns: minmax(0, 1fr) auto; grid-template-rows: 58px 44px; gap: 0 22px; }
-      .brand { grid-column: 1; grid-row: 1; }
-      .top-nav { grid-row: 2; grid-column: 1 / -1; min-height: 44px; gap: 22px; }
-      .connection-state { grid-column: 2; grid-row: 1; justify-self: end; }
-      .metrics-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-      .chart-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-    }
-    @media (max-width: 620px) {
-      .app-shell { padding: 0 12px 22px; }
-      .topbar { gap: 0 10px; }
-      .top-nav { gap: 16px; min-height: 42px; }
-      .top-nav a { font-size: .78rem; }
-      .connection-state { max-width: 178px; padding: 7px 8px; }
-      #state-detail { max-width: 130px; }
-      .page-heading { align-items: flex-start; margin-top: 21px; }
-      .page-heading .subtle { max-width: 40ch; }
-      .page-heading > button { width: auto; flex: none; }
-      .management-grid, .about-grid { grid-template-columns: minmax(0, 1fr); gap: 12px; margin-top: 12px; }
-      .chart-grid { grid-template-columns: minmax(0, 1fr); }
-      .events { grid-template-columns: minmax(0, 1fr); }
-      .caller-list { grid-template-columns: minmax(0, 1fr); }
-    }
-    @media (max-width: 420px) {
-      .brand-mark { width: 30px; height: 30px; }
-      .brand-name { font-size: .9rem; }
-      .brand-caption { font-size: .55rem; }
-      .connection-state { max-width: 145px; }
-      #state-detail { display: none; }
-      .top-nav { justify-content: space-between; gap: 8px; }
-      .metrics-grid { gap: 8px; }
-      .metric { min-height: 88px; padding: 11px; }
-      .metric strong { font-size: 1.1rem; }
-      .section { padding: 14px; }
-      .section-heading { margin: -14px -14px 14px; padding: 13px 14px; }
-      .actions { grid-template-columns: minmax(0, 1fr); gap: 0; }
-      .page-heading { gap: 10px; }
-      .page-heading > button { padding-inline: 9px; font-size: .75rem; }
-    }
-    @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
-    /* Home Tunnel's own control-room layout and palette. */
-    .app-shell { display: grid; grid-template-columns: 218px minmax(0, 1fr); gap: 30px; width: min(100%, 1600px); padding: 20px 26px 34px; }
-    .topbar { position: sticky; top: 20px; grid-column: 1; grid-row: 1; height: calc(100vh - 40px); min-height: 560px; display: flex; flex-direction: column; align-items: stretch; gap: 28px; padding: 18px 12px; border: 1px solid var(--border); border-radius: 18px; background: linear-gradient(160deg,#121d30,#0e1728 70%); }
-    .brand { padding: 4px 5px 20px; border-bottom: 1px solid var(--border); }
-    .brand-mark { width: 42px; height: 42px; border: 1px solid #2c5361; border-radius: 13px; background: #12353c; color: var(--green); }
-    .brand-mark svg { width: 25px; height: 25px; }
-    .brand-name { letter-spacing: .09em; }
-    .brand-caption { letter-spacing: .04em; text-transform: none; }
-    .top-nav { display: flex; flex-direction: column; align-items: stretch; gap: 6px; }
-    .top-nav a { min-height: 44px; padding: 0 13px; border: 0; border-left: 3px solid transparent; border-radius: 8px; color: #b6c4d7; }
-    .top-nav a:hover, .top-nav a:focus-visible { background: #1a2940; color: #fff; }
-    .top-nav a.active { border-left-color: var(--green); background: #16313a; color: #80edda; }
-    .connection-state { margin-top: auto; max-width: none; padding: 11px; border-color: #2d4655; border-radius: 10px; background: #12232f; }
-    #app-content { grid-column: 2; grid-row: 1; min-width: 0; }
-    .page-heading { margin-top: 14px; }
-    h1 { font-size: 1.8rem; font-weight: 650; letter-spacing: -.025em; }
-    h2 { font-weight: 650; }
-    .section { padding: 20px; border-radius: 16px; background: linear-gradient(145deg,#121d30,#10192a); box-shadow: 0 12px 32px #03091430; }
-    .section-heading { margin: -20px -20px 18px; padding: 17px 20px; border-color: #24334a; }
-    .metrics-grid { grid-template-columns: repeat(4,minmax(0,1fr)); gap: 14px; }
-    .metric { min-height: 104px; padding: 16px; border-color: #2a3a52; border-radius: 14px; background: #17243a; }
-    .metric span { color: #a9bad0; }
-    .metric strong { margin-top: 16px; color: #e9f4ff; font-size: 1.45rem; font-weight: 650; }
-    .metric:nth-child(4n + 2), .metric:nth-child(4n + 3) { --value-color:#82d9ed; }
-    .metric strong { color: var(--value-color,#e9f4ff); }
-    .chart-grid { grid-template-columns: minmax(0,1fr); }
-    .chart-card { border-color: #293a52; border-radius: 14px; background: #131f33; }
-    .chart-card svg { height: 112px; }
-    .chart-line { stroke-width: 3.5; }
-    .events { grid-template-columns: minmax(0,1fr); }
-    .events li { margin: 5px 0; padding: 13px 15px; border: 1px solid #27374d; border-radius: 11px; background: #142036; }
-    .events li strong { color: #eaf3ff; font-size: .85rem; }
-    button { border-color: #2a9c9b; border-radius: 9px; background: #154749; color: #e6fffb; }
-    button:hover:not(:disabled) { background: #1c6260; }
-    button.secondary { border-color: #35465e; border-radius: 9px; background: #1b2a40; }
-    input, textarea { border-color: #35465e; border-radius: 9px; background: #0c1423; }
-    .management-grid, .about-grid { gap: 18px; }
-    .setting-row { display:flex; align-items:center; gap:10px; min-height:40px; margin:0; cursor:pointer; }
-    input[type="checkbox"] { width:20px; min-height:20px; margin:0; accent-color:#47d6bd; }
-    @media (max-width: 900px) {
-      .app-shell { display: block; padding: 14px 18px 28px; }
-      .topbar { position: static; height: auto; min-height: 0; display: grid; grid-template-columns: minmax(0,1fr) auto; grid-template-rows: auto auto; gap: 10px 16px; margin-bottom: 22px; padding: 12px; }
-      .brand { grid-column: 1; grid-row: 1; padding: 0; border: 0; }
-      .top-nav { grid-column: 1 / -1; grid-row: 2; flex-direction: row; overflow-x: auto; gap: 5px; }
-      .top-nav a { min-height: 40px; flex: 0 0 auto; border-left: 0; border-bottom: 2px solid transparent; padding: 0 12px; }
-      .top-nav a.active { border-bottom-color: var(--green); }
-      .connection-state { grid-column: 2; grid-row: 1; margin: 0; }
-      #app-content { min-width: 0; }
-      .metrics-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
-    }
-    @media (max-width: 620px) {
-      .app-shell { padding: 10px 12px 22px; }
-      .topbar { gap: 8px; margin-bottom: 16px; }
-      .brand-mark { width: 36px; height: 36px; }
-      .connection-state { max-width: 155px; }
-      #state-detail { display: none; }
-      .page-heading { margin-top: 18px; }
-      .section { padding: 15px; }
-      .section-heading { margin: -15px -15px 15px; padding: 14px 15px; }
-      .metric { min-height: 88px; padding: 12px; }
-      .metric strong { margin-top: 10px; font-size: 1.15rem; }
-    }
-    @media (max-width: 420px) {
-      .topbar { grid-template-columns: minmax(0,1fr) auto; }
-      .brand { min-width:0; gap:6px; }
-      .brand-mark { width:32px; height:32px; }
-      .brand-name { font-size:.82rem; }
-      .brand-caption { font-size:.52rem; }
-      .connection-state { max-width:130px; padding:6px; }
-      #state-title { font-size:.72rem; }
-    }
-  </style>
+:root {
+  --accent: #397450;
+  --on-accent: white;
+  --canvas: #f5f6f1;
+  --paper: #fffefa;
+  --ink: #20352e;
+  --muted: #53655b;
+  --line: #ccd6cf;
+  --soft: #edf2ea;
+  --rail: color-mix(in srgb, var(--accent) 27%, #102c26);
+  --selected: color-mix(in srgb, var(--accent) 24%, #eef4e5);
+  --accent-ink: color-mix(in srgb, var(--accent) 38%, #17281f);
+}
+:root[data-stay-theme="dark"] {
+  --canvas: #131a18;
+  --paper: #1e2723;
+  --ink: #eef2ec;
+  --muted: #b3c0b7;
+  --line: #435047;
+  --soft: #2b3830;
+  --accent-ink: color-mix(in srgb, var(--accent) 35%, #f0fff1);
+}
+.color-picker { min-width: 0; margin: 10px 0; padding: 0; border: 0; color: var(--ink); }
+.color-picker legend { font: inherit; font-weight: 650; }
+.color-sample { display: inline-block; width: 1.2em; height: 1.2em; vertical-align: middle; margin-inline-start: .6em; border: 1px solid var(--line); border-radius: 50%; }
+.color-swatches { display: flex; gap: 2px; flex-wrap: wrap; margin: 5px 0; }
+.color-swatches button {
+  flex: 0 0 44px; width: 44px; height: 44px; min-height: 44px; padding: 5px; border-radius: 50%;
+  background: var(--swatch) content-box; border: 2px solid transparent; cursor: pointer;
+}
+.color-swatches button[aria-pressed="true"] { border-color: var(--ink); }
+.color-picker details > label { display: grid; grid-template-columns: 6em minmax(0,1fr); align-items: center; gap: 10px; min-height: 44px; }
+.color-picker input { min-width: 0; width: 100%; accent-color: var(--accent); }
+.color-picker input[type=text], .color-picker input:not([type]) { padding: 8px 12px; background: var(--paper); color: var(--ink); border: 1px solid var(--line); border-radius: 8px; }
+.color-picker summary { cursor: pointer; min-height: 44px; padding-block: 10px; }
+:root { color-scheme: light; font: 16px/1.5 Inter, "Segoe UI", system-ui, sans-serif; color:var(--ink); background:var(--canvas); }
+* { box-sizing:border-box; }
+body { margin:0; }
+[hidden], .hidden { display:none !important; }
+button,input,textarea,select { font:inherit; }
+button,select,input:not([type=checkbox]),textarea { border:1px solid var(--line); border-radius:9px; min-height:44px; padding:8px 12px; }
+input,textarea,select { background:var(--paper); color:var(--ink); max-width:100%; }
+input:not([type=checkbox]),textarea { width:100%; }
+textarea { resize:vertical; }
+input[type=checkbox] { width:20px; height:20px; accent-color:var(--accent); flex:none; }
+button { background:var(--accent); color:var(--on-accent); border-color:transparent; font-weight:650; white-space:nowrap; cursor:pointer; }
+button.secondary { background:var(--paper); border-color:var(--line); color:var(--accent-ink); }
+button:hover:enabled { filter:brightness(.94); }
+button:disabled { opacity:.52; cursor:default; }
+a { color:var(--accent-ink); }
+:focus-visible { outline:3px solid #b27816; outline-offset:3px; }
+h1:focus { outline:none; }
+h1,h2,h3,p { margin:0; }
+h1,.brand,.metric strong,.chart-value { font-family:"Iowan Old Style",Georgia,serif; font-weight:500; }
+h1 { font-size:clamp(2.3rem,5vw,3.5rem); letter-spacing:-.045em; line-height:1.12; }
+h2 { font-size:1.1rem; }
+.subtle,.small,.chart-note,.message,.events small,.caller-list small { color:var(--muted); font-size:.91rem; }
+.url,.events li,.caller-list li,.message,.subtle { overflow-wrap:anywhere; }
+.app-shell { display:grid; grid-template-columns:208px minmax(0,1fr); min-height:100vh; }
+.topbar { position:sticky; top:0; align-self:start; min-height:100vh; padding:30px 16px; background:var(--rail); color:#eff6e7; }
+.brand { display:flex; gap:10px; align-items:center; padding:0 6px; color:inherit; text-decoration:none; font-size:1.65rem; letter-spacing:-.055em; white-space:nowrap; }
+.brand-mark { display:grid; place-items:center; width:38px; height:38px; flex:none; color:#193a2e; background:var(--selected); border-radius:12px; }
+.brand-mark svg { width:23px; height:23px; }
+.top-nav { display:grid; gap:6px; margin-top:46px; }
+.top-nav a { display:flex; align-items:center; gap:12px; min-height:47px; padding:10px 14px; border-radius:10px; font-weight:600; color:#dce9df; text-decoration:none; }
+.top-nav svg { width:20px; height:20px; flex:none; }
+.top-nav a:hover { background:#234e43; }
+.top-nav a[aria-current] { background:var(--selected); color:#193a2e; }
+main { min-width:0; width:100%; max-width:1480px; margin:0 auto; padding:28px clamp(20px,4vw,64px) 48px; }
+.context,.page-heading,.section-heading,.dialog-heading,.setting-row,.preferences-row,.actions,.caller-tools,.segments { display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
+.context,.page-heading,.section-heading,.dialog-heading,.preferences-row { justify-content:space-between; }
+.context { padding-bottom:16px; border-bottom:1px solid var(--line); color:var(--muted); font-size:.9rem; }
+.connection-state,.caller-status { display:inline-flex; gap:7px; align-items:center; border-radius:20px; padding:5px 11px; background:var(--soft); color:var(--ink); font-size:.82rem; white-space:nowrap; }
+.dot { width:8px; height:8px; background:#bf8021; border-radius:50%; }
+.dot.ok { background:#318451; }
+.page-heading { margin:clamp(24px,4vw,52px) 0 24px; }
+.section,.metric { padding:clamp(16px,2.4vw,28px); border:1px solid var(--line); background:var(--paper); border-radius:16px; min-width:0; }
+.section + .section,.management-grid,.about-grid,.preferences-row + .preferences-row { margin-top:16px; }
+.section-heading { margin-bottom:16px; }
+.metrics-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; }
+.metric { display:grid; align-content:space-between; gap:16px; padding:clamp(14px,1.8vw,25px); }
+.metric:first-child { background:color-mix(in srgb,var(--accent) 13%,var(--paper)); }
+.metric span { color:var(--muted); font-size:.88rem; font-weight:600; }
+.metric strong { color:var(--accent-ink); font-size:clamp(1.6rem,3vw,2.6rem); line-height:1.12; overflow-wrap:anywhere; }
+#telemetry { padding:0; border:0; background:none; }
+#telemetry-message,.chart-note,.actions,.message,.small + .small { margin-top:10px; }
+.message:empty { display:none; }
+.chart-value { color:var(--accent-ink); font-size:2.1rem; }
+.chart-card svg { display:block; width:100%; height:180px; }
+.chart-axis,.chart-gridline { stroke:var(--line); }
+.chart-gridline { stroke-dasharray:3 5; }
+.chart-label,.chart-empty { fill:var(--muted); font:12px system-ui,sans-serif; }
+.chart-line { fill:none; stroke:var(--accent-ink); stroke-width:3; stroke-linejoin:round; }
+.chart-area { fill:var(--accent); opacity:.15; }
+.chart-point { fill:var(--accent-ink); }
+.about-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px; }
+.about-grid .section { margin:0; }
+.management-grid + .section { margin-top:16px; }
+.preferences-row + .preferences-row { border-top:1px solid var(--line); padding-top:16px; }
+.setting-row { flex-wrap:nowrap; min-height:44px; font-weight:600; }
+dialog { box-sizing:border-box; width:min(480px,calc(100% - 24px)); max-height:calc(100dvh - 32px); padding:23px; background:var(--paper); color:var(--ink); border:1px solid var(--line); border-radius:16px; }
+dialog::backdrop { background:#10251f88; }
+.dialog-heading { margin-bottom:16px; }
+.close { min-width:44px; padding:5px; font-size:1.25rem; }
+dialog label:not(.setting-row) { display:block; font-weight:600; margin:12px 0 5px; }
+dialog .color-picker details label { display:grid; }
+dialog .small { margin:8px 0; }
+.caller-tools { margin:16px 0; }
+.caller-tools input { flex:1 1 180px; min-width:0; }
+.segments { gap:4px; }
+.segments button[aria-pressed=true] { background:var(--selected); color:#193a2e; border-color:var(--line); }
+.events,.caller-list { margin:8px 0; padding:0; list-style:none; }
+.events li,.caller-list li { border-top:1px solid var(--line); padding:12px 0; }
+.caller-list li > div { display:flex; flex-wrap:wrap; align-items:center; gap:8px; }
+.events small,.caller-list small { display:block; }
+.ip-link { padding:0; border:0; border-radius:0; min-height:32px; background:none; color:var(--accent-ink); text-align:left; text-decoration:underline; white-space:normal; overflow-wrap:anywhere; }
+@media (max-width:1050px) { .metrics-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+@media (max-width:760px) {
+  .app-shell { display:block; }
+  .topbar { position:static; min-height:0; padding:12px 14px 9px; }
+  .top-nav { grid-template-columns:repeat(4,minmax(0,1fr)); gap:2px; margin-top:12px; }
+  .top-nav a { justify-content:center; min-height:44px; padding:6px 2px; font-size:.86rem; }
+  .top-nav svg { display:none; }
+  main { padding:16px clamp(12px,3vw,22px) 32px; }
+  .about-grid { grid-template-columns:minmax(0,1fr); }
+}
+@media (max-width:420px) {
+  .metrics-grid { gap:8px; } .context { gap:6px; }
+  .section-heading label { display:flex; align-items:center; gap:6px; }
+  .actions { gap:7px; }
+}
+</style>
 </head>
 <body>
   <div class="app-shell">
     <header class="topbar">
       <a class="brand" href="#dashboard" aria-label="Home Tunnel dashboard">
         <span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3 18V9a9 9 0 0 1 18 0v9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M3 18h5m8 0h5M8 18v-3a4 4 0 0 1 8 0v3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M10 10h4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span>
-        <span><span class="brand-name">HOME TUNNEL</span><span class="brand-caption">Secure relay</span></span>
+        <span>Home Tunnel</span>
       </a>
       <nav class="top-nav" aria-label="Dashboard sections">
-        <a class="active" href="#dashboard">Dashboard</a>
-        <a href="#settings">Settings</a>
-        <a href="#about">About</a>
-        <a href="#activity">Activity</a>
+        <a href="#dashboard"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3h7v7H3z M14 3h7v7h-7z M3 14h7v7H3z M14 14h7v7h-7z"/></svg>Overview</a>
+        <a href="#activity"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h5l3-8 4 16 3-8h5"/></svg>Activity</a>
+        <a href="#settings"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h8m4 0h6 M3 12h2m4 0h12 M3 18h10m4 0h4 M11 3v6 M7 9v6 M15 15v6"/></svg>Settings</a>
+        <a href="#about"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a9 9 0 1 0 0 18 9 9 0 1 0 0-18z M12 11v6 M12 7v1"/></svg>About</a>
       </nav>
-      <div class="connection-state" role="status" aria-live="polite">
-        <span id="dot" class="dot"></span>
-        <span class="connection-copy"><strong id="state-title">Checking status…</strong><span id="state-detail"></span></span>
-      </div>
     </header>
 
     <main id="app-content">
+      <div class="context">
+        <span>Home Tunnel</span>
+        <div class="connection-state" role="status" aria-live="polite">
+          <span id="dot" class="dot"></span><strong id="state-title">Checking status…</strong>
+        </div>
+      </div>
       <section class="view" id="dashboard" aria-labelledby="dashboard-title">
         <div class="page-heading">
-          <div><h1 id="dashboard-title">Dashboard</h1><p class="subtle">Connection health and relay statistics</p></div>
-          <button id="refresh-statistics" type="button">Refresh statistics</button>
+          <div><h1 id="dashboard-title">Overview</h1></div>
+          <button id="refresh-statistics" type="button" class="secondary">Refresh</button>
         </div>
-        <section id="telemetry" class="section" aria-labelledby="telemetry-title">
-          <div class="section-heading"><div><h2 id="telemetry-title">General statistics</h2><p class="subtle">Current relay status</p></div></div>
+        <section id="telemetry" class="section" aria-label="Connection metrics">
+
           <div class="metrics-grid" aria-label="Relay statistics">
             <div class="metric"><span>Tunnel health</span><strong id="metric-health">Checking…</strong></div>
             <div class="metric"><span>Requests per minute</span><strong id="metric-rate">—</strong></div>
             <div class="metric"><span>Recent latency</span><strong id="metric-latency">—</strong></div>
             <div class="metric"><span>Active WebSockets</span><strong id="metric-websockets">—</strong></div>
           </div>
+          <p id="state-detail" class="subtle" role="status"></p>
           <p id="telemetry-message" class="small" role="status" aria-live="polite">Loading telemetry…</p>
         </section>
         <section id="charts" class="section" aria-labelledby="charts-title">
-          <div class="section-heading"><div><h2 id="charts-title">Live trends</h2><p class="subtle">Sampled while this dashboard is open</p></div><label for="chart-range" class="small">Window <select id="chart-range" style="width:auto;min-height:36px;margin-left:6px"><option value="5">5 min</option><option value="15" selected>15 min</option><option value="30">30 min</option></select></label></div>
+          <div class="section-heading"><div><h2 id="charts-title">Request rate</h2></div><label for="chart-range" class="small">Window <select id="chart-range"><option value="5">5 min</option><option value="15" selected>15 min</option><option value="30">30 min</option></select></label></div>
           <div class="chart-grid">
-            <section class="chart-card" aria-label="Requests per minute trend" style="--chart-color:#47d6bd"><h3>Requests / min</h3><strong id="chart-rate-value" class="chart-value">—</strong><svg id="chart-rate" viewBox="0 0 400 180" role="img" aria-label="Requests per minute over the selected window"></svg><p id="chart-rate-note" class="chart-note">Waiting for telemetry</p></section>
+            <section class="chart-card" aria-label="Requests per minute trend"><strong id="chart-rate-value" class="chart-value">—</strong><svg id="chart-rate" viewBox="0 0 400 180" role="img" aria-label="Requests per minute over the selected window"></svg><p id="chart-rate-note" class="chart-note">Waiting for telemetry</p></section>
           </div>
-          <p class="chart-note" style="margin-top:12px">Trend samples clear when this page reloads or closes.</p>
+
         </section>
       </section>
 
       <section class="view hidden" id="settings" aria-labelledby="settings-title">
-        <div class="page-heading"><div><h1 id="settings-title">Settings</h1><p class="subtle">Relay controls and setup</p></div></div>
+        <div class="page-heading"><div><h1 id="settings-title">Settings</h1></div></div>
         <div class="management-grid">
           <section id="paired" class="section hidden">
-            <div class="section-heading"><div><h2>Relay controls</h2><p class="subtle">Manage forwarding</p></div></div>
+            <div class="section-heading"><div><h2>Forwarding</h2></div></div>
             <p id="relay-url" class="subtle url"></p>
             <p id="paired-detail" class="subtle"></p>
             <div class="actions"><button id="enable" type="button">Enable forwarding</button><button id="disable" class="secondary" type="button">Disable forwarding</button></div>
             <div id="control-message" class="message" role="status" aria-live="polite"></div>
           </section>
-          <section id="setup" class="section">
-            <div class="section-heading"><div><h2>Set up your relay</h2><p class="subtle">Pair this app with your IIS relay</p></div></div>
-            <p class="subtle">Generate one setup code. Add its hash to the relay's web.config, then enter the relay URL to pair.</p>
+          <section id="setup" class="section hidden"><div class="preferences-row"><div><h2>Relay pairing</h2><p class="subtle">Connect your IIS relay.</p></div><button type="button" data-open="pair-dialog">Set up relay</button></div></section>
+        </div>
+        <section class="section" aria-label="Preferences">
+          <div class="preferences-row"><div><h2>Appearance</h2><p class="subtle">Theme and accent color on this browser</p></div><button type="button" class="secondary" data-open="appearance-dialog">Customize</button></div>
+          <div class="preferences-row"><div><h2>Caller locations</h2><p class="subtle">Approximate IP lookups</p></div><button type="button" class="secondary" data-open="location-dialog">Configure</button></div>
+        </section>
+      </section>
+
+      <section class="view hidden" id="about" aria-labelledby="about-title">
+        <div class="page-heading"><div><h1 id="about-title">About</h1></div></div>
+        <div class="about-grid">
+          <section class="section" aria-labelledby="about-product-title">
+            <div class="section-heading"><div><h2 id="about-product-title">Home Assistant access</h2></div></div>
+            <p class="small">Home Tunnel forwards requests through your IIS relay. Home Assistant remains responsible for sign-in, MFA, and permissions.</p>
+          </section>
+          <section id="relay-updates" class="section" aria-labelledby="relay-updates-title">
+            <div class="section-heading"><div><h2 id="relay-updates-title">Relay version</h2></div></div>
+            <p id="relay-version-detail" class="subtle"></p>
+            <p id="relay-update-status" class="small" role="status" aria-live="polite"></p>
+            <p id="relay-compatibility" class="message hidden" role="status"></p>
+            <p class="small">The relay updates manually. The Home Tunnel app updates through Home Assistant.</p>
+            <p class="small"><a id="relay-release-link" target="_blank" rel="noopener noreferrer">Releases</a> · <a id="relay-changelog-link" target="_blank" rel="noopener noreferrer">Changelog</a> · <a id="relay-manual-link" target="_blank" rel="noopener noreferrer">Manual update guide</a></p>
+          </section>
+        </div>
+      </section>
+
+      <section class="view hidden" id="activity" aria-labelledby="activity-title">
+        <div class="page-heading"><div><h1 id="activity-title">Activity</h1></div></div>
+        <div class="segments" role="group" aria-label="Activity view"><button type="button" class="secondary" data-list="requests" aria-pressed="true">Requests</button><button type="button" class="secondary" data-list="callers" aria-pressed="false">Caller IPs</button></div>
+        <div class="caller-tools"><input id="caller-search" type="search" autocomplete="off" placeholder="Search IP addresses" aria-label="Search caller IP addresses"><select id="caller-filter" aria-label="Filter caller IPs"><option value="all">All callers</option><option value="authenticated">Authenticated</option><option value="unknown">Unknown</option></select></div>
+        <section class="section" id="callers" hidden aria-labelledby="caller-list-title">
+          <div class="section-heading"><div><h2 id="caller-list-title">Caller IPs</h2><p id="caller-retention" class="subtle">Stored privately for 30 days</p></div><button id="clear-caller-ips" class="secondary" type="button">Clear history</button></div>
+
+          <p id="caller-results" class="small" aria-live="polite"></p>
+          <ul id="caller-ips" class="caller-list"><li class="small">Waiting for metrics</li></ul>
+          <button id="show-more-callers" class="secondary hidden" type="button">Show more</button>
+        </section>
+        <section class="section" id="requests" aria-labelledby="activity-list-title">
+          <div class="section-heading"><div><h2 id="activity-list-title">Recent requests</h2><p id="activity-filter-note" class="subtle">Most recent requests first</p></div><button id="refresh-activity" class="secondary" type="button" aria-label="Refresh activity">Refresh</button></div>
+          <ol id="recent-requests" class="events"><li class="small">Waiting for metrics</li></ol>
+        </section>
+      </section>
+    </main>
+    <dialog id="pair-dialog" aria-labelledby="pair-dialog-title"><div class="dialog-heading"><h2 id="pair-dialog-title">Set up relay</h2><button type="button" class="secondary close" data-close aria-label="Close dialog">×</button></div>
+<p class="subtle">Generate one setup code. Add its hash to the relay's web.config, then enter the relay URL to pair.</p>
             <button id="generate-code" type="button">Generate setup code</button>
             <div id="claim-details" class="hidden">
               <label for="claim-code" style="margin-top:16px">One-time setup code</label>
               <input id="claim-code" type="text" readonly autocomplete="off" spellcheck="false">
-              <p class="small">Keep this code in Home Assistant. Only its hash goes into web.config; the app uses the code to authenticate pairing without sending it.</p>
+              <p class="small">Keep the code in Home Assistant. Copy only the hash line to web.config.</p>
               <div class="actions"><button id="copy-code" class="secondary" type="button">Copy setup code</button><button id="replace-code" class="secondary" type="button">Generate a new code</button></div>
               <label for="config-snippet">Replace the blank HaTunnelBootstrapCodeHash line in web.config</label>
               <textarea id="config-snippet" rows="2" readonly spellcheck="false"></textarea>
@@ -294,54 +258,156 @@
               </form>
             </div>
             <div id="setup-message" class="message" role="status" aria-live="polite"></div>
-          </section>
-        </div>
-        <section class="section" id="location-settings" style="margin-top:18px" aria-labelledby="location-title">
-          <div class="section-heading"><div><h2 id="location-title">Caller locations</h2><p class="subtle">Optional approximate IP lookup</p></div></div>
-          <label class="setting-row" for="geolocation-enabled"><input id="geolocation-enabled" type="checkbox"> Look up approximate caller locations</label>
+</dialog>
+    <dialog id="location-dialog" aria-labelledby="location-dialog-title"><div class="dialog-heading"><h2 id="location-dialog-title">Caller locations</h2><button type="button" class="secondary close" data-close aria-label="Close dialog">×</button></div>
+<label class="setting-row" for="geolocation-enabled"><input id="geolocation-enabled" type="checkbox"> Look up approximate caller locations</label>
           <p class="small">When enabled, Home Tunnel sends public caller IPs to ipapi.co to estimate their city, region, and country. Results can be inaccurate. Lookups are cached for 24 hours, up to 200 new IPs per day.</p>
           <p id="geolocation-message" class="message" role="status" aria-live="polite"></p>
-        </section>
-      </section>
-
-      <section class="view hidden" id="about" aria-labelledby="about-title">
-        <div class="page-heading"><div><h1 id="about-title">About</h1><p class="subtle">Home Tunnel and relay information</p></div></div>
-        <div class="about-grid">
-          <section class="section" aria-labelledby="about-product-title">
-            <div class="section-heading"><div><h2 id="about-product-title">Home Tunnel</h2><p class="subtle">Self-hosted access to Home Assistant</p></div></div>
-            <p class="small">Home Tunnel forwards requests through your IIS relay. Home Assistant remains responsible for sign-in, MFA, and permissions.</p>
-          </section>
-          <section id="relay-updates" class="section" aria-labelledby="relay-updates-title">
-            <div class="section-heading"><div><h2 id="relay-updates-title">Relay version</h2><p class="subtle">Compatibility and release information</p></div></div>
-            <p id="relay-version-detail" class="subtle"></p>
-            <p id="relay-update-status" class="small" role="status" aria-live="polite"></p>
-            <p id="relay-compatibility" class="message hidden" role="status"></p>
-            <p class="small">The relay updates manually. The Home Tunnel app updates through Home Assistant.</p>
-            <p class="small"><a id="relay-release-link" target="_blank" rel="noopener noreferrer">Releases</a> · <a id="relay-changelog-link" target="_blank" rel="noopener noreferrer">Changelog</a> · <a id="relay-manual-link" target="_blank" rel="noopener noreferrer">Manual update guide</a></p>
-          </section>
-        </div>
-      </section>
-
-      <section class="view hidden" id="activity" aria-labelledby="activity-title">
-        <div class="page-heading"><div><h1 id="activity-title">Activity</h1><p class="subtle">Recent relay requests</p></div></div>
-        <section class="section" aria-labelledby="caller-list-title">
-          <div class="section-heading"><div><h2 id="caller-list-title">Caller IPs</h2><p id="caller-retention" class="subtle">Stored privately for 30 days</p></div><button id="clear-caller-ips" class="secondary" type="button">Clear history</button></div>
-          <div class="caller-tools"><input id="caller-search" type="search" autocomplete="off" placeholder="Search IP addresses" aria-label="Search caller IP addresses"><select id="caller-filter" aria-label="Filter caller IPs"><option value="all">All callers</option><option value="authenticated">Authenticated</option><option value="unknown">Unknown</option></select></div>
-          <p id="caller-results" class="small" aria-live="polite"></p>
-          <ul id="caller-ips" class="caller-list"><li class="small">Waiting for metrics</li></ul>
-          <button id="show-more-callers" class="secondary hidden" type="button">Show more</button>
-        </section>
-        <section class="section" aria-labelledby="activity-list-title">
-          <div class="section-heading"><div><h2 id="activity-list-title">Recent activity</h2><p id="activity-filter-note" class="subtle">Most recent requests first</p></div><button id="refresh-activity" class="secondary" type="button" aria-label="Refresh activity">↻</button></div>
-          <ol id="recent-requests" class="events"><li class="small">Waiting for metrics</li></ol>
-        </section>
-      </section>
-    </main>
+</dialog>
+    <dialog id="appearance-dialog" aria-labelledby="appearance-dialog-title"><div class="dialog-heading"><h2 id="appearance-dialog-title">Appearance</h2><button type="button" class="secondary close" data-close aria-label="Close dialog">×</button></div>
+<label for="theme-mode">Theme</label><select id="theme-mode"><option value="system">System</option><option value="light">Light</option><option value="dark">Dark</option></select><div id="picker"></div>
+</dialog>
   </div>
 <script>
 (() => {
   const base = document.querySelector('meta[name="ingress-base"]').content.replace(/\/$/, '');
   const byId = id => document.getElementById(id);
+const palette = [
+    ["Fern", "#397450"], ["Teal", "#17827a"], ["Sky", "#479bdd"], ["Indigo", "#7262b8"],
+    ["Rose", "#bf5678"], ["Clay", "#bc6945"], ["Gold", "#cf9e3f"], ["Slate", "#657487"]
+  ];
+
+  function applyAppearance({ mode, accentColor }) {
+    if (!/^#[0-9a-f]{6}$/i.test(accentColor)) return;
+    const root = document.documentElement;
+    root.dataset.stayTheme = mode === "light" ? "light" : "dark";
+    root.style.colorScheme = root.dataset.stayTheme;
+    root.style.setProperty("--accent", accentColor);
+    const linear = [1, 3, 5].map(index => {
+      const value = parseInt(accentColor.slice(index, index + 2), 16) / 255;
+      return value <= .04045 ? value / 12.92 : ((value + .055) / 1.055) ** 2.4;
+    });
+    const luminance = linear[0] * .2126 + linear[1] * .7152 + linear[2] * .0722;
+    root.style.setProperty("--on-accent", luminance > .179 ? "#000" : "#fff");
+  }
+
+  function mountColorPicker(host, label, onChange, explicit = false) {
+    const group = document.createElement("fieldset");
+    group.className = "color-picker";
+    const legend = document.createElement("legend");
+    legend.textContent = label;
+    const swatches = document.createElement("div");
+    swatches.className = "color-swatches";
+    const channels = ["Red", "Green", "Blue"].map(name => {
+      const row = document.createElement("label");
+      row.textContent = name;
+      const input = document.createElement("input");
+      input.type = "range";
+      input.min = "0";
+      input.max = "255";
+      row.append(input);
+      return { row, input };
+    });
+    const custom = document.createElement("details");
+    const summary = document.createElement("summary");
+    summary.textContent = "Custom color";
+    const hexLabel = document.createElement("label");
+    hexLabel.textContent = "Hex color";
+    const hex = document.createElement("input");
+    hex.maxLength = 7;
+    hex.spellcheck = false;
+    hex.placeholder = "#397450";
+    hexLabel.append(hex);
+    custom.append(summary, ...channels.map(channel => channel.row), hexLabel);
+    const sample = document.createElement("span");
+    sample.className = "color-sample";
+    legend.append(sample);
+    group.append(legend, swatches, custom);
+    let value = "";
+    function setValue(next) {
+      if (!/^#[0-9a-f]{6}$/i.test(next)) return;
+      value = next.toLowerCase();
+      sample.style.backgroundColor = value;
+      hex.value = value.toUpperCase();
+      hex.setCustomValidity("");
+      for (const [index, channel] of channels.entries()) channel.input.value = String(parseInt(value.slice(1 + index * 2, 3 + index * 2), 16));
+      for (const button of swatches.children) button.setAttribute("aria-pressed", String(button.value === value));
+    }
+    function choose(next) {
+      setValue(next);
+      if (!explicit) onChange(value);
+    }
+    for (const [name, color] of palette) {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.value = color;
+      button.title = name;
+      button.setAttribute("aria-label", name);
+      button.style.setProperty("--swatch", color);
+      button.addEventListener("click", () => choose(color));
+      swatches.append(button);
+    }
+    for (const {input} of channels) {
+      input.addEventListener("input", () => choose("#" + channels.map(channel => Number(channel.input.value).toString(16).padStart(2, "0")).join("")));
+    }
+    hex.addEventListener("input", () => {
+      const next = "#" + hex.value.trim().replace(/^#/, "");
+      if (/^#[0-9a-f]{6}$/i.test(next)) choose(next);
+      else hex.setCustomValidity("Enter six hexadecimal digits.");
+    });
+    if (explicit) {
+      const apply = document.createElement("button");
+      apply.type = "button";
+      apply.textContent = "Set light color";
+      apply.addEventListener("click", () => { if (hex.reportValidity()) onChange(value); });
+      group.append(apply);
+    }
+    host.replaceChildren(group);
+    return { setValue, valid: () => hex.reportValidity(), reset: () => { custom.open = false; } };
+  }
+  const scheme = window.matchMedia('(prefers-color-scheme: dark)');
+  const appearanceKey = 'home-tunnel.appearance.v1';
+  let preferences = {mode:'system', accentColor:'#397450'};
+  try {
+    const saved = JSON.parse(localStorage.getItem(appearanceKey));
+    if (saved && ['system','light','dark'].includes(saved.mode) && /^#[0-9a-f]{6}$/i.test(saved.accentColor)) preferences = saved;
+  } catch { /* Storage may be disabled in an embedded browser. */ }
+  function paint() {
+    const mode = preferences.mode === 'system' ? (scheme.matches ? 'dark' : 'light') : preferences.mode;
+    applyAppearance({...preferences, mode});
+  }
+  function saveAppearance() {
+    paint();
+    try { localStorage.setItem(appearanceKey, JSON.stringify(preferences)); } catch { /* Keep the in-page choice. */ }
+  }
+  byId('theme-mode').value = preferences.mode;
+  byId('theme-mode').addEventListener('change', event => {
+    preferences.mode = event.target.value;
+    saveAppearance();
+  });
+  const picker = mountColorPicker(byId('picker'), 'Accent color', color => {
+    preferences.accentColor = color;
+    saveAppearance();
+  });
+  picker.setValue(preferences.accentColor);
+  scheme.addEventListener('change', paint);
+  paint();
+  for (const button of document.querySelectorAll('[data-open]')) {
+    button.addEventListener('click', () => byId(button.dataset.open).showModal());
+  }
+  for (const button of document.querySelectorAll('[data-close]')) {
+    button.addEventListener('click', () => button.closest('dialog').close());
+  }
+  function showList(name) {
+    for (const button of document.querySelectorAll('[data-list]')) {
+      const selected = name === button.dataset.list;
+      button.setAttribute('aria-pressed', String(selected));
+      byId(button.dataset.list).hidden = !selected;
+    }
+  }
+  for (const button of document.querySelectorAll('[data-list]')) {
+    button.addEventListener('click', () => showList(button.dataset.list));
+  }
   const pages = ['dashboard','settings','about','activity'];
   const samples=[];
   let geolocationEnabled=false;
@@ -349,6 +415,7 @@
   let callerLocations={};
   let recentEvents=[];
   let callerShown=50;
+  let telemetryNotice = "Waiting for metrics";
   const chartWindow=byId('chart-range');
   const chartSpecs=[
     {key:'rate',value:'chart-rate-value',svg:'chart-rate',note:'chart-rate-note',field:'requests_per_minute',unit:'req/min',digits:1}
@@ -361,7 +428,9 @@
     byId(spec.value).textContent=current==null?'—':`${current.toFixed(spec.digits)} ${spec.unit}`;
     byId(spec.note).textContent=points.length<2?'Collecting live samples':`${points.length} samples · last ${minutes} min`;
     const svg=byId(spec.svg);svg.replaceChildren();
-    const left=40,right=392,top=12,bottom=148,width=right-left,height=bottom-top;
+    const chartWidth = Math.max(220, svg.clientWidth || 400);
+    svg.setAttribute('viewBox', `0 0 ${chartWidth} 180`);
+    const left=40,right=chartWidth-8,top=12,bottom=148,width=right-left,height=bottom-top;
     for(let tick=0;tick<=4;tick++) {
       const y=top+height*tick/4;
       svg.append(svgNode('line',{x1:left,y1:y,x2:right,y2:y,class:tick===4?'chart-axis':'chart-gridline'}));
@@ -393,6 +462,12 @@
       link.classList.toggle('active',name===active);
       if(name===active)link.setAttribute('aria-current','page'); else link.removeAttribute('aria-current');
     }
+    for (const openDialog of document.querySelectorAll('dialog[open]')) openDialog.close();
+    if (location.hash) {
+      const heading = byId(active + '-title');
+      heading.tabIndex = -1;
+      heading.focus({preventScroll:true});
+    }
     window.scrollTo(0,0);
   }
   window.addEventListener('hashchange',showPage);
@@ -400,7 +475,10 @@
   async function api(path, body) {
     const response = await fetch(`${base}/api/${path}`, body ? {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)} : {cache:'no-store'});
     const text = await response.text();
-    if (!response.ok) throw new Error(text || `Request failed (${response.status})`);
+    if (!response.ok) {
+      const detail = response.headers.get('Content-Type')?.startsWith('text/plain') ? text.trim().slice(0, 240) : '';
+      throw new Error(detail || `Request failed (${response.status})`);
+    }
     return text ? JSON.parse(text) : {};
   }
   async function refresh() {
@@ -408,6 +486,7 @@
       const data = await api('status');
       const dot=byId('dot'), title=byId('state-title'), detail=byId('state-detail');
       byId('setup').classList.toggle('hidden',data.paired);
+      if (data.paired && byId('pair-dialog').open) byId('pair-dialog').close();
       if(!byId('geolocation-enabled').disabled) {
         geolocationEnabled=data.geolocation_enabled===true;
         byId('geolocation-enabled').checked=geolocationEnabled;
@@ -415,7 +494,7 @@
       byId('paired').classList.toggle('hidden',!data.paired);
       byId('claim-details').classList.toggle('hidden',!data.claim_ready);
       byId('generate-code').classList.toggle('hidden',data.claim_ready);
-      byId('generate-code').textContent=data.pairing_pending?'Restart setup with a new code':'Generate setup code';
+      byId('generate-code').textContent=data.pairing_pending?'Restart setup':'Generate setup code';
       byId('pair-button').disabled=data.pairing_pending;
       if (data.claim_ready) {
         byId('claim-code').value=data.setup_code || '';
@@ -423,9 +502,9 @@
       }
       if (!data.paired && data.pairing_pending) { title.textContent='Pairing in progress'; detail.textContent=data.error || `Connecting to the relay · expires in ${data.pairing_expires_in}s`; byId('setup-message').textContent=data.error || 'Pairing is being completed. Keep this app running.'; }
       else if (!data.paired) { title.textContent='Awaiting setup'; detail.textContent=data.error || (data.claim_ready?'Add the hash to web.config, then pair the relay.':'Generate a setup code to begin.'); if(data.error)byId('setup-message').textContent=data.error; }
-      else if (data.connected && data.forwarding_enabled) { title.textContent='Tunnel online'; detail.textContent='Forwarding is enabled.'; dot.classList.add('ok'); }
+      else if (data.connected && data.forwarding_enabled) { title.textContent='Online'; detail.textContent=''; dot.classList.add('ok'); }
       else if (data.connected) { title.textContent='Connector connected'; detail.textContent='Forwarding is off until you enable it.'; }
-      else { title.textContent='Connector connecting'; detail.textContent=data.error || 'The app is trying to reach the relay.'; }
+      else { title.textContent='Connecting'; detail.textContent=data.error || 'The app is trying to reach the relay.'; }
       if (data.paired) {
         byId('relay-url').textContent=data.relay_url || '';
         byId('paired-detail').textContent=`${data.connected?'Connector connected':'Waiting for connector'} · Forwarding ${data.forwarding_enabled?'enabled':'disabled'}`;
@@ -451,33 +530,42 @@
         const link=byId(id); if(url)link.href=url; else link.removeAttribute('href');
       }
       dot.classList.toggle('ok',data.connected && data.forwarding_enabled);
-    } catch (error) { byId('state-title').textContent='Setup service unavailable'; byId('state-detail').textContent=error.message; }
+    } catch (error) { byId('dot').classList.remove('ok'); byId('state-title').textContent='Unavailable'; byId('state-detail').textContent=error.message; }
+  }
+  function unavailableTelemetry(message) {
+    metric('metric-health','No data');
+    for (const id of ['metric-rate','metric-latency','metric-websockets']) metric(id,'—');
+    telemetryNotice = message;
+    samples.length=0;
+    drawCharts();
+    callerRecords=[];recentEvents=[];callerLocations={};
+    renderCallerIps();renderRecentActivity();
+    byId('caller-retention').textContent='Caller history unavailable';
+    byId('telemetry-message').textContent=message;
   }
   function metric(id,value) { byId(id).textContent=String(value); }
   async function refreshTelemetry() {
     try {
       const result=await api('telemetry');
       if(!result.available) {
-        metric('metric-health','No data');
-        byId('telemetry-message').textContent=result.reason==='invalid_configuration'?'Check the metrics token in the app Configuration tab.':'Telemetry will appear when the connector is connected.';
-        byId('recent-requests').replaceChildren(Object.assign(document.createElement('li'),{textContent:'No telemetry available'}));
-        callerRecords=[];recentEvents=[];renderCallerIps();renderRecentActivity();
+        unavailableTelemetry(result.reason==='invalid_configuration'?'Check the metrics token in Configuration.':'Waiting for the connector.');
         return;
       }
+      telemetryNotice = '';
       const data=result.metrics;
       const numeric=value=>Number.isFinite(Number(value))?Number(value):0;
       const sample={at:Date.now(),rate:numeric(data.requests_per_minute)};
       samples.push(sample);if(samples.length>180)samples.splice(0,samples.length-180);
       drawCharts();
       metric('metric-health',data.healthy?'Online':(data.status||'Unknown'));
-      metric('metric-rate',`${data.requests_per_minute ?? 0} req/min`);
+      metric('metric-rate',data.requests_per_minute ?? 0);
       metric('metric-latency',`${data.recent_latency_ms ?? 0} ms`);
       metric('metric-websockets',data.active_ws ?? 0);
       const issues=Array.isArray(data.risk_issues)?data.risk_issues:[];
-      byId('telemetry-message').textContent=issues.length?issues.join(' · '):`Metrics updated ${data.telemetry_age_seconds ?? '—'} seconds ago`;
+      byId('telemetry-message').textContent=issues.length?issues.join(' · '):`Metrics updated ${counted(data.telemetry_age_seconds ?? '—', 'second')} ago`;
       recentEvents=Array.isArray(data.recent_requests)?data.recent_requests.slice(-20).reverse():[];
       callerRecords=Array.isArray(data.caller_ips)?data.caller_ips:[];
-      byId('caller-retention').textContent=data.caller_ip_history_ok===false?'Caller history storage unavailable':`Stored privately for up to ${data.caller_ip_retention_days||30} days · ${callerRecords.length} addresses`;
+      byId('caller-retention').textContent=data.caller_ip_history_ok===false?'Caller history storage unavailable':`Stored privately for up to ${data.caller_ip_retention_days||30} days · ${counted(callerRecords.length, 'address', 'addresses')}`;
       const callerAddresses=callerRecords.slice(0,10).map(row=>row.ip).filter(ip=>typeof ip==='string');
       let locations={};
       if(geolocationEnabled && (recentEvents.length || callerAddresses.length)) {
@@ -485,8 +573,9 @@
         if(ips.length)try { const result=await api(`geolocation?ips=${encodeURIComponent(ips.join(','))}`);locations=result.locations||{}; } catch(error) {}
       }
       callerLocations=locations;renderCallerIps();renderRecentActivity();
-    } catch(error) { byId('telemetry-message').textContent='Telemetry unavailable'; }
+    } catch(error) { unavailableTelemetry('Telemetry unavailable'); }
   }
+  new ResizeObserver(drawCharts).observe(byId('charts'));
   chartWindow.addEventListener('change',drawCharts);
   byId('refresh-statistics').addEventListener('click',async()=>{
     const button=byId('refresh-statistics');button.disabled=true;
@@ -511,11 +600,11 @@
       const badge=document.createElement('span');badge.className=`caller-status${row.status==='unknown'?' unknown':''}`;badge.textContent=row.status==='authenticated'?'This device':'Unknown';
       if(row.status==='authenticated')badge.title='A Home Assistant login was confirmed from this IP.';
       heading.append(badge);
-      const location=callerLocations[row.ip];const summary=document.createElement('small');summary.textContent=`${location?`${location} · `:''}${row.requests} requests · last seen ${displayTime(row.last_seen)}`;
+      const location=callerLocations[row.ip];const summary=document.createElement('small');summary.textContent=`${location?`${location} · `:''}${counted(row.requests, 'request')} · last seen ${displayTime(row.last_seen)}`;
       const auth=document.createElement('small');auth.textContent=row.authenticated_at?`HA login observed ${displayTime(row.authenticated_at)}`:'No HA login observed';
       item.append(heading,summary,auth);list.append(item);
     }
-    if(!rows.length)list.append(Object.assign(document.createElement('li'),{textContent:callerRecords.length?'No callers match this filter':'No caller IPs recorded yet'}));
+    if(!rows.length)list.append(Object.assign(document.createElement('li'),{textContent:telemetryNotice || (callerRecords.length?'No callers match this filter':'No caller IPs recorded yet')}));
   }
   function makeIpButton(ip) {
     const button=document.createElement('button');button.type='button';button.className='ip-link';button.textContent=ip;
@@ -523,7 +612,7 @@
     button.addEventListener('click',()=>setCallerFilter(ip));return button;
   }
   function setCallerFilter(ip) {
-    byId('caller-search').value=ip;callerShown=50;renderCallerIps();renderRecentActivity();
+    byId('caller-search').value=ip;callerShown=50;showList('requests');renderCallerIps();renderRecentActivity();byId('caller-search').focus();
   }
   function renderRecentActivity() {
     const list=byId('recent-requests');list.replaceChildren();
@@ -534,7 +623,7 @@
       return (!query||ip.toLowerCase().includes(query))&&(filter==='all'||(statusByIp.get(ip)||'unknown')===filter);
     });
     const note=byId('activity-filter-note');
-    note.textContent=query?`${events.length} requests from ${byId('caller-search').value.trim()}`:filter==='all'?`Most recent requests first · ${events.length} shown`:`${events.length} requests from ${filter} callers`;
+    note.textContent=query?`${counted(events.length, 'request')} from ${byId('caller-search').value.trim()}`:filter==='all'?`Most recent requests first · ${events.length} shown`:`${counted(events.length, 'request')} from ${filter} callers`;
     for(const event of events) {
       const item=document.createElement('li');
       const title=document.createElement('strong');title.textContent=`${event.method||'Request'} ${event.route||'/'} · ${event.status??'—'}`;
@@ -543,7 +632,10 @@
       detail.append(document.createTextNode(`${location?` · ${location}`:''} · ${event.duration_ms??'—'} ms · ${event.observed_at?displayTime(event.observed_at):'time unavailable'}`));
       item.append(title,detail);list.append(item);
     }
-    if(!events.length)list.append(Object.assign(document.createElement('li'),{textContent:recentEvents.length?'No requests match this filter':'No recent requests'}));
+    if(!events.length)list.append(Object.assign(document.createElement('li'),{textContent:telemetryNotice || (recentEvents.length?'No requests match this filter':'No recent requests')}));
+  }
+  function counted(value, unit, plural = unit + 's') {
+    return `${value} ${value === 1 ? unit : plural}`;
   }
   function displayTime(value) { const date=new Date(value);return Number.isNaN(date.getTime())?value:date.toLocaleString(); }
   byId('caller-search').addEventListener('input',()=>{callerShown=50;renderCallerIps();renderRecentActivity();});

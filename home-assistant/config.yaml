@@ -1,5 +1,5 @@
 name: Home Tunnel
-version: "0.5.1"
+version: "0.6.0"
 slug: home_tunnel
 description: Secure setup and outgoing relay to your self-hosted endpoint
 homeassistant: "2026.9.0"

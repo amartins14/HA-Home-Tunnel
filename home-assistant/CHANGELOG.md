@@ -2,6 +2,11 @@
 
 Release notes for Home Tunnel. This copy is read by Home Assistant Supervisor. Relay releases are installed manually on IIS; the Home Assistant app is updated through Supervisor.
 
+## 0.6.0
+
+- Match the MyStay dashboard layout on desktop and mobile, with a system, light or dark theme and a local accent picker.
+- Separate requests and callers in Activity and move pairing and preferences into focused dialogs.
+
 ## 0.5.1
 
 - Filter recent activity with the caller IP search and authenticated or unknown status.
