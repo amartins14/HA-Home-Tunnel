@@ -67,7 +67,7 @@ h2 { font-size:1.1rem; }
 .url,.events li,.caller-list li,.message,.subtle { overflow-wrap:anywhere; }
 .app-shell { display:grid; grid-template-columns:208px minmax(0,1fr); min-height:100vh; }
 .topbar { position:sticky; top:0; align-self:start; min-height:100vh; padding:30px 16px; background:var(--rail); color:#eff6e7; }
-.brand { display:flex; gap:10px; align-items:center; padding:0 6px; color:inherit; text-decoration:none; font-size:1.65rem; letter-spacing:-.055em; white-space:nowrap; }
+.brand { display:flex; gap:8px; align-items:center; padding:0 2px; color:inherit; text-decoration:none; font-size:1.35rem; letter-spacing:-.04em; line-height:1.2; }
 .brand-mark { display:grid; place-items:center; width:38px; height:38px; flex:none; color:#193a2e; background:var(--selected); border-radius:12px; }
 .brand-mark svg { width:23px; height:23px; }
 .top-nav { display:grid; gap:6px; margin-top:46px; }
@@ -157,7 +157,7 @@ dialog .small { margin:8px 0; }
 
     <main id="app-content">
       <div class="context">
-        <span>Home Tunnel</span>
+        <span>Relay connection</span>
         <div class="connection-state" role="status" aria-live="polite">
           <span id="dot" class="dot"></span><strong id="state-title">Checking status…</strong>
         </div>

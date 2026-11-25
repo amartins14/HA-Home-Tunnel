@@ -6,6 +6,10 @@ Release notes for Home Tunnel. Relay releases are installed manually on IIS; the
 
 - Let crawlers fetch the IIS relay so they can read its no-index response header.
 
+## 0.6.1
+
+- Keep the Home Tunnel wordmark inside the desktop sidebar and label the connection status.
+
 ## 0.6.0
 
 - Match the MyStay dashboard layout on desktop and mobile, with a system, light or dark theme and a local accent picker.
