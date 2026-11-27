@@ -68,7 +68,9 @@ METHODS = frozenset({"GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"}
 HEADERS = frozenset({"accept", "accept-language", "authorization", "cookie", "content-type", "origin", "if-none-match", "if-modified-since", "range", "if-range", "user-agent"})
 RESPONSE_HEADERS = frozenset({"content-type", "content-encoding", "cache-control", "etag", "last-modified", "vary", "content-range", "accept-ranges", "expires", "content-disposition", "set-cookie"})
 ID = re.compile(r"^[0-9a-f]{32}$")
-INGRESS_WS = re.compile(r"^/api/hassio_ingress/[A-Za-z0-9_-]{32,256}/api/?$")
+# Any WebSocket inside an app's web UI. Home Assistant checks the ingress session for
+# these, so allowing every path below the session token lets any app's UI work.
+INGRESS_WS = re.compile(r"^/api/hassio_ingress/[A-Za-z0-9_-]{32,256}(?:/[A-Za-z0-9._~!$&'()*+,;=:@-]*)*$")
 
 class ProtocolError(ValueError):
     pass
@@ -90,9 +92,13 @@ def local_url(path):
     raise ProtocolError("nested path encoding")
 
 def allowed_websocket_path(path):
-    # Zigbee2MQTT's Socket.IO endpoint is `/api` below HA's authenticated
-    # ingress base. Keep the exception limited to that endpoint shape.
-    return path == "/api/websocket" or INGRESS_WS.fullmatch(path.split("?", 1)[0]) is not None
+    # Home Assistant's own socket, or any socket below an app's authenticated
+    # ingress base (Zigbee2MQTT, Node-RED, ESPHome...). Percent-encoding and dot
+    # segments are refused so the path can't step outside that base.
+    if path == "/api/websocket":
+        return True
+    route = path.split("?", 1)[0]
+    return INGRESS_WS.fullmatch(route) is not None and not any(segment in {".", ".."} for segment in route.split("/"))
 
 def headers(values):
     if not isinstance(values, dict) or len(values) > 32:

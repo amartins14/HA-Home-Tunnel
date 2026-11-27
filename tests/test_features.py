@@ -155,6 +155,31 @@ class ServiceFeatureTests(unittest.IsolatedAsyncioTestCase):
             found = await service.lookup_locations(["8.8.8.8", "1.1.1.1", "10.0.0.1"])
         self.assertEqual(found, {"8.8.8.8": ("Porto, Portugal", "PT")}, "cached answers are free; the cap stops new lookups")
 
+    def test_refused_sockets_from_the_relay_are_checked_and_newest_first(self):
+        rows = service.clean_refusals([
+            {"at": "2026-11-27T18:00:00Z", "ip": "203.0.113.7", "route": "/api/events/websocket", "reason": "path"},
+            {"at": "2026-11-27T18:01:00Z", "ip": "198.51.100.2", "route": "/api/websocket", "reason": "origin"},
+            {"at": "x", "ip": "1.2.3.4", "route": "no-slash", "reason": "path"},
+            {"at": "x", "ip": "1.2.3.4", "route": "/ok", "reason": "other"},
+            {"at": "x", "ip": "1.2.3.4", "route": "/bad\nline", "reason": "path"},
+            "junk",
+        ])
+        self.assertEqual([row["reason"] for row in rows], ["origin", "path"])
+        self.assertEqual(service.clean_refusals(None), [])
+        self.assertEqual(len(service.clean_refusals([{"at": "t", "ip": "1.1.1.1", "route": "/x", "reason": "path"}] * 50)), 20)
+
+    async def test_refused_sockets_are_fetched_from_the_relay(self):
+        with tempfile.TemporaryDirectory() as directory:
+            self.paired_state(directory)
+
+            async def relay(connection, action, payload=None, authenticate=True, token=None):
+                self.assertEqual(action, "refused")
+                return 200, {"refused": [{"at": "t", "ip": "203.0.113.7", "route": "/api/events/websocket", "reason": "path"}], "native_clients": False}
+            with patch.object(service, "relay_request", relay):
+                await service.refresh_refused()
+            self.assertEqual(service.REFUSED["items"][0]["route"], "/api/events/websocket")
+            service.REFUSED.update({"items": [], "at": None, "checked": 0.0})
+
     def test_supervisor_token_is_taken_out_of_the_environment(self):
         with patch.dict(os.environ, {"HOME_TUNNEL_SUPERVISOR_TOKEN": "secret", "SUPERVISOR_TOKEN": "x"}):
             service.take_supervisor_token()

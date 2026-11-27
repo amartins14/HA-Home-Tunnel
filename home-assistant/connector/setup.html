@@ -799,12 +799,26 @@
         ? `${plural(filteredEvents.length, 'request')} match the filter` : `The last ${plural(events.length, 'request')}, newest first`,
         events.length ? csv('requests', () => exportRequests(m)) : null,
         filteredEvents.length ? filteredEvents.map(eventRow) : el('div', {class: 'empty'}, events.length ? 'No requests match this filter.' : 'No requests yet.')),
+      renderRefused(),
       blocksCard,
       el('section', {class: 'card'}, el('div', {class: 'danger-zone'},
         el('div', {class: 'grow'}, el('div', {class: 'title'}, 'Clear caller history'),
           el('div', {class: 'sub'}, 'Forgets every stored caller address and sign-in marker. Blocked addresses stay blocked. This can’t be undone.')),
         el('button', {class: 'btn danger', disabled: state.busy || !callers.length, onclick: clearHistory}, icon(ICONS.delete), 'Clear'))),
     ];
+  }
+
+  function renderRefused() {
+    const rows = state.status.relay_refused || [];
+    if (!rows.length) return null;
+    const reason = code => code === 'origin' ? ['From another website', 'The browser page that opened it wasn’t your public address.']
+      : ['Path not allowed', 'Only Home Assistant’s WebSocket and app web UI sockets go through.'];
+    return section(ICONS.block, 'Refused WebSocket connections',
+      'The relay’s last refusals. If an app’s web UI doesn’t load through the tunnel, its socket shows up here.', null,
+      rows.map(row => el('div', {class: 'row'},
+        el('div', {class: 'grow'}, el('div', {class: 'title mono', style: 'font-weight:400;font-size:13px'}, row.route),
+          el('div', {class: 'sub'}, [isIp(row.ip) ? row.ip : 'IP unavailable', state.locations[row.ip], ago(row.at)].filter(Boolean).join(' · '))),
+        chip(reason(row.reason)[0], 'warn', reason(row.reason)[1]))));
   }
 
   function renderCountries(callers) {
@@ -944,6 +958,7 @@
           el('div', {class: 'sub'}, 'Stops the tunnel and makes this app and the relay forget each other, so you can pair again with a new setup code.')),
         el('button', {class: 'btn danger', disabled: state.busy, onclick: unpairRelay}, icon(ICONS.delete), 'Unpair'))) : null,
 
+      s.paired ? renderAllowed() : null,
       renderLockdown(),
       renderLocations(),
       renderNotifications(),
@@ -963,6 +978,27 @@
         el('div', {class: 'pad'}, el('p', {class: 'sub', style: 'margin:0'},
           'Home Tunnel forwards requests from your own relay to this Home Assistant over an outgoing WebSocket. The relay is not an identity provider: Home Assistant still handles sign-in, MFA and permissions, so keep strong passwords and MFA on every account that can sign in from outside.'))),
     ];
+  }
+
+  // What the relay and connector let through. Fixed in their code on purpose: shown, not editable.
+  function renderAllowed() {
+    const s = state.status;
+    const wide = (s.relay_features || []).includes('refused');
+    const native = s.relay_native_clients;
+    const rule = (title, path, sub, tone, label) => el('div', {class: 'row'},
+      el('div', {class: 'grow'}, el('div', {class: 'title'}, title), path ? el('div', {class: 'sub mono'}, path) : null, el('div', {class: `sub${tone === 'warn' ? ' warn' : ''}`}, sub)),
+      chip(label, tone));
+    return section(ICONS.shield, 'What the tunnel lets through', 'Built into the relay and this app, so it can’t be widened by mistake', null,
+      rule('Home Assistant pages and API', null, 'Every normal request goes to Home Assistant, which checks the sign-in.', 'ok', 'Allowed'),
+      rule('Home Assistant WebSocket', '/api/websocket', 'The live connection the Home Assistant frontend uses, from browsers on your public address.', 'ok', 'Allowed'),
+      wide
+        ? rule('App web UIs', '/api/hassio_ingress/…', 'WebSockets inside app web UIs, such as Zigbee2MQTT, Node-RED or ESPHome. Home Assistant checks the app session.', 'ok', 'Allowed')
+        : rule('App web UIs', '/api/hassio_ingress/…/api', 'This relay only lets through the socket Zigbee2MQTT uses. Update the relay to 0.5.1 or newer so other app web UIs work too.', 'warn', 'Zigbee2MQTT only'),
+      rule('Companion app connections', '/api/websocket, without a browser origin',
+        native === true ? 'Turned on in the relay’s web.config (HaTunnelNativeClientsEnabled).'
+          : native === false ? 'Off. Turn on HaTunnelNativeClientsEnabled in the relay’s web.config to allow them.'
+          : 'This relay doesn’t report it.', native === true ? 'ok' : '', native === true ? 'Allowed' : native === false ? 'Off' : 'Unknown'),
+      rule('Any other WebSocket', null, 'Refused at the relay. Refused attempts are listed on the Activity tab.', 'bad', 'Refused'));
   }
 
   function renderLockdown() {

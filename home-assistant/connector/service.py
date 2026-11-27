@@ -42,7 +42,9 @@ APP_CONFIG = Path("/app/app-config.yaml")
 METRICS_URL = "http://127.0.0.1:8100/metrics"
 METRICS_CLEAR_IPS_URL = "http://127.0.0.1:8100/ip-history/clear"
 HISTORY_URL = "http://127.0.0.1:8100/history"
-RELAY_FEATURES = ("rotate", "unpair", "blocks")
+RELAY_FEATURES = ("rotate", "unpair", "blocks", "refused")
+REFUSED_CHECK_INTERVAL = 60
+REFUSED_REASONS = ("path", "origin")
 SUPERVISOR_API = "http://supervisor/core/api"
 BLOCK_LIMIT = 256
 BLOCK_PUSH_INTERVAL = 300
@@ -264,8 +266,10 @@ async def relay_version_checker():
                 if status_code == 200 and isinstance(body.get("version"), str) and version_key(body["version"]):
                     features = body.get("features")
                     features = [value for value in features if value in RELAY_FEATURES] if isinstance(features, list) else []
+                    native = body.get("native_clients")
                     save_json(RELAY_VERSION, {"version": body["version"], "features": features,
-                                              "checked_at": time.time(), "latency_ms": latency})
+                                              "checked_at": time.time(), "latency_ms": latency,
+                                              "native_clients": native if type(native) is bool else None})
             except (aiohttp.ClientError, asyncio.TimeoutError):
                 pass
         await asyncio.sleep(RELAY_VERSION_CHECK_INTERVAL)
@@ -357,6 +361,9 @@ async def status(request):
         "manual_update_url": release.get("manual_update_url"),
         "error": live.get("error") if now - live.get("updated_at", 0) < 90 else None,
         "relay_features": relay_version.get("features") if isinstance(relay_version.get("features"), list) else [],
+        "relay_native_clients": relay_version.get("native_clients"),
+        "relay_refused": REFUSED["items"],
+        "relay_refused_at": REFUSED["at"],
         "relay_latency_ms": relay_version.get("latency_ms"),
         "relay_health": read_json(RELAY_HEALTH) or {},
         "rotation_pending": TOKEN_NEXT.exists(),
@@ -941,6 +948,7 @@ async def unpair(request):
     for path in (TOKEN, TOKEN_NEXT, CONNECTION, FINALIZE, PAIRING, STATUS, RELAY_VERSION, RELAY_HEALTH):
         path.unlink(missing_ok=True)
     BLOCK_SYNC.update({"ok": None, "at": None, "error": None, "count": 0})
+    REFUSED.update({"items": [], "at": None})
     stop_connector()
     LOG.info("Home Tunnel unpaired%s", "" if relay_reset else " locally only")
     return web.json_response({"unpaired": True, "relay_reset": relay_reset}, headers={"Cache-Control": "no-store"})
@@ -1229,6 +1237,36 @@ async def evaluate_alerts(metrics, now=None):
         save_json(ALERTS, alerts)
 
 
+# WebSocket connections the relay refused (path outside the allowed rule, or a foreign origin).
+REFUSED = {"items": [], "at": None, "checked": 0.0}
+
+
+def clean_refusals(items):
+    rows = []
+    for item in items if isinstance(items, list) else []:
+        if not isinstance(item, dict):
+            continue
+        at, ip, route, reason = item.get("at"), item.get("ip"), item.get("route"), item.get("reason")
+        if (isinstance(at, str) and len(at) <= 40 and isinstance(ip, str) and len(ip) <= 45 and reason in REFUSED_REASONS
+                and isinstance(route, str) and route.startswith("/") and len(route) <= 512
+                and not any(ord(c) < 32 or ord(c) == 127 for c in route)):
+            rows.append({"at": at, "ip": ip, "route": route, "reason": reason})
+    return rows[-20:][::-1]  # newest first
+
+
+async def refresh_refused():
+    REFUSED["checked"] = time.monotonic()
+    connection = read_json(CONNECTION)
+    if not connection:
+        return
+    try:
+        status_code, body = await relay_request(connection, "refused")
+    except (aiohttp.ClientError, asyncio.TimeoutError):
+        return
+    if status_code == 200:
+        REFUSED.update({"items": clean_refusals(body.get("refused")), "at": time.time()})
+
+
 async def watcher():
     await asyncio.sleep(10)
     while True:
@@ -1264,6 +1302,8 @@ async def watcher():
                 for row in added:
                     length = f"for {round((row['until'] - now) / 60)} minutes" if row["until"] else "until you unblock it"
                     await notify("blocked", "Home Tunnel blocked an address", f"{row['cidr']} was blocked {length}. {row['reason']}.")
+            if paired and relay_supports("refused") and time.monotonic() - REFUSED["checked"] >= REFUSED_CHECK_INTERVAL:
+                await refresh_refused()
             await evaluate_alerts(metrics, now)
         except Exception as error:  # the watcher must keep running
             LOG.warning("Background check failed (%s)", type(error).__name__)

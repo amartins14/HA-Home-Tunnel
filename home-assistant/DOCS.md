@@ -47,6 +47,10 @@ Shows the paired address, the connector, the relay's response time and its HTTPS
 
 Rotation, unpairing and blocking need relay 0.5.0 or newer. The dashboard says so if the relay is older.
 
+### What the tunnel lets through
+
+A read-only list of what reaches Home Assistant: its pages and API, its WebSocket, WebSockets inside app web UIs (Zigbee2MQTT, Node-RED, ESPHome and others), and whether Companion app connections are on. Everything else is refused. These rules are built into the relay and this app, so a mistake can't open Home Assistant further.
+
 ### Automatic lockdown
 
 On by default. An address is blocked for 60 minutes after **20 denied answers** (401 or 403) or **15 login attempts** within 10 minutes. A normal sign-in takes 2 or 3 attempts, so 15 is about five failed passwords. Addresses that have signed in to Home Assistant are never blocked automatically. You can change the limits and the block time.
@@ -114,7 +118,7 @@ Uninstalling the app or removing its data deletes all of this and unpairs it on 
 - **Connector offline:** check the relay address opens in a browser, the IIS site has WebSockets on, and its app pool can write to `App_Data`.
 - **Pairing stuck with "rejected the setup code hash":** the `web.config` line doesn't match the current code. Paste it again, or make a new code.
 - **Public check failing:** the relay answers, but requests aren't coming back through this tunnel. Usually a proxy or CDN in front of IIS, or a second relay worker. The app reconnects on its own.
-- **An app's web UI doesn't load through the tunnel:** only Home Assistant's own WebSocket and the WebSocket used by app web UIs (such as Zigbee2MQTT) are allowed. Other WebSocket paths are refused on purpose.
+- **An app's web UI doesn't load through the tunnel:** check **Activity → Refused WebSocket connections**. Home Assistant's own WebSocket and any WebSocket inside an app web UI are allowed (relay 0.5.1 or newer; older relays only allow Zigbee2MQTT's). **Settings → What the tunnel lets through** shows the rules.
 - **Notifications say there's no API access:** restart the app; if that doesn't help, reinstall it so Home Assistant grants the permission again.
 
 ## Limits

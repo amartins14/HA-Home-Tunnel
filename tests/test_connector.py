@@ -91,13 +91,23 @@ class SecurityPolicyTests(unittest.TestCase):
         value = {"type": "ws_open", "id": RID, "path": "/api/websocket", "headers": {"Origin": policy.ORIGIN}}
         self.assertEqual(policy.parse(json.dumps(value))["path"], "/api/websocket")
         ingress_token = "A1b2C3d4E5f6G7h8I9j0K1l2M3n4O5p6Q7r8S9t0U1v"
-        value.update(path=f"/api/hassio_ingress/{ingress_token}/api/?EIO=4&transport=websocket")
-        self.assertEqual(policy.parse(json.dumps(value))["path"], value["path"])
+        for path in [
+            f"/api/hassio_ingress/{ingress_token}/api/?EIO=4&transport=websocket",
+            f"/api/hassio_ingress/{ingress_token}/comms",
+            f"/api/hassio_ingress/{ingress_token}/ace/logs/ws",
+            f"/api/hassio_ingress/{ingress_token}/socket.io/?EIO=4&transport=websocket",
+        ]:
+            value["path"] = path
+            with self.subTest(allowed=path):
+                self.assertEqual(policy.parse(json.dumps(value))["path"], path)
         for path in [
             "/api/hassio_ingress/short/api",
-            f"/api/hassio_ingress/{ingress_token}/api/extra",
-            f"/api/hassio_ingress/{ingress_token}/other",
             f"/api/hassio_ingress/{ingress_token}/api/%2e%2e/websocket",
+            f"/api/hassio_ingress/{ingress_token}/a/../../../websocket",
+            f"/api/hassio_ingress/{ingress_token}/./api",
+            f"/api/hassio_ingress/{ingress_token}/api%2Fwebsocket",
+            "/api/hassio/ingress/websocket",
+            "/api/events/websocket",
         ]:
             value["path"] = path
             with self.subTest(path=path), self.assertRaises(policy.ProtocolError):

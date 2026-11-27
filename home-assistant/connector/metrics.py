@@ -10,7 +10,7 @@ import time
 import logging
 from aiohttp import web
 
-VERSION = "0.7.1"
+VERSION = "0.7.2"
 PUBLIC_HEALTH_MAX_AGE = 90
 IP_HISTORY_PATH = Path("/data/state/caller-ips.json")
 IP_HISTORY_TTL = 30 * 24 * 60 * 60

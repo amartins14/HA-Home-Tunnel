@@ -39,6 +39,8 @@ public static class RelayTests
         Check(HaTunnel.Route("/SECRET/private_path") == "other", "audit does not expose arbitrary path content");
         Check(HaTunnel.DisplayRoute("/api/states/lamp?token=SECRET") == "/api/states/lamp", "display route keeps path and removes query values");
         Check(HaTunnel.DisplayRoute("/api/hassio_ingress/" + new string('a', 40) + "/api") == "/api/hassio_ingress/[ingress-token]/api", "display route hides ingress token");
+        Check(HaTunnel.DisplayRoute("/api/hassio_ingress/" + new string('a', 40) + "/assets/app.js") == "/api/hassio_ingress/[ingress-token]/assets/app.js"
+            && HaTunnel.DisplayRoute("/api/hassio_ingress/" + new string('a', 40)) == "/api/hassio_ingress/[ingress-token]", "display route hides ingress token on every app UI path");
         var html = Encoding.UTF8.GetBytes("<html><head></head><body>HA</body></html>");
         Check(Encoding.UTF8.GetString(RelayPolicy.LoginPage("/auth/authorize?client_id=x", 200, "text/html", html)).Contains("application/json"), "login page declares JSON auth requests");
         Check(Object.ReferenceEquals(html, RelayPolicy.LoginPage("/api/", 200, "text/html", html)), "API response is unchanged");
@@ -58,8 +60,16 @@ public static class RelayTests
         Check(RelayPolicy.AllowedWebSocketPath("/api/websocket"), "HA core WebSocket remains allowed");
         Check(RelayPolicy.AllowedWebSocketPath("/api/hassio_ingress/" + ingressToken + "/api/?EIO=4&transport=websocket"), "HA ingress API WebSocket is allowed");
         Check(RelayPolicy.GoodWebSocketOrigin(RelayPolicy.Origin, false, "/api/hassio_ingress/" + ingressToken + "/api") && !RelayPolicy.GoodWebSocketOrigin(null, true, "/api/hassio_ingress/" + ingressToken + "/api"), "ingress sockets require exact browser origin even when native core sockets are enabled");
-        foreach (var path in new[] { "/api/hassio_ingress/short/api", "/api/hassio_ingress/" + ingressToken + "/other", "/api/hassio_ingress/" + ingressToken + "/api/extra", "/api/hassio_ingress/" + ingressToken + "/api/%2e%2e/websocket" })
-            Check(!RelayPolicy.AllowedWebSocketPath(path), "other ingress WebSocket paths are rejected");
+        foreach (var path in new[] { "/api/hassio_ingress/" + ingressToken + "/comms", "/api/hassio_ingress/" + ingressToken + "/ace/logs/ws", "/api/hassio_ingress/" + ingressToken + "/socket.io/?EIO=4&transport=websocket" })
+            Check(RelayPolicy.AllowedWebSocketPath(path), "any WebSocket inside an app web UI is allowed");
+        foreach (var path in new[] { "/api/hassio_ingress/short/api", "/api/hassio_ingress/" + ingressToken + "/api/%2e%2e/websocket", "/api/hassio_ingress/" + ingressToken + "/a/../../websocket",
+                                     "/api/hassio_ingress/" + ingressToken + "/./api", "/api/hassio_ingress/" + ingressToken + "/api%2Fwebsocket", "/api/hassio/ingress/websocket", "/api/events/websocket" })
+            Check(!RelayPolicy.AllowedWebSocketPath(path), "WebSockets outside an app web UI, or escaping it, are rejected");
+        HaTunnel.RecordRefusal("203.0.113.7", "/api/events/websocket?token=SECRET", "path");
+        for (int i = 0; i < 30; i++) HaTunnel.RecordRefusal("bad ip", "/api/hassio_ingress/" + ingressToken + "/x", "origin");
+        var refusals = HaTunnel.Refusals();
+        Check(refusals.Length == 20 && RelayPolicy.Json().Serialize(refusals).Contains("[ingress-token]") && !RelayPolicy.Json().Serialize(refusals).Contains("SECRET"),
+            "refused sockets are capped and shown without tokens or query values");
         foreach (var origin in new[] { "", "null", "https://evil.example", "http://tunnel.example.test", "https://tunnel.example.test.evil", RelayPolicy.Origin + "/" })
             Check(!RelayPolicy.GoodWebSocketOrigin(origin, false, "/api/websocket") && !RelayPolicy.GoodWebSocketOrigin(origin, true, "/api/websocket"), "native opt-in never accepts foreign or malformed browser origins");
         foreach (var path in new[] { "http://evil/", "//evil/", "/\\evil", "/%2fexample.com", "/%252fexample.com", "/../api/", "/%2e%2e/api/", "/api\r\nHost: evil", "/api#fragment", "/%00" }) Reject(() => RelayPolicy.ValidPath(path), "unsafe path rejected");

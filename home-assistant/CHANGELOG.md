@@ -2,6 +2,14 @@
 
 Release notes for Home Tunnel. This copy is read by Home Assistant Supervisor. Relay releases are installed manually on IIS; the Home Assistant app is updated through Supervisor.
 
+## 0.7.2
+
+- Let every app web UI work through the tunnel, not only Zigbee2MQTT: WebSockets anywhere below an app's web UI address are now allowed. Home Assistant checks the app session for these; paths that try to step outside are still refused.
+- Show what the tunnel lets through on the Settings page, read-only, including whether Companion app connections are allowed.
+- List the WebSocket connections the relay refused on the Activity page, with the reason, so a broken app web UI is easy to diagnose.
+- Hide app web UI session tokens in every displayed path, not only on the socket path.
+- Needs relay 0.5.1 for app web UIs other than Zigbee2MQTT and for the refused list.
+
 ## 0.7.1
 
 - Fix the dashboard failing to load (`/api/status` returned an error) in 0.7.0.

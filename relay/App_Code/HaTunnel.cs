@@ -45,8 +45,11 @@ public static class RelayPolicy
     public static bool AllowedWebSocketPath(string path)
     {
         if (path == "/api/websocket") return true;
+        // Any WebSocket below an app's web UI (Home Assistant ingress), which HA authenticates.
+        // Percent-encoding and dot segments are refused so the path can't leave that base.
         string route = path == null ? "" : path.Split('?')[0];
-        return Regex.IsMatch(route, @"^/api/hassio_ingress/[A-Za-z0-9_-]{32,256}/api/?$", RegexOptions.CultureInvariant);
+        if (!Regex.IsMatch(route, @"^/api/hassio_ingress/[A-Za-z0-9_-]{32,256}(?:/[A-Za-z0-9._~!$&'()*+,;=:@-]*)*$", RegexOptions.CultureInvariant)) return false;
+        return !route.Split('/').Any(segment => segment == "." || segment == "..");
     }
     // Only the core HA socket has native clients; ingress sockets are browser-only.
     public static bool GoodWebSocketOrigin(string value, bool allowNative, string path) { return GoodOrigin(value) || (path == "/api/websocket" && allowNative && value == null); }
@@ -230,9 +233,10 @@ public static class RelayPolicy
 public static class RelayBuild
 {
     // Keep this aligned with release-manifest.json when publishing a relay build.
-    public const string Version = "0.5.0";
+    public const string Version = "0.5.1";
     // Pairing actions this build supports, so the app can tell what an older relay lacks.
-    public static readonly string[] Features = { "rotate", "unpair", "blocks" };
+    public static readonly string[] Features = { "rotate", "unpair", "blocks", "refused" };
+    public static bool NativeClients { get { return ConfigurationManager.AppSettings["HaTunnelNativeClientsEnabled"] == "true"; } }
 }
 
 public sealed class RelayLease : IDisposable
@@ -378,7 +382,8 @@ public static class HaTunnel
     {
         string route = (path ?? "/").Split('?')[0];
         route = Regex.Replace(route, @"(?i)%3f.*$", "", RegexOptions.CultureInvariant);
-        route = Regex.Replace(route, @"(?i)(/api/hassio_ingress/)[A-Za-z0-9_-]{32,256}(/api/?$)", "$1[ingress-token]$2", RegexOptions.CultureInvariant);
+        // App web UI session tokens are hidden wherever they appear, not only on the socket path.
+        route = Regex.Replace(route, @"(?i)(/api/hassio_ingress/)[A-Za-z0-9_-]{32,256}(?=/|$)", "$1[ingress-token]", RegexOptions.CultureInvariant);
         route = Regex.Replace(route, @"(?i)(/auth/login_flow/)[a-f0-9]{32}(?=/|$)", "$1[flow-id]", RegexOptions.CultureInvariant);
         if (route.Length > 512) route = route.Substring(0, 512);
         return route;
@@ -410,6 +415,17 @@ public static class HaTunnel
             response_bytes = Interlocked.Read(ref responseBytes), active_http = active[0], active_ws = active[1], queued_http = active[2],
             events_dropped = Interlocked.Read(ref dropped), uptime_seconds = (long)(DateTime.UtcNow - Started).TotalSeconds } };
     }
+    // The last WebSocket connections the relay refused, so the app can show why an app's UI fails.
+    static readonly ConcurrentQueue<object> RefusedSockets = new ConcurrentQueue<object>();
+    public static void RecordRefusal(string ip, string path, string reason)
+    {
+        System.Net.IPAddress address;
+        RefusedSockets.Enqueue(new { at = DateTime.UtcNow.ToString("o"), ip = System.Net.IPAddress.TryParse(ip, out address) ? address.ToString() : "unknown",
+            route = DisplayRoute(path), reason = reason });
+        object dropped;
+        while (RefusedSockets.Count > 20 && RefusedSockets.TryDequeue(out dropped)) { }
+    }
+    public static object[] Refusals() { return RefusedSockets.ToArray(); }
     public static bool Register(ConnectorPeer peer) { lock (Gate) { if (Connector != null) return false; Connector = peer; return true; } }
     public static void Disconnect(ConnectorPeer peer)
     {
@@ -555,12 +571,12 @@ public class HaRelay : HttpTaskAsyncHandler
         if (!HaTunnel.Budget.Rate(ip, false, DateTime.UtcNow)) { context.Response.StatusCode = 503; context.Response.Headers["Retry-After"] = "2"; return; }
         bool nativeClient = context.Request.Headers["Origin"] == null && ConfigurationManager.AppSettings["HaTunnelNativeClientsEnabled"] == "true";
         bool originAllowed = RelayPolicy.GoodWebSocketOrigin(context.Request.Headers["Origin"], nativeClient, path);
-        if (context.IsWebSocketRequest && !originAllowed) { context.Response.StatusCode = 403; return; }
+        if (context.IsWebSocketRequest && !originAllowed) { HaTunnel.RecordRefusal(ip, path, "origin"); context.Response.StatusCode = 403; return; }
         if (!HaTunnel.ForwardingEnabled) { context.Response.StatusCode = 503; context.Response.Write("Relay disabled"); return; }
         var connector = HaTunnel.Connector;
         if (connector == null || connector.Lifetime.IsCancellationRequested || !connector.IsReady) { context.Response.StatusCode = 503; context.Response.Write("Home connector offline"); return; }
         if (!RelayPolicy.Methods.Contains(context.Request.HttpMethod)) { context.Response.StatusCode = 405; return; }
-        if (context.IsWebSocketRequest && (!RelayPolicy.AllowedWebSocketPath(path) || !originAllowed)) { context.Response.StatusCode = 403; return; }
+        if (context.IsWebSocketRequest && (!RelayPolicy.AllowedWebSocketPath(path) || !originAllowed)) { HaTunnel.RecordRefusal(ip, path, "path"); context.Response.StatusCode = 403; return; }
         RelayLease lease;
         try { lease = context.IsWebSocketRequest ? HaTunnel.Budget.Acquire(ip, true) : await HaTunnel.Budget.AcquireHttp(ip, connector.Lifetime.Token); }
         catch { context.Response.StatusCode = 503; return; }
@@ -724,11 +740,15 @@ public class HaPairing : IHttpHandler
             catch (IOException) { context.Response.StatusCode = 500; return; }
             catch { context.Response.StatusCode = 400; return; }
         }
+        if (action == "refused") {
+            if (context.Request.HttpMethod != "POST" || !RelayPolicy.KeyAllowed(authorization)) { context.Response.StatusCode = 403; return; }
+            Json(context, new { refused = HaTunnel.Refusals(), native_clients = RelayBuild.NativeClients }); return;
+        }
         if (action == "finalize" || action == "enable" || action == "disable" || action == "version") {
             string bearer = authorization.StartsWith("Bearer ", StringComparison.Ordinal) ? authorization.Substring("Bearer ".Length) : "";
             bool authorized = action == "finalize" ? RelayState.PairingKeyAllowed(bearer) : RelayPolicy.KeyAllowed(authorization);
             if (context.Request.HttpMethod != "POST" || !authorized) { context.Response.StatusCode = 403; return; }
-            if (action == "version") { Json(context, new { version = RelayBuild.Version, features = RelayBuild.Features }); return; }
+            if (action == "version") { Json(context, new { version = RelayBuild.Version, features = RelayBuild.Features, native_clients = RelayBuild.NativeClients }); return; }
             string key = bearer;
             bool ok = action == "finalize" ? RelayState.Finalize(key) : RelayState.SetEnabled(key, action == "enable");
             if (!ok) { context.Response.StatusCode = 409; return; }
