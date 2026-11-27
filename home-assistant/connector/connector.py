@@ -52,7 +52,7 @@ def runtime_status():
         'non_root': os.getuid() == 10001,
         'no_capabilities': int(capabilities, 16) == 0,
         'no_ha_config': not any(Path(path).exists() for path in ('/homeassistant', '/config', '/host')),
-        'no_supervisor_token': not os.environ.get('SUPERVISOR_TOKEN') and not os.environ.get('HASSIO_TOKEN'),
+        'no_supervisor_token': not any(os.environ.get(name) for name in ('SUPERVISOR_TOKEN', 'HASSIO_TOKEN', 'HOME_TUNNEL_SUPERVISOR_TOKEN')),
         'no_docker_socket': not Path('/var/run/docker.sock').exists(),
         'secrets_readonly': any(fields[4] == '/secrets' and 'ro' in fields[5].split(',') for fields in mounts),
         'key_private': key_stat.st_uid == 10001 and key_stat.st_mode & 0o777 == 0o600,

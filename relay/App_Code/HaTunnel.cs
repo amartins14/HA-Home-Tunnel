@@ -230,7 +230,9 @@ public static class RelayPolicy
 public static class RelayBuild
 {
     // Keep this aligned with release-manifest.json when publishing a relay build.
-    public const string Version = "0.4.1";
+    public const string Version = "0.5.0";
+    // Pairing actions this build supports, so the app can tell what an older relay lacks.
+    public static readonly string[] Features = { "rotate", "unpair", "blocks" };
 }
 
 public sealed class RelayLease : IDisposable
@@ -527,6 +529,11 @@ public class HaRelay : HttpTaskAsyncHandler
     }
     async Task RelayRequest(HttpContext context)
     {
+        // Addresses the app blocked never reach the connector, or even the setup page.
+        if (RelayBlocks.IsBlocked(context.Request.UserHostAddress)) {
+            context.Response.TrySkipIisCustomErrors = true;
+            context.Response.StatusCode = 403; context.Response.ContentType = "text/plain"; context.Response.Write("Blocked"); return;
+        }
         string originalUrl = context.Request.ServerVariables["UNENCODED_URL"] ?? context.Request.RawUrl;
         bool rootRequest = originalUrl == "/" || originalUrl.StartsWith("/?", StringComparison.Ordinal);
         if (context.Request.HttpMethod == "GET" && rootRequest && !HaTunnel.ForwardingEnabled) {
@@ -656,17 +663,7 @@ public class HaPairing : IHttpHandler
             if (context.Request.HttpMethod != "POST") { context.Response.StatusCode = 405; return; }
             string body;
             try {
-                if (context.Request.ContentLength > 1024) throw new InvalidDataException();
-                var requestText = new StringBuilder();
-                var buffer = new char[512];
-                using (var reader = new StreamReader(context.Request.InputStream, Encoding.UTF8)) {
-                    int count;
-                    while ((count = reader.Read(buffer, 0, buffer.Length)) > 0) {
-                        if (requestText.Length + count > 1024) throw new InvalidDataException();
-                        requestText.Append(buffer, 0, count);
-                    }
-                }
-                body = requestText.ToString();
+                body = ReadBody(context, 1024);
                 var data = RelayPolicy.Json().Deserialize<Dictionary<string, object>>(body);
                 if (data == null) throw new InvalidDataException();
                 if (!RelayState.AllowAttempt(action, context.Request.UserHostAddress, 20, 600)) { context.Response.StatusCode = 429; return; }
@@ -690,17 +687,69 @@ public class HaPairing : IHttpHandler
             catch (IOException) { context.Response.StatusCode = 500; return; }
             catch { context.Response.StatusCode = 400; return; }
         }
+        if (action == "rotate" || action == "confirm_rotation" || action == "unpair" || action == "blocks") {
+            string bearer = authorization.StartsWith("Bearer ", StringComparison.Ordinal) ? authorization.Substring("Bearer ".Length) : "";
+            if (context.Request.HttpMethod != "POST") { context.Response.StatusCode = 405; return; }
+            if (!RelayState.AllowAttempt(action, context.Request.UserHostAddress, 30, 600)) { context.Response.StatusCode = 429; return; }
+            try {
+                if (action == "rotate") {
+                    string token = RelayState.Rotate(bearer);
+                    if (token == null) { context.Response.StatusCode = 403; return; }
+                    Json(context, new { status = "pending", connector_token = token }); return;
+                }
+                if (action == "confirm_rotation") {
+                    if (!RelayState.ConfirmRotation(bearer)) { context.Response.StatusCode = 403; return; }
+                    // The connector still holds the old key; drop it so it reconnects with the new one.
+                    var current = HaTunnel.Connector; if (current != null) HaTunnel.Disconnect(current);
+                    Json(context, new { status = "rotated" }); return;
+                }
+                if (action == "unpair") {
+                    if (!RelayState.Reset(bearer)) { context.Response.StatusCode = 403; return; }
+                    RelayBlocks.Clear();
+                    var current = HaTunnel.Connector; if (current != null) HaTunnel.Disconnect(current);
+                    Json(context, new { status = "unpaired" }); return;
+                }
+                if (!RelayPolicy.KeyAllowed(authorization)) { context.Response.StatusCode = 403; return; }
+                string text = ReadBody(context, RelayBlocks.BodyLimit);
+                RelayPolicy.RejectDuplicateFields(text);
+                var data = new JavaScriptSerializer { MaxJsonLength = RelayBlocks.BodyLimit, RecursionLimit = 6 }.Deserialize<Dictionary<string, object>>(text);
+                object list;
+                if (data == null || data.Count != 1 || !data.TryGetValue("blocks", out list)) throw new InvalidDataException();
+                var rules = RelayBlocks.FromJson(list);
+                if (rules == null) throw new InvalidDataException();
+                RelayBlocks.Replace(rules, text);
+                Json(context, new { status = "saved", count = rules.Count }); return;
+            } catch (InvalidDataException) { context.Response.StatusCode = 400; return; }
+            catch (UnauthorizedAccessException) { context.Response.StatusCode = 500; return; }
+            catch (IOException) { context.Response.StatusCode = 500; return; }
+            catch { context.Response.StatusCode = 400; return; }
+        }
         if (action == "finalize" || action == "enable" || action == "disable" || action == "version") {
             string bearer = authorization.StartsWith("Bearer ", StringComparison.Ordinal) ? authorization.Substring("Bearer ".Length) : "";
             bool authorized = action == "finalize" ? RelayState.PairingKeyAllowed(bearer) : RelayPolicy.KeyAllowed(authorization);
             if (context.Request.HttpMethod != "POST" || !authorized) { context.Response.StatusCode = 403; return; }
-            if (action == "version") { Json(context, new { version = RelayBuild.Version }); return; }
+            if (action == "version") { Json(context, new { version = RelayBuild.Version, features = RelayBuild.Features }); return; }
             string key = bearer;
             bool ok = action == "finalize" ? RelayState.Finalize(key) : RelayState.SetEnabled(key, action == "enable");
             if (!ok) { context.Response.StatusCode = 409; return; }
             Json(context, new { status = action == "enable" ? "enabled" : action == "disable" ? "disabled" : "finalized" }); return;
         }
         context.Response.StatusCode = 404;
+    }
+
+    static string ReadBody(HttpContext context, int limit)
+    {
+        if (context.Request.ContentLength > limit) throw new InvalidDataException();
+        var text = new StringBuilder();
+        var buffer = new char[1024];
+        using (var reader = new StreamReader(context.Request.InputStream, Encoding.UTF8)) {
+            int count;
+            while ((count = reader.Read(buffer, 0, buffer.Length)) > 0) {
+                if (text.Length + count > limit) throw new InvalidDataException();
+                text.Append(buffer, 0, count);
+            }
+        }
+        return text.ToString();
     }
 
     static void Json(HttpContext context, object value)

@@ -2,6 +2,21 @@
 
 Release notes for Home Tunnel. This copy is read by Home Assistant Supervisor. Relay releases are installed manually on IIS; the Home Assistant app is updated through Supervisor.
 
+## 0.7.0
+
+- Replace the MyStay-style dashboard with one that matches Home Assistant and the Access panel: theme colours, Overview / Activity / Settings tabs, and a step-by-step relay setup.
+- Keep 24 hours of per-minute traffic in the app (requests, latency, data sent, denied and failed answers, sign-ins) and chart 1, 6 or 24 hours.
+- Block an address or range at the relay from the Activity page, for a set time or until you unblock it.
+- Automatic lockdown, on by default: block an address for an hour after 20 denied answers or 15 login attempts in 10 minutes. Addresses that have signed in to Home Assistant are never blocked automatically.
+- Send notifications through Home Assistant when the tunnel goes offline or recovers, a new address signs in, the security review needs attention, an address is blocked, a relay update is published, or the relay certificate is about to expire. The app now has Home Assistant API access for this; the connector still has none.
+- Block by country on first sight: block listed countries, or allow only listed ones. Needs caller locations (ipapi.co); turning locations off also turns off country data and country blocking. Each new address is checked once, its first requests still get through, signed-in addresses are never blocked, and lookups share the 200-a-day limit.
+- Show each caller's country, a per-country summary, and a country filter on the Activity page.
+- Rotate the connector key and unpair from the Settings page.
+- Check the relay's HTTPS certificate expiry and response time.
+- Show callers in the last 15 minutes and open signed-in sessions.
+- Export callers, recent requests and traffic history as CSV.
+- Requires relay 0.5.0 for blocking, key rotation and remote unpairing. Older relays keep working without these.
+
 ## 0.6.1
 
 - Keep the Home Tunnel wordmark inside the desktop sidebar and label the connection status.

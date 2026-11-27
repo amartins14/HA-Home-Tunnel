@@ -1,5 +1,5 @@
 name: Home Tunnel
-version: "0.6.1"
+version: "0.7.0"
 slug: home_tunnel
 description: Secure setup and outgoing relay to your self-hosted endpoint
 homeassistant: "2026.9.0"
@@ -8,7 +8,7 @@ startup: application
 boot: auto
 init: false
 hassio_api: false
-homeassistant_api: false
+homeassistant_api: true
 docker_api: false
 host_network: false
 host_pid: false

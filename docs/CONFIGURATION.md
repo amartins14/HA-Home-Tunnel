@@ -16,6 +16,17 @@ Enter the public HTTPS URL once in the app's ingress setup page. It derives the 
 
 The connector accepts only relative paths from the relay and joins them to the configured local HA origin. Redirects are rejected. The destination cannot be selected by a browser request.
 
+## Dashboard settings
+
+The app's **Settings** tab holds settings that change while it runs and are stored in private app data:
+
+- **Automatic lockdown**: on by default. Blocks an address at the relay for 60 minutes after 20 denied (401/403) answers or 15 login attempts (`POST /auth/login_flow`) in 10 minutes. Thresholds and duration can be changed. Addresses with a confirmed Home Assistant sign-in are never blocked automatically.
+- **Caller locations and countries**: caller locations (ipapi.co, off by default) add each caller's city and country to Activity. With them on, a country rule can block listed countries or allow only listed ones. Each new address is looked up and, if the rule matches, blocked the first time it is seen, so its first requests still get through. Addresses with a confirmed Home Assistant sign-in are never blocked by country. Lookups share the 200-new-addresses-a-day cap. Turning caller locations off stops country data and country blocking; addresses already blocked stay blocked until their block ends.
+- **Notifications**: off until you pick where they go: Home Assistant's notification bell (`persistent_notification`) or any `notify.*` service. Each alert type can be turned off.
+- **Connector key** rotation and **Unpair**.
+
+Blocked addresses are managed on the **Activity** tab. Up to 256 addresses or ranges (no wider than /8 for IPv4 or /16 for IPv6) can be blocked. Per-minute traffic history is kept for 24 hours in `/data/state/traffic-history.json`.
+
 ## Private key files
 
 Generate a one-time 64-character setup code in the Home Tunnel dashboard. The UI also gives you a `web.config` line containing its SHA-256 hash. Replace the blank `HaTunnelBootstrapCodeHash` value in the site's existing `<appSettings>` section with that line. The setup code is never sent to IIS; HA and the relay prove they know it through HMAC challenge-response. After verification, they derive a unique permanent connector key, and the setup state is consumed. A private metrics token is generated automatically for dashboard telemetry. Set `metrics_token` in the app's Configuration tab only if you also want a known token for the optional Home Tunnel integration. Older installs can continue using `metrics-token.txt` in the app configuration folder. Do not expose the metrics port 8100 through the public host.

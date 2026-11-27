@@ -23,4 +23,7 @@ if [ -z "$homeassistant_url" ]; then
     echo 'Home Assistant URL option is missing' >&2
     exit 1
 fi
-exec su-exec 10001:10001 env -u SUPERVISOR_TOKEN -u HASSIO_TOKEN HOMEASSISTANT_URL="$homeassistant_url" HOME_TUNNEL_METRICS_TOKEN="$metrics_token" "$@"
+# The Supervisor token (homeassistant_api, used only to send notifications) is renamed so
+# nothing picks it up by accident; service.py takes it out of its environment at start
+# and never passes it to the connector, which verifies it has no such token.
+exec su-exec 10001:10001 env -u SUPERVISOR_TOKEN -u HASSIO_TOKEN HOME_TUNNEL_SUPERVISOR_TOKEN="${SUPERVISOR_TOKEN:-}" HOMEASSISTANT_URL="$homeassistant_url" HOME_TUNNEL_METRICS_TOKEN="$metrics_token" "$@"

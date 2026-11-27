@@ -3,676 +3,1211 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="color-scheme" content="dark light">
+  <meta name="color-scheme" content="light dark">
   <meta name="ingress-base" content="__INGRESS_BASE__">
   <title>Home Tunnel</title>
   <style>
-:root {
-  --accent: #397450;
-  --on-accent: white;
-  --canvas: #f5f6f1;
-  --paper: #fffefa;
-  --ink: #20352e;
-  --muted: #53655b;
-  --line: #ccd6cf;
-  --soft: #edf2ea;
-  --rail: color-mix(in srgb, var(--accent) 27%, #102c26);
-  --selected: color-mix(in srgb, var(--accent) 24%, #eef4e5);
-  --accent-ink: color-mix(in srgb, var(--accent) 38%, #17281f);
-}
-:root[data-stay-theme="dark"] {
-  --canvas: #131a18;
-  --paper: #1e2723;
-  --ink: #eef2ec;
-  --muted: #b3c0b7;
-  --line: #435047;
-  --soft: #2b3830;
-  --accent-ink: color-mix(in srgb, var(--accent) 35%, #f0fff1);
-}
-.color-picker { min-width: 0; margin: 10px 0; padding: 0; border: 0; color: var(--ink); }
-.color-picker legend { font: inherit; font-weight: 650; }
-.color-sample { display: inline-block; width: 1.2em; height: 1.2em; vertical-align: middle; margin-inline-start: .6em; border: 1px solid var(--line); border-radius: 50%; }
-.color-swatches { display: flex; gap: 2px; flex-wrap: wrap; margin: 5px 0; }
-.color-swatches button {
-  flex: 0 0 44px; width: 44px; height: 44px; min-height: 44px; padding: 5px; border-radius: 50%;
-  background: var(--swatch) content-box; border: 2px solid transparent; cursor: pointer;
-}
-.color-swatches button[aria-pressed="true"] { border-color: var(--ink); }
-.color-picker details > label { display: grid; grid-template-columns: 6em minmax(0,1fr); align-items: center; gap: 10px; min-height: 44px; }
-.color-picker input { min-width: 0; width: 100%; accent-color: var(--accent); }
-.color-picker input[type=text], .color-picker input:not([type]) { padding: 8px 12px; background: var(--paper); color: var(--ink); border: 1px solid var(--line); border-radius: 8px; }
-.color-picker summary { cursor: pointer; min-height: 44px; padding-block: 10px; }
-:root { color-scheme: light; font: 16px/1.5 Inter, "Segoe UI", system-ui, sans-serif; color:var(--ink); background:var(--canvas); }
-* { box-sizing:border-box; }
-body { margin:0; }
-[hidden], .hidden { display:none !important; }
-button,input,textarea,select { font:inherit; }
-button,select,input:not([type=checkbox]),textarea { border:1px solid var(--line); border-radius:9px; min-height:44px; padding:8px 12px; }
-input,textarea,select { background:var(--paper); color:var(--ink); max-width:100%; }
-input:not([type=checkbox]),textarea { width:100%; }
-textarea { resize:vertical; }
-input[type=checkbox] { width:20px; height:20px; accent-color:var(--accent); flex:none; }
-button { background:var(--accent); color:var(--on-accent); border-color:transparent; font-weight:650; white-space:nowrap; cursor:pointer; }
-button.secondary { background:var(--paper); border-color:var(--line); color:var(--accent-ink); }
-button:hover:enabled { filter:brightness(.94); }
-button:disabled { opacity:.52; cursor:default; }
-a { color:var(--accent-ink); }
-:focus-visible { outline:3px solid #b27816; outline-offset:3px; }
-h1:focus { outline:none; }
-h1,h2,h3,p { margin:0; }
-h1,.brand,.metric strong,.chart-value { font-family:"Iowan Old Style",Georgia,serif; font-weight:500; }
-h1 { font-size:clamp(2.3rem,5vw,3.5rem); letter-spacing:-.045em; line-height:1.12; }
-h2 { font-size:1.1rem; }
-.subtle,.small,.chart-note,.message,.events small,.caller-list small { color:var(--muted); font-size:.91rem; }
-.url,.events li,.caller-list li,.message,.subtle { overflow-wrap:anywhere; }
-.app-shell { display:grid; grid-template-columns:208px minmax(0,1fr); min-height:100vh; }
-.topbar { position:sticky; top:0; align-self:start; min-height:100vh; padding:30px 16px; background:var(--rail); color:#eff6e7; }
-.brand { display:flex; gap:8px; align-items:center; padding:0 2px; color:inherit; text-decoration:none; font-size:1.35rem; letter-spacing:-.04em; line-height:1.2; }
-.brand-mark { display:grid; place-items:center; width:38px; height:38px; flex:none; color:#193a2e; background:var(--selected); border-radius:12px; }
-.brand-mark svg { width:23px; height:23px; }
-.top-nav { display:grid; gap:6px; margin-top:46px; }
-.top-nav a { display:flex; align-items:center; gap:12px; min-height:47px; padding:10px 14px; border-radius:10px; font-weight:600; color:#dce9df; text-decoration:none; }
-.top-nav svg { width:20px; height:20px; flex:none; }
-.top-nav a:hover { background:#234e43; }
-.top-nav a[aria-current] { background:var(--selected); color:#193a2e; }
-main { min-width:0; width:100%; max-width:1480px; margin:0 auto; padding:28px clamp(20px,4vw,64px) 48px; }
-.context,.page-heading,.section-heading,.dialog-heading,.setting-row,.preferences-row,.actions,.caller-tools,.segments { display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
-.context,.page-heading,.section-heading,.dialog-heading,.preferences-row { justify-content:space-between; }
-.context { padding-bottom:16px; border-bottom:1px solid var(--line); color:var(--muted); font-size:.9rem; }
-.connection-state,.caller-status { display:inline-flex; gap:7px; align-items:center; border-radius:20px; padding:5px 11px; background:var(--soft); color:var(--ink); font-size:.82rem; white-space:nowrap; }
-.dot { width:8px; height:8px; background:#bf8021; border-radius:50%; }
-.dot.ok { background:#318451; }
-.page-heading { margin:clamp(24px,4vw,52px) 0 24px; }
-.section,.metric { padding:clamp(16px,2.4vw,28px); border:1px solid var(--line); background:var(--paper); border-radius:16px; min-width:0; }
-.section + .section,.management-grid,.about-grid,.preferences-row + .preferences-row { margin-top:16px; }
-.section-heading { margin-bottom:16px; }
-.metrics-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; }
-.metric { display:grid; align-content:space-between; gap:16px; padding:clamp(14px,1.8vw,25px); }
-.metric:first-child { background:color-mix(in srgb,var(--accent) 13%,var(--paper)); }
-.metric span { color:var(--muted); font-size:.88rem; font-weight:600; }
-.metric strong { color:var(--accent-ink); font-size:clamp(1.6rem,3vw,2.6rem); line-height:1.12; overflow-wrap:anywhere; }
-#telemetry { padding:0; border:0; background:none; }
-#telemetry-message,.chart-note,.actions,.message,.small + .small { margin-top:10px; }
-.message:empty { display:none; }
-.chart-value { color:var(--accent-ink); font-size:2.1rem; }
-.chart-card svg { display:block; width:100%; height:180px; }
-.chart-axis,.chart-gridline { stroke:var(--line); }
-.chart-gridline { stroke-dasharray:3 5; }
-.chart-label,.chart-empty { fill:var(--muted); font:12px system-ui,sans-serif; }
-.chart-line { fill:none; stroke:var(--accent-ink); stroke-width:3; stroke-linejoin:round; }
-.chart-area { fill:var(--accent); opacity:.15; }
-.chart-point { fill:var(--accent-ink); }
-.about-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px; }
-.about-grid .section { margin:0; }
-.management-grid + .section { margin-top:16px; }
-.preferences-row + .preferences-row { border-top:1px solid var(--line); padding-top:16px; }
-.setting-row { flex-wrap:nowrap; min-height:44px; font-weight:600; }
-dialog { box-sizing:border-box; width:min(480px,calc(100% - 24px)); max-height:calc(100dvh - 32px); padding:23px; background:var(--paper); color:var(--ink); border:1px solid var(--line); border-radius:16px; }
-dialog::backdrop { background:#10251f88; }
-.dialog-heading { margin-bottom:16px; }
-.close { min-width:44px; padding:5px; font-size:1.25rem; }
-dialog label:not(.setting-row) { display:block; font-weight:600; margin:12px 0 5px; }
-dialog .color-picker details label { display:grid; }
-dialog .small { margin:8px 0; }
-.caller-tools { margin:16px 0; }
-.caller-tools input { flex:1 1 180px; min-width:0; }
-.segments { gap:4px; }
-.segments button[aria-pressed=true] { background:var(--selected); color:#193a2e; border-color:var(--line); }
-.events,.caller-list { margin:8px 0; padding:0; list-style:none; }
-.events li,.caller-list li { border-top:1px solid var(--line); padding:12px 0; }
-.caller-list li > div { display:flex; flex-wrap:wrap; align-items:center; gap:8px; }
-.events small,.caller-list small { display:block; }
-.ip-link { padding:0; border:0; border-radius:0; min-height:32px; background:none; color:var(--accent-ink); text-align:left; text-decoration:underline; white-space:normal; overflow-wrap:anywhere; }
-@media (max-width:1050px) { .metrics-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } }
-@media (max-width:760px) {
-  .app-shell { display:block; }
-  .topbar { position:static; min-height:0; padding:12px 14px 9px; }
-  .top-nav { grid-template-columns:repeat(4,minmax(0,1fr)); gap:2px; margin-top:12px; }
-  .top-nav a { justify-content:center; min-height:44px; padding:6px 2px; font-size:.86rem; }
-  .top-nav svg { display:none; }
-  main { padding:16px clamp(12px,3vw,22px) 32px; }
-  .about-grid { grid-template-columns:minmax(0,1fr); }
-}
-@media (max-width:420px) {
-  .metrics-grid { gap:8px; } .context { gap:6px; }
-  .section-heading label { display:flex; align-items:center; gap:6px; }
-  .actions { gap:7px; }
-}
-</style>
+    /* Colours follow the Home Assistant theme: the page copies HA's theme variables from the
+       parent frame (same origin under ingress). These are the fallbacks when it can't. */
+    :root{
+      --primary-background-color:#fafafa;--secondary-background-color:#f0f0f0;--card-background-color:#fff;
+      --primary-text-color:#212121;--secondary-text-color:#727272;--divider-color:rgba(0,0,0,.12);
+      --primary-color:#03a9f4;--rgb-primary-color:3,169,244;--text-primary-color:#fff;
+      --app-header-background-color:var(--primary-background-color);--app-header-text-color:var(--primary-text-color);
+      --success-color:#43a047;--rgb-success-color:67,160,71;--warning-color:#ffa600;--rgb-warning-color:255,166,0;
+      --error-color:#db4437;--rgb-error-color:219,68,55;--disabled-color:#bdbdbd;
+      --ha-card-border-radius:12px;--code-font-family:ui-monospace,SFMono-Regular,Consolas,monospace;
+      --ha-font-family-body:Roboto,"Segoe UI",Arial,sans-serif;
+    }
+    @media (prefers-color-scheme:dark){:root:not([data-themed]){
+      --primary-background-color:#111;--secondary-background-color:#202020;--card-background-color:#1c1c1c;
+      --primary-text-color:#e1e1e1;--secondary-text-color:#9b9b9b;--divider-color:rgba(225,225,225,.12);
+      --disabled-color:#6f6f6f;color-scheme:dark;
+    }}
+    *{box-sizing:border-box}
+    html,body{margin:0;min-height:100%}
+    body{background:var(--primary-background-color);color:var(--primary-text-color);font-family:var(--ha-font-family-body);font-size:14px;-webkit-font-smoothing:antialiased}
+    a{color:var(--primary-color)}
+    .top{position:sticky;top:0;z-index:2;background:var(--app-header-background-color);color:var(--app-header-text-color);border-bottom:1px solid var(--divider-color)}
+    .bar{display:flex;align-items:center;gap:12px;height:56px;padding:0 16px;max-width:960px;margin:0 auto}
+    .bar h1{font-size:20px;font-weight:400;margin:0;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .ha-narrow .bar h1{visibility:hidden}
+    .pill{display:inline-flex;align-items:center;gap:8px;padding:6px 12px;border-radius:999px;font-size:13px;font-weight:500;background:var(--secondary-background-color);white-space:nowrap;max-width:60vw;overflow:hidden;text-overflow:ellipsis}
+    .dot{flex:none;width:9px;height:9px;border-radius:50%;background:var(--disabled-color)}
+    .ok .dot,.dot.ok{background:var(--success-color);box-shadow:0 0 0 3px rgba(var(--rgb-success-color),.25)}
+    .warn .dot,.dot.warn{background:var(--warning-color);box-shadow:0 0 0 3px rgba(var(--rgb-warning-color),.25)}
+    .bad .dot,.dot.bad{background:var(--error-color);box-shadow:0 0 0 3px rgba(var(--rgb-error-color),.25)}
+    .tabs{display:flex;max-width:960px;margin:0 auto;padding:0 8px}
+    .tabs button{border:0;background:none;color:var(--secondary-text-color);font:inherit;font-weight:500;padding:12px 16px;cursor:pointer;border-bottom:2px solid transparent;min-height:48px}
+    .tabs button[aria-selected=true]{color:var(--primary-color);border-bottom-color:var(--primary-color)}
+    main{max-width:960px;margin:0 auto;padding:16px 16px 64px}
+    .intro{color:var(--secondary-text-color);margin:4px 4px 16px;line-height:1.45}
+    .card{background:var(--card-background-color);border-radius:var(--ha-card-border-radius);border:1px solid var(--divider-color);margin:0 0 16px;overflow:hidden}
+    .head{display:flex;gap:12px;align-items:flex-start;padding:16px 16px 12px}
+    .head h2{font-size:17px;font-weight:500;margin:2px 0 4px}
+    .head p{margin:0;font-size:14px;line-height:1.4;color:var(--secondary-text-color)}
+    .icon{flex:none;width:40px;height:40px;border-radius:50%;display:grid;place-items:center;background:rgba(var(--rgb-primary-color),.15);color:var(--primary-color)}
+    .icon.ok{background:rgba(var(--rgb-success-color),.15);color:var(--success-color)}
+    .icon.warn{background:rgba(var(--rgb-warning-color),.15);color:var(--warning-color)}
+    .icon.bad{background:rgba(var(--rgb-error-color),.15);color:var(--error-color)}
+    .icon svg,.btn svg,.chev{width:24px;height:24px;fill:currentColor}
+    .btn svg{width:18px;height:18px}
+    .group{padding:16px 16px 4px;font-size:13px;font-weight:500;text-transform:uppercase;letter-spacing:.05em;color:var(--secondary-text-color);border-top:1px solid var(--divider-color)}
+    .row{display:flex;align-items:center;gap:12px;padding:10px 16px;min-height:52px;flex-wrap:wrap;border-top:1px solid var(--divider-color)}
+    .head+.row,.group+.row,.head+.tiles{border-top:0}
+    .grow{flex:1;min-width:140px}
+    .title{font-weight:500;overflow-wrap:anywhere}
+    .sub{font-size:13px;color:var(--secondary-text-color);overflow-wrap:anywhere;margin-top:2px;line-height:1.4}
+    .sub.warn{color:var(--warning-color)}
+    .sub.bad{color:var(--error-color)}
+    .value{font-weight:500;text-align:right;overflow-wrap:anywhere}
+    .mono{font-family:var(--code-font-family)}
+    .chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+    .chip{font-size:12px;padding:2px 8px;border-radius:999px;background:var(--secondary-background-color);color:var(--secondary-text-color);white-space:nowrap}
+    .chip.on,.chip.ok{background:rgba(var(--rgb-success-color),.15);color:var(--success-color)}
+    .chip.warn{background:rgba(var(--rgb-warning-color),.15);color:var(--warning-color)}
+    .chip.bad{background:rgba(var(--rgb-error-color),.15);color:var(--error-color)}
+    .chip-x{border:0;background:none;color:inherit;font:inherit;font-size:14px;line-height:1;padding:0 0 0 6px;cursor:pointer}
+    .chip.info{background:rgba(var(--rgb-primary-color),.15);color:var(--primary-color)}
+    .method{font-family:var(--code-font-family);font-size:11px;font-weight:600;min-width:52px;text-align:center}
+    select,input[type=text],input[type=url],input[type=search],input[type=number]{font:inherit;color:inherit;background:var(--secondary-background-color);border:1px solid var(--divider-color);border-radius:8px;padding:8px 10px;min-height:44px;max-width:100%;width:100%}
+    select{width:auto}
+    input:focus-visible,select:focus-visible{outline:2px solid var(--primary-color);outline-offset:1px}
+    label.field{display:block;font-size:13px;color:var(--secondary-text-color);margin-bottom:6px}
+    .btn{font:inherit;font-weight:500;border:1px solid var(--divider-color);background:var(--card-background-color);color:inherit;border-radius:8px;padding:8px 16px;min-height:40px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;text-decoration:none;white-space:nowrap}
+    .btn.primary{background:var(--primary-color);border-color:var(--primary-color);color:var(--text-primary-color)}
+    .btn.danger{color:var(--error-color)}
+    .btn.text{border-color:transparent;background:none;color:var(--primary-color);padding:6px 10px;min-height:32px}
+    .btn.text.danger{color:var(--error-color)}
+    .btn:disabled{opacity:.5;cursor:default}
+    .btn:focus-visible,.clickable:focus-visible,.tabs button:focus-visible,.seg button:focus-visible{outline:2px solid var(--primary-color);outline-offset:2px}
+    .seg{display:inline-flex;border:1px solid var(--divider-color);border-radius:8px;overflow:hidden;flex:none}
+    .seg button{font:inherit;font-size:14px;border:0;border-left:1px solid var(--divider-color);background:none;color:inherit;padding:6px 14px;min-height:38px;cursor:pointer}
+    .seg button:first-child{border-left:0}
+    .seg button[aria-pressed=true]{background:var(--primary-color);color:var(--text-primary-color)}
+    .status{margin:0 0 16px;padding:12px 16px;border-radius:8px;font-size:14px;background:rgba(var(--rgb-success-color),.15)}
+    .status.error{background:rgba(var(--rgb-error-color),.15);color:var(--error-color)}
+    .notice{margin:0 0 16px;padding:12px 16px;border-radius:8px;font-size:14px;background:rgba(var(--rgb-warning-color),.15)}
+    .notice.info{background:rgba(var(--rgb-primary-color),.12)}
+    .notice ul{margin:6px 0 0;padding-left:18px}
+    .notice .btn{margin-top:8px}
+    .empty{padding:16px;color:var(--secondary-text-color)}
+    .clickable{cursor:pointer}
+    .clickable:hover{background:var(--secondary-background-color)}
+    .chev{color:var(--secondary-text-color);flex:none}
+    .switch{appearance:none;-webkit-appearance:none;width:44px;height:24px;border-radius:12px;background:var(--disabled-color);position:relative;cursor:pointer;margin:0;flex:none;transition:background .15s}
+    .switch::after{content:'';position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;transition:left .15s}
+    .switch:checked{background:var(--primary-color)}
+    .switch:checked::after{left:23px}
+    .switch:disabled{opacity:.4;cursor:default}
+    .switch:focus-visible{outline:2px solid var(--primary-color);outline-offset:2px}
+    label.grow{cursor:pointer}
+    .pad{padding:0 16px 16px}
+    .fields{display:flex;flex-wrap:wrap;gap:12px 16px;padding:0 16px 16px;align-items:flex-end}
+    .fields>div{flex:1;min-width:220px}
+    .danger-zone{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:16px}
+    .code{display:block;margin:0;padding:12px;border-radius:8px;background:var(--secondary-background-color);font-family:var(--code-font-family);font-size:13px;overflow-wrap:anywhere;user-select:all}
+    .tiles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));border-top:1px solid var(--divider-color)}
+    .tile{padding:14px 16px;border-left:1px solid var(--divider-color);min-width:0}
+    .tile:first-child{border-left:0}
+    .tile .sub{margin:0}
+    .tile strong{display:block;font-size:22px;font-weight:400;margin-top:6px;overflow-wrap:anywhere}
+    .tile strong small{font-size:13px;color:var(--secondary-text-color);margin-left:3px}
+    .charts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0;border-top:1px solid var(--divider-color)}
+    .chart{padding:12px 16px 14px;min-width:0}
+    .chart+.chart{border-left:1px solid var(--divider-color)}
+    .chart svg{display:block;width:100%;height:84px;margin-top:8px;overflow:visible}
+    .chart .line{fill:none;stroke:var(--primary-color);stroke-width:2;vector-effect:non-scaling-stroke;stroke-linejoin:round}
+    .chart .area{fill:rgba(var(--rgb-primary-color),.14);stroke:none}
+    .chart .grid{stroke:var(--divider-color);stroke-width:1;vector-effect:non-scaling-stroke}
+    .axis{display:flex;justify-content:space-between;font-size:12px;color:var(--secondary-text-color);margin-top:4px}
+    .steps{counter-reset:step}
+    .step{display:flex;gap:12px;padding:14px 16px;border-top:1px solid var(--divider-color)}
+    .step .num{flex:none;width:28px;height:28px;border-radius:50%;display:grid;place-items:center;font-size:13px;font-weight:500;background:var(--secondary-background-color);color:var(--secondary-text-color)}
+    .step.current .num{background:var(--primary-color);color:var(--text-primary-color)}
+    .step.done .num{background:rgba(var(--rgb-success-color),.2);color:var(--success-color)}
+    .step.later{opacity:.55}
+    .step .body{flex:1;min-width:0}
+    .step .body>*+*{margin-top:10px}
+    .actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+    .toolbar{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin:0 0 16px}
+    .toolbar input{flex:1;min-width:200px;width:auto}
+    .selected{background:rgba(var(--rgb-primary-color),.08)}
+    .spinner{width:18px;height:18px;border-radius:50%;border:2px solid rgba(var(--rgb-primary-color),.25);border-top-color:var(--primary-color);animation:spin 1s linear infinite;flex:none}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    @media (prefers-reduced-motion:reduce){.spinner{animation:none}.switch,.switch::after{transition:none}}
+    .hidden{display:none!important}
+    @media (max-width:700px){
+      .tiles{grid-template-columns:repeat(2,minmax(0,1fr))}
+      .tile:nth-child(3){border-left:0}
+      .tile:nth-child(n+3){border-top:1px solid var(--divider-color)}
+      .charts{grid-template-columns:minmax(0,1fr)}
+      .chart+.chart{border-left:0;border-top:1px solid var(--divider-color)}
+    }
+    @media (max-width:600px){
+      main{padding:12px 12px 64px}
+      .bar{padding:0 12px}
+      .tabs button{flex:1;padding:12px 8px}
+      .value{text-align:left}
+    }
+  </style>
 </head>
 <body>
-  <div class="app-shell">
-    <header class="topbar">
-      <a class="brand" href="#dashboard" aria-label="Home Tunnel dashboard">
-        <span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3 18V9a9 9 0 0 1 18 0v9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M3 18h5m8 0h5M8 18v-3a4 4 0 0 1 8 0v3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M10 10h4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span>
-        <span>Home Tunnel</span>
-      </a>
-      <nav class="top-nav" aria-label="Dashboard sections">
-        <a href="#dashboard"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3h7v7H3z M14 3h7v7h-7z M3 14h7v7H3z M14 14h7v7h-7z"/></svg>Overview</a>
-        <a href="#activity"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h5l3-8 4 16 3-8h5"/></svg>Activity</a>
-        <a href="#settings"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h8m4 0h6 M3 12h2m4 0h12 M3 18h10m4 0h4 M11 3v6 M7 9v6 M15 15v6"/></svg>Settings</a>
-        <a href="#about"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a9 9 0 1 0 0 18 9 9 0 1 0 0-18z M12 11v6 M12 7v1"/></svg>About</a>
-      </nav>
-    </header>
-
-    <main id="app-content">
-      <div class="context">
-        <span>Relay connection</span>
-        <div class="connection-state" role="status" aria-live="polite">
-          <span id="dot" class="dot"></span><strong id="state-title">Checking status…</strong>
-        </div>
-      </div>
-      <section class="view" id="dashboard" aria-labelledby="dashboard-title">
-        <div class="page-heading">
-          <div><h1 id="dashboard-title">Overview</h1></div>
-          <button id="refresh-statistics" type="button" class="secondary">Refresh</button>
-        </div>
-        <section id="telemetry" class="section" aria-label="Connection metrics">
-
-          <div class="metrics-grid" aria-label="Relay statistics">
-            <div class="metric"><span>Tunnel health</span><strong id="metric-health">Checking…</strong></div>
-            <div class="metric"><span>Requests per minute</span><strong id="metric-rate">—</strong></div>
-            <div class="metric"><span>Recent latency</span><strong id="metric-latency">—</strong></div>
-            <div class="metric"><span>Active WebSockets</span><strong id="metric-websockets">—</strong></div>
-          </div>
-          <p id="state-detail" class="subtle" role="status"></p>
-          <p id="telemetry-message" class="small" role="status" aria-live="polite">Loading telemetry…</p>
-        </section>
-        <section id="charts" class="section" aria-labelledby="charts-title">
-          <div class="section-heading"><div><h2 id="charts-title">Request rate</h2></div><label for="chart-range" class="small">Window <select id="chart-range"><option value="5">5 min</option><option value="15" selected>15 min</option><option value="30">30 min</option></select></label></div>
-          <div class="chart-grid">
-            <section class="chart-card" aria-label="Requests per minute trend"><strong id="chart-rate-value" class="chart-value">—</strong><svg id="chart-rate" viewBox="0 0 400 180" role="img" aria-label="Requests per minute over the selected window"></svg><p id="chart-rate-note" class="chart-note">Waiting for telemetry</p></section>
-          </div>
-
-        </section>
-      </section>
-
-      <section class="view hidden" id="settings" aria-labelledby="settings-title">
-        <div class="page-heading"><div><h1 id="settings-title">Settings</h1></div></div>
-        <div class="management-grid">
-          <section id="paired" class="section hidden">
-            <div class="section-heading"><div><h2>Forwarding</h2></div></div>
-            <p id="relay-url" class="subtle url"></p>
-            <p id="paired-detail" class="subtle"></p>
-            <div class="actions"><button id="enable" type="button">Enable forwarding</button><button id="disable" class="secondary" type="button">Disable forwarding</button></div>
-            <div id="control-message" class="message" role="status" aria-live="polite"></div>
-          </section>
-          <section id="setup" class="section hidden"><div class="preferences-row"><div><h2>Relay pairing</h2><p class="subtle">Connect your IIS relay.</p></div><button type="button" data-open="pair-dialog">Set up relay</button></div></section>
-        </div>
-        <section class="section" aria-label="Preferences">
-          <div class="preferences-row"><div><h2>Appearance</h2><p class="subtle">Theme and accent color on this browser</p></div><button type="button" class="secondary" data-open="appearance-dialog">Customize</button></div>
-          <div class="preferences-row"><div><h2>Caller locations</h2><p class="subtle">Approximate IP lookups</p></div><button type="button" class="secondary" data-open="location-dialog">Configure</button></div>
-        </section>
-      </section>
-
-      <section class="view hidden" id="about" aria-labelledby="about-title">
-        <div class="page-heading"><div><h1 id="about-title">About</h1></div></div>
-        <div class="about-grid">
-          <section class="section" aria-labelledby="about-product-title">
-            <div class="section-heading"><div><h2 id="about-product-title">Home Assistant access</h2></div></div>
-            <p class="small">Home Tunnel forwards requests through your IIS relay. Home Assistant remains responsible for sign-in, MFA, and permissions.</p>
-          </section>
-          <section id="relay-updates" class="section" aria-labelledby="relay-updates-title">
-            <div class="section-heading"><div><h2 id="relay-updates-title">Relay version</h2></div></div>
-            <p id="relay-version-detail" class="subtle"></p>
-            <p id="relay-update-status" class="small" role="status" aria-live="polite"></p>
-            <p id="relay-compatibility" class="message hidden" role="status"></p>
-            <p class="small">The relay updates manually. The Home Tunnel app updates through Home Assistant.</p>
-            <p class="small"><a id="relay-release-link" target="_blank" rel="noopener noreferrer">Releases</a> · <a id="relay-changelog-link" target="_blank" rel="noopener noreferrer">Changelog</a> · <a id="relay-manual-link" target="_blank" rel="noopener noreferrer">Manual update guide</a></p>
-          </section>
-        </div>
-      </section>
-
-      <section class="view hidden" id="activity" aria-labelledby="activity-title">
-        <div class="page-heading"><div><h1 id="activity-title">Activity</h1></div></div>
-        <div class="segments" role="group" aria-label="Activity view"><button type="button" class="secondary" data-list="requests" aria-pressed="true">Requests</button><button type="button" class="secondary" data-list="callers" aria-pressed="false">Caller IPs</button></div>
-        <div class="caller-tools"><input id="caller-search" type="search" autocomplete="off" placeholder="Search IP addresses" aria-label="Search caller IP addresses"><select id="caller-filter" aria-label="Filter caller IPs"><option value="all">All callers</option><option value="authenticated">Authenticated</option><option value="unknown">Unknown</option></select></div>
-        <section class="section" id="callers" hidden aria-labelledby="caller-list-title">
-          <div class="section-heading"><div><h2 id="caller-list-title">Caller IPs</h2><p id="caller-retention" class="subtle">Stored privately for 30 days</p></div><button id="clear-caller-ips" class="secondary" type="button">Clear history</button></div>
-
-          <p id="caller-results" class="small" aria-live="polite"></p>
-          <ul id="caller-ips" class="caller-list"><li class="small">Waiting for metrics</li></ul>
-          <button id="show-more-callers" class="secondary hidden" type="button">Show more</button>
-        </section>
-        <section class="section" id="requests" aria-labelledby="activity-list-title">
-          <div class="section-heading"><div><h2 id="activity-list-title">Recent requests</h2><p id="activity-filter-note" class="subtle">Most recent requests first</p></div><button id="refresh-activity" class="secondary" type="button" aria-label="Refresh activity">Refresh</button></div>
-          <ol id="recent-requests" class="events"><li class="small">Waiting for metrics</li></ol>
-        </section>
-      </section>
-    </main>
-    <dialog id="pair-dialog" aria-labelledby="pair-dialog-title"><div class="dialog-heading"><h2 id="pair-dialog-title">Set up relay</h2><button type="button" class="secondary close" data-close aria-label="Close dialog">×</button></div>
-<p class="subtle">Generate one setup code. Add its hash to the relay's web.config, then enter the relay URL to pair.</p>
-            <button id="generate-code" type="button">Generate setup code</button>
-            <div id="claim-details" class="hidden">
-              <label for="claim-code" style="margin-top:16px">One-time setup code</label>
-              <input id="claim-code" type="text" readonly autocomplete="off" spellcheck="false">
-              <p class="small">Keep the code in Home Assistant. Copy only the hash line to web.config.</p>
-              <div class="actions"><button id="copy-code" class="secondary" type="button">Copy setup code</button><button id="replace-code" class="secondary" type="button">Generate a new code</button></div>
-              <label for="config-snippet">Replace the blank HaTunnelBootstrapCodeHash line in web.config</label>
-              <textarea id="config-snippet" rows="2" readonly spellcheck="false"></textarea>
-              <button id="copy-config" class="secondary" type="button">Copy web.config line</button>
-              <form id="pair-form">
-                <label for="public-url">Public URL</label>
-                <input id="public-url" name="public_url" type="url" placeholder="https://tunnel.example.com" autocomplete="url" required>
-                <button id="pair-button" type="submit">Start setup</button>
-              </form>
-            </div>
-            <div id="setup-message" class="message" role="status" aria-live="polite"></div>
-</dialog>
-    <dialog id="location-dialog" aria-labelledby="location-dialog-title"><div class="dialog-heading"><h2 id="location-dialog-title">Caller locations</h2><button type="button" class="secondary close" data-close aria-label="Close dialog">×</button></div>
-<label class="setting-row" for="geolocation-enabled"><input id="geolocation-enabled" type="checkbox"> Look up approximate caller locations</label>
-          <p class="small">When enabled, Home Tunnel sends public caller IPs to ipapi.co to estimate their city, region, and country. Results can be inaccurate. Lookups are cached for 24 hours, up to 200 new IPs per day.</p>
-          <p id="geolocation-message" class="message" role="status" aria-live="polite"></p>
-</dialog>
-    <dialog id="appearance-dialog" aria-labelledby="appearance-dialog-title"><div class="dialog-heading"><h2 id="appearance-dialog-title">Appearance</h2><button type="button" class="secondary close" data-close aria-label="Close dialog">×</button></div>
-<label for="theme-mode">Theme</label><select id="theme-mode"><option value="system">System</option><option value="light">Light</option><option value="dark">Dark</option></select><div id="picker"></div>
-</dialog>
-  </div>
+  <div id="app"></div>
 <script>
 (() => {
+  'use strict';
   const base = document.querySelector('meta[name="ingress-base"]').content.replace(/\/$/, '');
-  const byId = id => document.getElementById(id);
-const palette = [
-    ["Fern", "#397450"], ["Teal", "#17827a"], ["Sky", "#479bdd"], ["Indigo", "#7262b8"],
-    ["Rose", "#bf5678"], ["Clay", "#bc6945"], ["Gold", "#cf9e3f"], ["Slate", "#657487"]
+  const ICONS = {
+    tunnel: 'M12,3A9,9 0 0,0 3,12V21H8V15A4,4 0 0,1 16,15V21H21V12A9,9 0 0,0 12,3M12,5A7,7 0 0,1 19,12V19H18V15A6,6 0 0,0 6,15V19H5V12A7,7 0 0,1 12,5Z',
+    chart: 'M16,11.78L20.24,4.45L21.97,5.45L16.74,14.5L10.23,10.75L5.46,19H22V21H2V3H4V17.54L9.5,8L16,11.78Z',
+    heart: 'M12,21.35L10.55,20.03C5.4,15.36 2,12.27 2,8.5C2,5.41 4.42,3 7.5,3C9.24,3 10.91,3.81 12,5.08C13.09,3.81 14.76,3 16.5,3C19.58,3 22,5.41 22,8.5C22,12.27 18.6,15.36 13.45,20.03L12,21.35Z',
+    people: 'M16,13C15.71,13 15.38,13 15.03,13.05C16.19,13.89 17,15 17,16.5V19H23V16.5C23,14.17 18.33,13 16,13M8,13C5.67,13 1,14.17 1,16.5V19H15V16.5C15,14.17 10.33,13 8,13M8,11A3,3 0 0,0 11,8A3,3 0 0,0 8,5A3,3 0 0,0 5,8A3,3 0 0,0 8,11M16,11A3,3 0 0,0 19,8A3,3 0 0,0 16,5A3,3 0 0,0 13,8A3,3 0 0,0 16,11Z',
+    list: 'M3,4H7V8H3V4M9,5V7H21V5H9M3,10H7V14H3V10M9,11V13H21V11H9M3,16H7V20H3V16M9,17V19H21V17H9',
+    link: 'M10.59,13.41C11,13.8 11,14.44 10.59,14.83C10.2,15.22 9.56,15.22 9.17,14.83C7.22,12.88 7.22,9.71 9.17,7.76L12.71,4.22C14.66,2.27 17.83,2.27 19.78,4.22C21.73,6.17 21.73,9.34 19.78,11.29L18.29,12.78C18.3,11.96 18.17,11.14 17.89,10.36L18.36,9.88C19.54,8.71 19.54,6.81 18.36,5.64C17.19,4.46 15.29,4.46 14.12,5.64L10.59,9.17C9.41,10.34 9.41,12.24 10.59,13.41M13.41,9.17C13.8,8.78 14.44,8.78 14.83,9.17C16.78,11.12 16.78,14.29 14.83,16.24L11.29,19.78C9.34,21.73 6.17,21.73 4.22,19.78C2.27,17.83 2.27,14.66 4.22,12.71L5.71,11.22C5.7,12.04 5.83,12.86 6.11,13.65L5.64,14.12C4.46,15.29 4.46,17.19 5.64,18.36C6.81,19.54 8.71,19.54 9.88,18.36L13.41,14.83C14.59,13.66 14.59,11.76 13.41,10.59C13,10.2 13,9.56 13.41,9.17Z',
+    shield: 'M12,1L3,5V11C3,16.55 6.84,21.74 12,23C17.16,21.74 21,16.55 21,11V5L12,1Z',
+    info: 'M13,9H11V7H13M13,17H11V11H13M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2Z',
+    key: 'M7,14A2,2 0 0,1 5,12A2,2 0 0,1 7,10A2,2 0 0,1 9,12A2,2 0 0,1 7,14M12.65,10C11.83,7.67 9.61,6 7,6A6,6 0 0,0 1,12A6,6 0 0,0 7,18C9.61,18 11.83,16.33 12.65,14H17V18H21V14H23V10H12.65Z',
+    copy: 'M19,21H8V7H19M19,5H8A2,2 0 0,0 6,7V21A2,2 0 0,0 8,23H19A2,2 0 0,0 21,21V7A2,2 0 0,0 19,5M16,1H4A2,2 0 0,0 2,3V17H4V3H16V1Z',
+    open: 'M14,3V5H17.59L7.76,14.83L9.17,16.24L19,6.41V10H21V3M19,19H5V5H12V3H5C3.89,3 3,3.9 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V12H19V19Z',
+    refresh: 'M17.65,6.35C16.2,4.9 14.21,4 12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20C15.73,20 18.84,17.45 19.73,14H17.65C16.83,16.33 14.61,18 12,18A6,6 0 0,1 6,12A6,6 0 0,1 12,6C13.66,6 15.14,6.69 16.22,7.78L13,11H20V4L17.65,6.35Z',
+    delete: 'M19,4H15.5L14.5,3H9.5L8.5,4H5V6H19M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19Z',
+    update: 'M21,10.12H14.22L16.96,7.3C14.23,4.6 9.81,4.5 7.08,7.2C4.35,9.91 4.35,14.28 7.08,17C9.81,19.7 14.23,19.7 16.96,17C18.32,15.65 19,14.08 19,12.1H21C21,14.08 20.12,16.65 18.36,18.39C14.85,21.87 9.15,21.87 5.64,18.39C2.14,14.92 2.11,9.28 5.62,5.81C9.13,2.34 14.76,2.34 18.27,5.81L21,3V10.12Z',
+  };
+  ICONS.block = 'M12,2C17.5,2 22,6.5 22,12C22,17.5 17.5,22 12,22C6.5,22 2,17.5 2,12C2,6.5 6.5,2 12,2M12,4C10.1,4 8.4,4.6 7.1,5.7L18.3,16.9C19.3,15.5 20,13.8 20,12C20,7.6 16.4,4 12,4M16.9,18.3L5.7,7.1C4.6,8.4 4,10.1 4,12C4,16.4 7.6,20 12,20C13.9,20 15.6,19.4 16.9,18.3Z';
+  ICONS.bell = 'M21,19V20H3V19L5,17V11C5,7.9 7.03,5.17 10,4.29C10,4.19 10,4.1 10,4A2,2 0 0,1 12,2A2,2 0 0,1 14,4C14,4.1 14,4.19 14,4.29C16.97,5.17 19,7.9 19,11V17L21,19M14,21A2,2 0 0,1 12,23A2,2 0 0,1 10,21';
+  ICONS.lock = 'M12,17A2,2 0 0,0 14,15C14,13.89 13.1,13 12,13A2,2 0 0,0 10,15A2,2 0 0,0 12,17M18,8A2,2 0 0,1 20,10V20A2,2 0 0,1 18,22H6A2,2 0 0,1 4,20V10C4,8.89 4.9,8 6,8H7V6A5,5 0 0,1 12,1A5,5 0 0,1 17,6V8H18M12,3A3,3 0 0,0 9,6V8H15V6A3,3 0 0,0 12,3Z';
+  ICONS.download = 'M5,20H19V18H5M19,9H15V3H9V9H5L12,16L19,9Z';
+  const TABS = [['overview', 'Overview'], ['activity', 'Activity'], ['settings', 'Settings']];
+  const WINDOWS = [[60, '1 h'], [360, '6 h'], [1440, '24 h']];
+  const CALLER_FILTERS = [['all', 'All'], ['authenticated', 'Signed in'], ['unknown', 'Unknown']];
+  const BLOCK_DURATIONS = [['60', '1 hour'], ['1440', '1 day'], ['10080', '1 week'], ['43200', '30 days'], ['', 'Until I unblock it']];
+  const NOTIFY_EVENTS = [
+    ['offline', 'Tunnel offline', 'When the connector can’t reach the relay for 3 minutes, and when it’s back'],
+    ['signin', 'New sign-in', 'When someone signs in from an address that never signed in before'],
+    ['attention', 'Needs attention', 'Bursts of denied requests, server errors or dropped audit events'],
+    ['blocked', 'Address blocked', 'When automatic lockdown blocks an address'],
+    ['relay_update', 'Relay update', 'When a new relay release is published'],
+    ['certificate', 'Certificate expiring', 'When the relay’s HTTPS certificate has less than 14 days left'],
   ];
 
-  function applyAppearance({ mode, accentColor }) {
-    if (!/^#[0-9a-f]{6}$/i.test(accentColor)) return;
-    const root = document.documentElement;
-    root.dataset.stayTheme = mode === "light" ? "light" : "dark";
-    root.style.colorScheme = root.dataset.stayTheme;
-    root.style.setProperty("--accent", accentColor);
-    const linear = [1, 3, 5].map(index => {
-      const value = parseInt(accentColor.slice(index, index + 2), 16) / 255;
-      return value <= .04045 ? value / 12.92 : ((value + .055) / 1.055) ** 2.4;
-    });
-    const luminance = linear[0] * .2126 + linear[1] * .7152 + linear[2] * .0722;
-    root.style.setProperty("--on-accent", luminance > .179 ? "#000" : "#fff");
+  const COUNTRY_CODES = ('AD AE AF AG AI AL AM AO AQ AR AS AT AU AW AX AZ BA BB BD BE BF BG BH BI BJ BL BM BN BO BQ BR BS BT BV BW BY BZ ' +
+    'CA CC CD CF CG CH CI CK CL CM CN CO CR CU CV CW CX CY CZ DE DJ DK DM DO DZ EC EE EG EH ER ES ET FI FJ FK FM FO FR GA GB GD GE GF ' +
+    'GG GH GI GL GM GN GP GQ GR GS GT GU GW GY HK HM HN HR HT HU ID IE IL IM IN IO IQ IR IS IT JE JM JO JP KE KG KH KI KM KN KP KR KW ' +
+    'KY KZ LA LB LC LI LK LR LS LT LU LV LY MA MC MD ME MF MG MH MK ML MM MN MO MP MQ MR MS MT MU MV MW MX MY MZ NA NC NE NF NG NI NL ' +
+    'NO NP NR NU NZ OM PA PE PF PG PH PK PL PM PN PR PS PT PW PY QA RE RO RS RU RW SA SB SC SD SE SG SH SI SJ SK SL SM SN SO SR SS ST ' +
+    'SV SX SY SZ TC TD TF TG TH TJ TK TL TM TN TO TR TT TV TW TZ UA UG UM US UY UZ VA VC VE VG VI VN VU WF WS XK YE YT ZA ZM ZW').split(' ');
+  let regionNames = null;
+  try { regionNames = new Intl.DisplayNames([navigator.language || 'en', 'en'], {type: 'region'}); } catch (error) { /* older browser */ }
+  const countryName = code => { try { return regionNames?.of(code) || code; } catch (error) { return code; } };
+  const flag = code => /^[A-Z]{2}$/.test(code || '') ? String.fromCodePoint(...[...code].map(c => 0x1F1E6 + c.charCodeAt(0) - 65)) : '';
+  const COUNTRY_MODES = [['off', 'Off'], ['block', 'Block listed'], ['allow', 'Allow only listed']];
+
+  const state = {
+    tab: TABS.some(([id]) => id === location.hash.slice(1)) ? location.hash.slice(1) : 'overview',
+    status: null, statusError: null, telemetry: null, history: null, histWindow: 360,
+    locations: {}, query: '', filter: 'all', callerShown: 25, busy: false, message: {text: ''},
+    setupMessage: '', publicUrl: '', geoSaving: false,
+    blocks: null, blockCidr: '', blockMinutes: '1440', myIp: null,
+    targets: null, lockdownDraft: null, countries: {}, country: '', countryPick: '',
+  };
+
+  // ---------- helpers ----------
+  function el(tag, attrs = {}, ...children) {
+    const node = document.createElement(tag);
+    for (const [key, value] of Object.entries(attrs)) {
+      if (key.startsWith('on')) node.addEventListener(key.slice(2), value);
+      else if (key === 'value') node.value = value;
+      else if (value === true) node.setAttribute(key, '');
+      else if (value !== false && value != null) node.setAttribute(key, value);
+    }
+    node.append(...children.flat(Infinity).filter(child => child != null && child !== false));
+    return node;
+  }
+  const NS = 'http://www.w3.org/2000/svg';
+  function svgEl(tag, attrs = {}) {
+    const node = document.createElementNS(NS, tag);
+    for (const [key, value] of Object.entries(attrs)) node.setAttribute(key, value);
+    return node;
+  }
+  function icon(path, cls) {
+    const node = svgEl('svg', {viewBox: '0 0 24 24', 'aria-hidden': 'true'});
+    if (cls) node.setAttribute('class', cls);
+    node.append(svgEl('path', {d: path}));
+    return node;
+  }
+  const plural = (n, word, many = `${word}s`) => `${n} ${n === 1 ? word : many}`;
+  const num = value => Number.isFinite(Number(value)) ? Number(value) : 0;
+  function fmt(value, digits = 0) {
+    return num(value).toLocaleString([], {maximumFractionDigits: digits, minimumFractionDigits: 0});
+  }
+  function ago(iso) {
+    const date = new Date(iso);
+    if (Number.isNaN(date.getTime())) return 'unknown time';
+    const s = Math.round((Date.now() - date.getTime()) / 1000);
+    if (s < 45) return 'just now';
+    if (s < 3600) return `${Math.round(s / 60)} min ago`;
+    if (s < 86400) return `${Math.round(s / 3600)} h ago`;
+    if (s < 7 * 86400) return `${Math.round(s / 86400)} d ago`;
+    return date.toLocaleDateString([], {dateStyle: 'medium'});
+  }
+  const exact = iso => { const d = new Date(iso); return Number.isNaN(d.getTime()) ? '' : d.toLocaleString([], {dateStyle: 'medium', timeStyle: 'medium'}); };
+  function duration(seconds) {
+    seconds = Math.max(0, Math.round(num(seconds)));
+    const d = Math.floor(seconds / 86400), h = Math.floor(seconds % 86400 / 3600), m = Math.floor(seconds % 3600 / 60);
+    if (d) return `${d} d ${h} h`;
+    if (h) return `${h} h ${m} min`;
+    if (m) return `${m} min`;
+    return `${seconds} s`;
+  }
+  const isIp = value => typeof value === 'string' && value && value !== 'unknown';
+  function bytes(value) {
+    value = num(value);
+    const units = ['B', 'KiB', 'MiB', 'GiB', 'TiB'];
+    let i = 0;
+    while (value >= 1024 && i < units.length - 1) { value /= 1024; i++; }
+    return `${fmt(value, i ? 1 : 0)} ${units[i]}`;
+  }
+  function until(epoch) {
+    if (!epoch) return 'until you unblock it';
+    const left = epoch * 1000 - Date.now();
+    if (left <= 0) return 'expiring';
+    return `for ${duration(left / 1000)} more`;
   }
 
-  function mountColorPicker(host, label, onChange, explicit = false) {
-    const group = document.createElement("fieldset");
-    group.className = "color-picker";
-    const legend = document.createElement("legend");
-    legend.textContent = label;
-    const swatches = document.createElement("div");
-    swatches.className = "color-swatches";
-    const channels = ["Red", "Green", "Blue"].map(name => {
-      const row = document.createElement("label");
-      row.textContent = name;
-      const input = document.createElement("input");
-      input.type = "range";
-      input.min = "0";
-      input.max = "255";
-      row.append(input);
-      return { row, input };
-    });
-    const custom = document.createElement("details");
-    const summary = document.createElement("summary");
-    summary.textContent = "Custom color";
-    const hexLabel = document.createElement("label");
-    hexLabel.textContent = "Hex color";
-    const hex = document.createElement("input");
-    hex.maxLength = 7;
-    hex.spellcheck = false;
-    hex.placeholder = "#397450";
-    hexLabel.append(hex);
-    custom.append(summary, ...channels.map(channel => channel.row), hexLabel);
-    const sample = document.createElement("span");
-    sample.className = "color-sample";
-    legend.append(sample);
-    group.append(legend, swatches, custom);
-    let value = "";
-    function setValue(next) {
-      if (!/^#[0-9a-f]{6}$/i.test(next)) return;
-      value = next.toLowerCase();
-      sample.style.backgroundColor = value;
-      hex.value = value.toUpperCase();
-      hex.setCustomValidity("");
-      for (const [index, channel] of channels.entries()) channel.input.value = String(parseInt(value.slice(1 + index * 2, 3 + index * 2), 16));
-      for (const button of swatches.children) button.setAttribute("aria-pressed", String(button.value === value));
-    }
-    function choose(next) {
-      setValue(next);
-      if (!explicit) onChange(value);
-    }
-    for (const [name, color] of palette) {
-      const button = document.createElement("button");
-      button.type = "button";
-      button.value = color;
-      button.title = name;
-      button.setAttribute("aria-label", name);
-      button.style.setProperty("--swatch", color);
-      button.addEventListener("click", () => choose(color));
-      swatches.append(button);
-    }
-    for (const {input} of channels) {
-      input.addEventListener("input", () => choose("#" + channels.map(channel => Number(channel.input.value).toString(16).padStart(2, "0")).join("")));
-    }
-    hex.addEventListener("input", () => {
-      const next = "#" + hex.value.trim().replace(/^#/, "");
-      if (/^#[0-9a-f]{6}$/i.test(next)) choose(next);
-      else hex.setCustomValidity("Enter six hexadecimal digits.");
-    });
-    if (explicit) {
-      const apply = document.createElement("button");
-      apply.type = "button";
-      apply.textContent = "Set light color";
-      apply.addEventListener("click", () => { if (hex.reportValidity()) onChange(value); });
-      group.append(apply);
-    }
-    host.replaceChildren(group);
-    return { setValue, valid: () => hex.reportValidity(), reset: () => { custom.open = false; } };
+  // ---------- CSV export ----------
+  function csvCell(value) {
+    let text = value == null ? '' : String(value);
+    if (/^[=+\-@\t\r]/.test(text)) text = `'${text}`;  // keep spreadsheets from running it as a formula
+    return /[",\n\r]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
   }
-  const scheme = window.matchMedia('(prefers-color-scheme: dark)');
-  const appearanceKey = 'home-tunnel.appearance.v1';
-  let preferences = {mode:'system', accentColor:'#397450'};
-  try {
-    const saved = JSON.parse(localStorage.getItem(appearanceKey));
-    if (saved && ['system','light','dark'].includes(saved.mode) && /^#[0-9a-f]{6}$/i.test(saved.accentColor)) preferences = saved;
-  } catch { /* Storage may be disabled in an embedded browser. */ }
-  function paint() {
-    const mode = preferences.mode === 'system' ? (scheme.matches ? 'dark' : 'light') : preferences.mode;
-    applyAppearance({...preferences, mode});
+  function downloadCsv(name, header, rows) {
+    const text = [header, ...rows].map(row => row.map(csvCell).join(',')).join('\r\n') + '\r\n';
+    const url = URL.createObjectURL(new Blob([text], {type: 'text/csv;charset=utf-8'}));
+    const stamp = new Date().toISOString().slice(0, 16).replace(/[:T]/g, '-');
+    const link = el('a', {href: url, download: `home-tunnel-${name}-${stamp}.csv`});
+    document.body.append(link); link.click(); link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
-  function saveAppearance() {
-    paint();
-    try { localStorage.setItem(appearanceKey, JSON.stringify(preferences)); } catch { /* Keep the in-page choice. */ }
+  function exportCallers(m) {
+    downloadCsv('callers', ['ip', 'status', 'requests', 'first_seen', 'last_seen', 'signed_in_at', 'location'],
+      (m.caller_ips || []).map(r => [r.ip, r.status, r.requests, r.first_seen, r.last_seen, r.authenticated_at, state.locations[r.ip] || '']));
   }
-  byId('theme-mode').value = preferences.mode;
-  byId('theme-mode').addEventListener('change', event => {
-    preferences.mode = event.target.value;
-    saveAppearance();
-  });
-  const picker = mountColorPicker(byId('picker'), 'Accent color', color => {
-    preferences.accentColor = color;
-    saveAppearance();
-  });
-  picker.setValue(preferences.accentColor);
-  scheme.addEventListener('change', paint);
-  paint();
-  for (const button of document.querySelectorAll('[data-open]')) {
-    button.addEventListener('click', () => byId(button.dataset.open).showModal());
+  function exportRequests(m) {
+    downloadCsv('requests', ['time', 'ip', 'method', 'path', 'status', 'duration_ms', 'request_bytes', 'response_bytes', 'location'],
+      (m.recent_requests || []).slice().reverse().map(e => [e.observed_at, e.ip, e.method, e.route, e.status, e.duration_ms, e.request_bytes, e.response_bytes, state.locations[e.ip] || '']));
   }
-  for (const button of document.querySelectorAll('[data-close]')) {
-    button.addEventListener('click', () => button.closest('dialog').close());
+  function exportHistory() {
+    const h = state.history;
+    if (!h?.available) return;
+    const at = h.fields.indexOf('minute');
+    downloadCsv('traffic', ['minute_utc', ...h.fields.filter(f => f !== 'minute')],
+      h.minutes.map(row => [new Date(row[at] * 60000).toISOString(), ...row.filter((_, i) => i !== at)]));
   }
-  function showList(name) {
-    for (const button of document.querySelectorAll('[data-list]')) {
-      const selected = name === button.dataset.list;
-      button.setAttribute('aria-pressed', String(selected));
-      byId(button.dataset.list).hidden = !selected;
-    }
-  }
-  for (const button of document.querySelectorAll('[data-list]')) {
-    button.addEventListener('click', () => showList(button.dataset.list));
-  }
-  const pages = ['dashboard','settings','about','activity'];
-  const samples=[];
-  let geolocationEnabled=false;
-  let callerRecords=[];
-  let callerLocations={};
-  let recentEvents=[];
-  let callerShown=50;
-  let telemetryNotice = "Waiting for metrics";
-  const chartWindow=byId('chart-range');
-  const chartSpecs=[
-    {key:'rate',value:'chart-rate-value',svg:'chart-rate',note:'chart-rate-note',field:'requests_per_minute',unit:'req/min',digits:1}
-  ];
-  const svgNode=(name,attrs={})=>{const node=document.createElementNS('http://www.w3.org/2000/svg',name);for(const [key,value] of Object.entries(attrs))node.setAttribute(key,value);return node;};
-  function drawChart(spec,now=Date.now()) {
-    const minutes=Number(chartWindow.value)||15, cutoff=now-minutes*60000;
-    const points=samples.filter(sample=>sample.at>=cutoff);
-    const current=points[points.length-1]?.[spec.key];
-    byId(spec.value).textContent=current==null?'—':`${current.toFixed(spec.digits)} ${spec.unit}`;
-    byId(spec.note).textContent=points.length<2?'Collecting live samples':`${points.length} samples · last ${minutes} min`;
-    const svg=byId(spec.svg);svg.replaceChildren();
-    const chartWidth = Math.max(220, svg.clientWidth || 400);
-    svg.setAttribute('viewBox', `0 0 ${chartWidth} 180`);
-    const left=40,right=chartWidth-8,top=12,bottom=148,width=right-left,height=bottom-top;
-    for(let tick=0;tick<=4;tick++) {
-      const y=top+height*tick/4;
-      svg.append(svgNode('line',{x1:left,y1:y,x2:right,y2:y,class:tick===4?'chart-axis':'chart-gridline'}));
-      const label=svgNode('text',{x:left-7,y:y+4,'text-anchor':'end',class:'chart-label'});
-      const max=Math.max(1,...points.map(point=>point[spec.key]));
-      label.textContent=(max*(4-tick)/4).toFixed(spec.digits);svg.append(label);
-    }
-    const oldLabel=svgNode('text',{x:left,y:168,class:'chart-label'});oldLabel.textContent=`${minutes} min ago`;svg.append(oldLabel);
-    const nowLabel=svgNode('text',{x:right,y:168,'text-anchor':'end',class:'chart-label'});nowLabel.textContent='Now';svg.append(nowLabel);
-    if(!points.length) {
-      const empty=svgNode('text',{x:width/2+left,y:top+height/2,'text-anchor':'middle',class:'chart-empty'});empty.textContent='Waiting for telemetry';svg.append(empty);return;
-    }
-    const max=Math.max(1,...points.map(point=>point[spec.key]));
-    const xy=points.map(point=>[left+width*(point.at-cutoff)/(minutes*60000),bottom-height*point[spec.key]/max]);
-    if(xy.length>1) {
-      const line=xy.map((point,index)=>`${index?'L':'M'}${point[0].toFixed(1)},${point[1].toFixed(1)}`).join(' ');
-      const area=svgNode('path',{d:`${line} L${xy[xy.length-1][0].toFixed(1)},${bottom} L${xy[0][0].toFixed(1)},${bottom} Z`,class:'chart-area'});
-      const path=svgNode('path',{d:line,class:'chart-line'});svg.append(area,path);
-    }
-    const last=xy[xy.length-1];svg.append(svgNode('circle',{cx:last[0],cy:last[1],r:5,class:'chart-point'}));
-  }
-  function drawCharts(){for(const spec of chartSpecs)drawChart(spec);}
-  function showPage() {
-    const requested=location.hash.slice(1);
-    const active=pages.includes(requested)?requested:'dashboard';
-    for(const name of pages) {
-      byId(name).classList.toggle('hidden',name!==active);
-      const link=document.querySelector(`.top-nav a[href="#${name}"]`);
-      link.classList.toggle('active',name===active);
-      if(name===active)link.setAttribute('aria-current','page'); else link.removeAttribute('aria-current');
-    }
-    for (const openDialog of document.querySelectorAll('dialog[open]')) openDialog.close();
-    if (location.hash) {
-      const heading = byId(active + '-title');
-      heading.tabIndex = -1;
-      heading.focus({preventScroll:true});
-    }
-    window.scrollTo(0,0);
-  }
-  window.addEventListener('hashchange',showPage);
-  showPage();
+
   async function api(path, body) {
-    const response = await fetch(`${base}/api/${path}`, body ? {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)} : {cache:'no-store'});
+    const response = await fetch(`${base}/api/${path}`, body
+      ? {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)}
+      : {cache: 'no-store'});
     const text = await response.text();
-    if (!response.ok) {
-      const detail = response.headers.get('Content-Type')?.startsWith('text/plain') ? text.trim().slice(0, 240) : '';
-      throw new Error(detail || `Request failed (${response.status})`);
-    }
+    if (!response.ok) throw new Error(text.replace(/^\d{3}:\s*/, '') || `Request failed (${response.status})`);
     return text ? JSON.parse(text) : {};
   }
-  async function refresh() {
+
+  // ---------- Home Assistant theme ----------
+  const THEME_VARS = ['primary-background-color', 'secondary-background-color', 'card-background-color',
+    'primary-text-color', 'secondary-text-color', 'divider-color', 'primary-color', 'rgb-primary-color',
+    'text-primary-color', 'app-header-background-color', 'app-header-text-color', 'success-color',
+    'rgb-success-color', 'warning-color', 'rgb-warning-color', 'error-color', 'rgb-error-color',
+    'disabled-color', 'ha-card-border-radius', 'code-font-family', 'ha-font-family-body'];
+  let themeKey = '';
+  function syncTheme() {
+    let parentDoc;
+    try { parentDoc = window.parent !== window && window.parent.document; } catch (error) { return; }
+    if (!parentDoc) return;
+    const computed = getComputedStyle(parentDoc.documentElement);
+    const values = THEME_VARS.map(name => [name, computed.getPropertyValue(`--${name}`).trim()]).filter(([, v]) => v);
+    const key = JSON.stringify(values);
+    if (key === themeKey || !values.length) return;
+    themeKey = key;
+    const root = document.documentElement;
+    for (const [name, value] of values) root.style.setProperty(`--${name}`, value);
+    root.setAttribute('data-themed', '');
+    // Pick the form-control colour scheme from the theme's background brightness.
+    const bg = getComputedStyle(root).getPropertyValue('--primary-background-color').trim();
+    const probe = document.createElement('span');
+    probe.style.color = bg; document.body.append(probe);
+    const rgb = (getComputedStyle(probe).color.match(/\d+(\.\d+)?/g) || [255, 255, 255]).map(Number);
+    probe.remove();
+    root.style.colorScheme = (0.2126 * rgb[0] + 0.7152 * rgb[1] + 0.0722 * rgb[2]) < 128 ? 'dark' : 'light';
+  }
+  // When HA's own narrow header is showing (phones), it already carries the panel title.
+  function syncNarrow() {
     try {
-      const data = await api('status');
-      const dot=byId('dot'), title=byId('state-title'), detail=byId('state-detail');
-      byId('setup').classList.toggle('hidden',data.paired);
-      if (data.paired && byId('pair-dialog').open) byId('pair-dialog').close();
-      if(!byId('geolocation-enabled').disabled) {
-        geolocationEnabled=data.geolocation_enabled===true;
-        byId('geolocation-enabled').checked=geolocationEnabled;
-      }
-      byId('paired').classList.toggle('hidden',!data.paired);
-      byId('claim-details').classList.toggle('hidden',!data.claim_ready);
-      byId('generate-code').classList.toggle('hidden',data.claim_ready);
-      byId('generate-code').textContent=data.pairing_pending?'Restart setup':'Generate setup code';
-      byId('pair-button').disabled=data.pairing_pending;
-      if (data.claim_ready) {
-        byId('claim-code').value=data.setup_code || '';
-        byId('config-snippet').value=data.bootstrap_snippet || '';
-      }
-      if (!data.paired && data.pairing_pending) { title.textContent='Pairing in progress'; detail.textContent=data.error || `Connecting to the relay · expires in ${data.pairing_expires_in}s`; byId('setup-message').textContent=data.error || 'Pairing is being completed. Keep this app running.'; }
-      else if (!data.paired) { title.textContent='Awaiting setup'; detail.textContent=data.error || (data.claim_ready?'Add the hash to web.config, then pair the relay.':'Generate a setup code to begin.'); if(data.error)byId('setup-message').textContent=data.error; }
-      else if (data.connected && data.forwarding_enabled) { title.textContent='Online'; detail.textContent=''; dot.classList.add('ok'); }
-      else if (data.connected) { title.textContent='Connector connected'; detail.textContent='Forwarding is off until you enable it.'; }
-      else { title.textContent='Connecting'; detail.textContent=data.error || 'The app is trying to reach the relay.'; }
-      if (data.paired) {
-        byId('relay-url').textContent=data.relay_url || '';
-        byId('paired-detail').textContent=`${data.connected?'Connector connected':'Waiting for connector'} · Forwarding ${data.forwarding_enabled?'enabled':'disabled'}`;
-        byId('enable').disabled=!data.connected || data.forwarding_enabled;
-        byId('disable').disabled=!data.forwarding_enabled;
-      }
-      byId('relay-version-detail').textContent=`Relay ${data.relay_version || 'version unavailable'} · Home Tunnel app ${data.home_tunnel_version || 'unknown'}`;
-      const latestRelayIsDev=/-dev(?:\.|$)/i.test(data.latest_relay_version || '');
-      byId('relay-update-status').textContent=data.relay_update_available
-        ? latestRelayIsDev
-          ? `Development relay ${data.latest_relay_version} is available. No stable relay release is published.`
-          : `Relay ${data.latest_relay_version} is available. Update the IIS files using the guide below.`
-        : data.relay_version && data.latest_relay_version
-          ? latestRelayIsDev
-            ? `Relay matches the development manifest (${data.relay_version}). No stable relay release is published.`
-            : `Relay is up to date (${data.relay_version}).`
-          : latestRelayIsDev
-            ? `Development relay manifest: ${data.latest_relay_version}. No stable relay release is published.`
-            : 'Release information or relay version is not available yet.';
-      byId('relay-compatibility').classList.toggle('hidden',data.relay_compatible !== false);
-      if(data.relay_compatible === false)byId('relay-compatibility').textContent='Compatibility for this Home Tunnel app version is not confirmed. Review the release notes before updating.';
-      for(const [id,url] of [['relay-release-link',data.release_url],['relay-changelog-link',data.changelog_url],['relay-manual-link',data.manual_update_url]]) {
-        const link=byId(id); if(url)link.href=url; else link.removeAttribute('href');
-      }
-      dot.classList.toggle('ok',data.connected && data.forwarding_enabled);
-    } catch (error) { byId('dot').classList.remove('ok'); byId('state-title').textContent='Unavailable'; byId('state-detail').textContent=error.message; }
+      const narrow = window.parent !== window && window.parent.matchMedia('(max-width: 870px)').matches;
+      document.documentElement.classList.toggle('ha-narrow', narrow);
+    } catch (error) { /* not embedded */ }
   }
-  function unavailableTelemetry(message) {
-    metric('metric-health','No data');
-    for (const id of ['metric-rate','metric-latency','metric-websockets']) metric(id,'—');
-    telemetryNotice = message;
-    samples.length=0;
-    drawCharts();
-    callerRecords=[];recentEvents=[];callerLocations={};
-    renderCallerIps();renderRecentActivity();
-    byId('caller-retention').textContent='Caller history unavailable';
-    byId('telemetry-message').textContent=message;
+
+  // ---------- derived state ----------
+  // Whether this browser reached Home Assistant through the tunnel itself.
+  function viaTunnel() {
+    const url = state.status?.relay_url;
+    if (!url) return false;
+    try { return window.top.location.origin === new URL(url).origin; } catch (error) { return false; }
   }
-  function metric(id,value) { byId(id).textContent=String(value); }
+
+  function tunnelState() {
+    const s = state.status;
+    if (state.statusError && !s) return {tone: 'bad', title: 'Service unavailable', detail: state.statusError};
+    if (!s) return {tone: '', title: 'Checking…', detail: ''};
+    const m = state.telemetry?.available ? state.telemetry.metrics : null;
+    if (!s.paired && s.pairing_pending) return {tone: 'warn', title: 'Pairing', detail: s.error || 'Authenticating the relay and exchanging the connector key.'};
+    if (!s.paired) return {tone: '', title: 'Not set up', detail: 'Pair this app with your relay to reach Home Assistant from outside.'};
+    if (!s.connected) return {tone: 'bad', title: 'Connector offline', detail: s.error || 'Trying to reach the relay.'};
+    if (!s.forwarding_enabled) return {tone: 'warn', title: 'Forwarding off', detail: 'The connector is up, but the public URL does not reach Home Assistant until you turn forwarding on.'};
+    if (m && m.public_reachable === false) return {tone: 'warn', title: 'Public check failing', detail: 'Forwarding is on, but the relay’s public URL did not answer the last health check.'};
+    if (m && m.risk_status === 'attention') return {tone: 'warn', title: 'Online, needs attention', detail: 'Forwarding is on. See the notes below.'};
+    return {tone: 'ok', title: 'Online', detail: 'The public URL forwards to Home Assistant.'};
+  }
+
+  function say(text, error = false) {
+    state.message = {text, error};
+    clearTimeout(say.timer);
+    if (text && !error) say.timer = setTimeout(() => { state.message = {text: ''}; render(); }, 5000);
+  }
+
+  async function act(work, done) {
+    // Leave any text field so the result can be shown (render waits while someone types).
+    if (document.activeElement?.matches?.('input')) document.activeElement.blur();
+    state.busy = true; render();
+    try { await work(); if (done) say(done); await refreshStatus(); }
+    catch (error) { say(error.message || 'Something went wrong.', true); }
+    state.busy = false; render();
+  }
+
+  async function copy(text, what) {
+    try { await navigator.clipboard.writeText(text); say(`${what} copied.`); }
+    catch (error) { say(`Couldn’t copy. Select the ${what.toLowerCase()} and copy it by hand.`, true); }
+    render();
+  }
+
+  // ---------- building blocks ----------
+  function section(iconPath, title, text, extra, ...body) {
+    return el('section', {class: 'card'},
+      el('div', {class: 'head'}, iconPath ? el('div', {class: 'icon'}, icon(iconPath)) : null,
+        el('div', {class: 'grow'}, el('h2', {}, title), text ? el('p', {}, text) : null), extra),
+      body);
+  }
+  function factRow(title, value, sub, tone) {
+    return el('div', {class: 'row'},
+      el('div', {class: 'grow'}, el('div', {class: 'title'}, title), sub ? el('div', {class: `sub${tone ? ` ${tone}` : ''}`}, sub) : null),
+      value != null ? el('div', {class: 'value'}, value) : null);
+  }
+  let switchId = 0;
+  function toggleRow(title, sub, checked, onChange, disabled = false, tone = '') {
+    const id = `s${++switchId}`;
+    return el('div', {class: 'row'},
+      el('label', {class: 'grow', for: id}, el('div', {class: 'title'}, title), sub ? el('div', {class: `sub${tone ? ` ${tone}` : ''}`}, sub) : null),
+      el('input', {type: 'checkbox', role: 'switch', class: 'switch', id, checked, disabled, onchange: e => onChange(e.target.checked, e.target)}));
+  }
+  function segmented(options, value, onChange, label) {
+    return el('div', {class: 'seg', role: 'group', 'aria-label': label},
+      options.map(([id, text]) => el('button', {type: 'button', 'aria-pressed': String(value === id), onclick: () => onChange(id)}, text)));
+  }
+  const chip = (text, tone = '', title) => el('span', {class: `chip${tone ? ` ${tone}` : ''}`, title}, text);
+
+  // ---------- render ----------
+  let pendingRender = false;
+  function render() {
+    // Don't rebuild while someone is typing; render once they leave the field.
+    const active = document.activeElement;
+    if (active && active.matches?.('input[type=text],input[type=url],input[type=number]') && document.getElementById('app').contains(active)) {
+      pendingRender = true; return;
+    }
+    pendingRender = false;
+    const focusId = active?.id;
+    const tunnel = tunnelState();
+    const top = el('div', {class: 'top'},
+      el('div', {class: 'bar'},
+        el('h1', {}, 'Home Tunnel'),
+        el('span', {class: `pill ${tunnel.tone}`, role: 'status', 'aria-live': 'polite', title: tunnel.detail},
+          el('span', {class: 'dot'}), tunnel.title)),
+      el('div', {class: 'tabs', role: 'tablist'}, TABS.map(([id, text]) => el('button', {role: 'tab', id: `tab-${id}`,
+        'aria-selected': String(state.tab === id), onclick: () => setTab(id)}, text))));
+    const status = state.message.text ? el('div', {class: `status${state.message.error ? ' error' : ''}`, role: 'status'}, state.message.text) : null;
+    let body;
+    if (!state.status) body = el('section', {class: 'card'}, el('div', {class: 'empty'}, state.statusError ? `Couldn’t load Home Tunnel: ${state.statusError}` : 'Loading…'));
+    else if (state.tab === 'activity') body = renderActivity();
+    else if (state.tab === 'settings') body = renderSettings();
+    else body = state.status.paired ? renderOverview() : renderSetup();
+    document.getElementById('app').replaceChildren(top, el('main', {}, status, body));
+    const again = focusId && document.getElementById(focusId);
+    if (again) {
+      again.focus();
+      if (again.type === 'search') again.setSelectionRange(again.value.length, again.value.length);
+    }
+  }
+  document.addEventListener('focusout', () => setTimeout(() => { if (pendingRender) render(); }, 0));
+
+  function setTab(id) {
+    state.tab = id;
+    history.replaceState(null, '', `#${id}`);
+    say('');
+    render();
+    window.scrollTo(0, 0);
+  }
+  window.addEventListener('hashchange', () => {
+    const id = location.hash.slice(1);
+    if (TABS.some(([tab]) => tab === id) && id !== state.tab) setTab(id);
+  });
+
+  // ----- Setup (not paired yet) -----
+  function renderSetup() {
+    const s = state.status;
+    const stage = s.pairing_pending ? 3 : s.claim_ready ? 2 : 1;
+    // Steps 2 and 3 are open together: add the hash, then pair.
+    const open = n => n === stage || (stage === 2 && n === 3);
+    const step = (n, title, sub, ...content) => el('div', {class: `step ${n < stage ? 'done' : open(n) ? 'current' : 'later'}`},
+      el('div', {class: 'num', 'aria-hidden': 'true'}, n < stage ? '✓' : String(n)),
+      el('div', {class: 'body'}, el('div', {}, el('div', {class: 'title'}, title), sub ? el('div', {class: 'sub'}, sub) : null),
+        open(n) ? content : null));
+    const expires = s.pairing_expires_in ? `The code expires in ${duration(s.pairing_expires_in)}.` : '';
+    return [
+      el('p', {class: 'intro'}, 'Home Tunnel opens an outgoing connection from Home Assistant to a relay you host, so you can reach Home Assistant from outside without opening ports. Home Assistant still handles sign-in, MFA and permissions.'),
+      s.error && !s.pairing_pending ? el('div', {class: 'status error', role: 'alert'}, s.error) : null,
+      el('section', {class: 'card steps'},
+        el('div', {class: 'head'}, el('div', {class: 'icon'}, icon(ICONS.key)),
+          el('div', {class: 'grow'}, el('h2', {}, 'Set up your relay'), el('p', {}, 'Three steps. The setup code never leaves Home Assistant; the relay only gets its hash.'))),
+        step(1, 'Create a setup code', 'A one-time code that proves this app and your relay belong together.',
+          el('div', {class: 'actions'}, el('button', {class: 'btn primary', disabled: state.busy, onclick: generateCode}, 'Create setup code'))),
+        step(2, 'Add its hash to the relay', 'In the relay’s web.config, replace the empty HaTunnelBootstrapCodeHash line with this one. Keep it private.',
+          el('code', {class: 'code', id: 'snippet'}, s.bootstrap_snippet || ''),
+          el('div', {class: 'actions'},
+            el('button', {class: 'btn', onclick: () => copy(s.bootstrap_snippet || '', 'web.config line')}, icon(ICONS.copy), 'Copy line'),
+            el('button', {class: 'btn text', onclick: () => copy(s.setup_code || '', 'Setup code')}, 'Copy setup code'),
+            el('button', {class: 'btn text', disabled: state.busy, onclick: replaceCode}, 'Make a new code')),
+          el('div', {class: 'sub'}, expires)),
+        step(3, 'Connect to the relay', stage === 3 ? null : 'Enter the relay’s public HTTPS address, with no path.',
+          stage === 3
+            ? [el('div', {class: 'actions'}, el('span', {class: 'spinner', 'aria-hidden': 'true'}),
+                el('span', {}, s.error ? 'Waiting to retry…' : 'Pairing with the relay. Keep this app running.')),
+              s.error ? el('div', {class: 'sub bad', role: 'alert'}, s.error) : null,
+              el('div', {class: 'sub'}, `Retries until the code expires${s.pairing_expires_in ? `, in ${duration(s.pairing_expires_in)}` : ''}.`),
+              el('div', {class: 'actions'}, el('button', {class: 'btn', disabled: state.busy, onclick: replaceCode}, 'Start over with a new code'))]
+            : el('form', {onsubmit: pair},
+              el('label', {class: 'field', for: 'public-url'}, 'Public URL'),
+              el('div', {class: 'actions'},
+                el('input', {type: 'url', id: 'public-url', required: true, placeholder: 'https://tunnel.example.com', autocomplete: 'url',
+                  value: state.publicUrl, style: 'flex:1;min-width:220px;width:auto', oninput: e => { state.publicUrl = e.target.value; }}),
+                el('button', {class: 'btn primary', type: 'submit', disabled: state.busy}, 'Pair'))))),
+      state.setupMessage ? el('p', {class: 'intro'}, state.setupMessage) : null,
+    ];
+  }
+
+  async function generateCode() {
+    state.setupMessage = '';
+    await act(() => api('claim-code', {}), 'Setup code created. Add its hash to web.config next.');
+  }
+  async function replaceCode() {
+    if (!confirm('Make a new setup code? The old one stops working, so you’ll need to replace the hash in web.config again.')) return;
+    await act(() => api('claim-code', {}), 'New setup code created. Replace the hash in web.config.');
+  }
+  async function pair(event) {
+    event.preventDefault();
+    const url = state.publicUrl.trim();
+    await act(() => api('pair', {public_url: url}), 'Pairing started.');
+  }
+
+  // ----- Overview -----
+  function renderOverview() {
+    const s = state.status;
+    const t = state.telemetry;
+    const m = t?.available ? t.metrics : null;
+    const tunnel = tunnelState();
+    const self = viaTunnel();
+    const issues = Array.isArray(m?.risk_issues) ? m.risk_issues : [];
+    const latestDev = /-dev(?:\.|$)/i.test(s.latest_relay_version || '');
+
+    const forwardingSub = !s.connected && !s.forwarding_enabled ? 'Available once the connector is connected.'
+      : s.forwarding_enabled && !s.connected ? 'On, but the connector is offline, so outside requests fail.'
+      : s.forwarding_enabled ? (self ? 'On. You are using it right now: turning it off disconnects this page.' : 'On: the public URL reaches Home Assistant.')
+      : 'Off: the relay answers, but nothing reaches Home Assistant.';
+
+    const tunnelCard = el('section', {class: 'card'},
+      el('div', {class: 'head'}, el('div', {class: `icon ${tunnel.tone}`}, icon(ICONS.tunnel)),
+        el('div', {class: 'grow'}, el('h2', {}, tunnel.title), el('p', {}, tunnel.detail))),
+      toggleRow('Forwarding', forwardingSub, !!s.forwarding_enabled, setForwarding,
+        state.busy || (!s.connected && !s.forwarding_enabled), self && s.forwarding_enabled ? 'warn' : ''),
+      el('div', {class: 'row'},
+        el('div', {class: 'grow'}, el('div', {class: 'title'}, 'Public URL'), el('div', {class: 'sub mono'}, s.relay_url || '—')),
+        s.relay_url ? el('button', {class: 'btn text', onclick: () => copy(s.relay_url, 'Public URL'), 'aria-label': 'Copy public URL', title: 'Copy'}, icon(ICONS.copy)) : null,
+        s.relay_url ? el('a', {class: 'btn text', href: s.relay_url, target: '_blank', rel: 'noopener noreferrer', 'aria-label': 'Open public URL', title: 'Open'}, icon(ICONS.open)) : null),
+      factRow('Connector', null, s.connected ? 'Connected to the relay' : (s.error || 'Reconnecting to the relay…'), s.connected ? '' : 'bad'),
+      m ? factRow('Public health check', null,
+        m.public_reachable ? `Passing · checked ${m.public_check_age_seconds != null ? `${fmt(m.public_check_age_seconds)} s ago` : 'recently'}`
+          : s.forwarding_enabled ? `Failing${m.public_check_failures ? ` · ${plural(num(m.public_check_failures), 'failed check')}` : ''}` : 'Runs while forwarding is on',
+        m.public_reachable || !s.forwarding_enabled ? '' : 'warn') : null);
+
+    const relayHealth = s.relay_health || {};
+    const sync = state.blocks?.sync;
+    const notices = [
+      issues.length ? el('div', {class: 'notice', role: 'alert'}, el('div', {class: 'title'}, 'Needs attention'),
+        el('ul', {}, issues.map(issue => el('li', {}, issue))),
+        el('button', {class: 'btn', onclick: () => setTab('activity')}, 'See activity')) : null,
+      relayHealth.certificate_error ? el('div', {class: 'notice', role: 'alert'}, el('div', {class: 'title'},
+        relayHealth.certificate_error === 'not_trusted' ? 'The relay’s HTTPS certificate isn’t trusted' : 'Couldn’t check the relay’s HTTPS certificate'),
+        el('div', {class: 'sub'}, relayHealth.certificate_error === 'not_trusted' ? 'Browsers will warn visitors. Renew or fix the certificate on the IIS host.' : 'The relay didn’t answer the last certificate check.')) : null,
+      typeof relayHealth.certificate_days_left === 'number' && relayHealth.certificate_days_left < 14 ? el('div', {class: 'notice', role: 'alert'},
+        el('div', {class: 'title'}, relayHealth.certificate_days_left < 0 ? 'The relay’s HTTPS certificate has expired' : `The relay’s HTTPS certificate expires in ${plural(relayHealth.certificate_days_left, 'day')}`),
+        el('div', {class: 'sub'}, 'Renew it on the IIS host before it runs out.')) : null,
+      sync && sync.ok === false && state.blocks.blocks.length ? el('div', {class: 'notice', role: 'alert'},
+        el('div', {class: 'title'}, 'Blocked addresses aren’t enforced'),
+        el('div', {class: 'sub'}, sync.error === 'relay_too_old' ? 'The relay is too old to enforce blocks. Update it to 0.5.0 or newer.' : 'The relay couldn’t be reached to update its block list. Retrying.')) : null,
+      s.rotation_pending ? el('div', {class: 'notice'}, el('div', {class: 'title'}, 'Key rotation is finishing'),
+        el('div', {class: 'sub'}, 'The relay hasn’t confirmed the new connector key yet. Both keys work until it does.')) : null,
+      s.relay_update_available && !latestDev ? el('div', {class: 'notice info'},
+        el('div', {class: 'title'}, `Relay ${s.latest_relay_version} is available`),
+        el('div', {class: 'sub'}, `Your relay runs ${s.relay_version}. The relay is updated by hand on the IIS host.`),
+        el('button', {class: 'btn', onclick: () => setTab('settings')}, 'Update details')) : null,
+    ];
+
+    const tile = (label, value, unit) => el('div', {class: 'tile'}, el('div', {class: 'sub'}, label),
+      el('strong', {}, value, unit ? el('small', {}, unit) : null));
+    const series = historySeries();
+    const windowName = WINDOWS.find(([v]) => v === state.histWindow)[1];
+    const traffic = section(ICONS.chart, 'Traffic',
+      m ? `Live numbers from ${m.telemetry_age_seconds != null ? `${fmt(m.telemetry_age_seconds)} s` : 'moments'} ago. Charts keep 24 hours.` : telemetryReason(),
+      segmented(WINDOWS, state.histWindow, value => { state.histWindow = value; render(); }, 'Chart window'),
+      el('div', {class: 'tiles'},
+        tile('Requests', m ? fmt(m.requests_per_minute, 1) : '—', '/min'),
+        tile('Latency', m ? fmt(m.recent_latency_ms) : '—', 'ms'),
+        tile('Data out', m ? fmt(m.http_kib_per_second, 1) : '—', 'KiB/s'),
+        tile('Open WebSockets', m ? fmt(m.active_ws) : '—')),
+      el('div', {class: 'charts'},
+        chart('Requests per minute', series.rate, 1, series),
+        chart('Average latency (ms)', series.latency, 0, series),
+        chart('Denied and failed per minute', series.bad, 1, series),
+        chart('Data sent per minute', series.bytes, 0, series, bytes)),
+      el('div', {class: 'row'}, el('div', {class: 'grow sub'}, series.total
+        ? `${fmt(series.total)} requests, ${bytes(series.totalBytes)} sent and ${plural(series.signins, 'sign-in')} in the last ${windowName}.`
+        : `No traffic recorded in the last ${windowName}.`),
+        state.history?.available ? el('button', {class: 'btn text', onclick: exportHistory}, icon(ICONS.download), 'Export CSV') : null));
+
+    const health = m ? section(ICONS.heart, 'Health', 'Since the connector last started',
+      null,
+      factRow('Uptime', duration(m.uptime_seconds)),
+      factRow('Automatic reconnects', fmt(m.automatic_reconnects)),
+      factRow('Callers in the last 15 minutes', fmt(m.unique_ips_15m), 'Different addresses that reached the relay'),
+      factRow('Signed-in sessions', fmt(m.authenticated_connections), 'Open Home Assistant connections that completed sign-in'),
+      num(m.queued_http) ? factRow('Queued requests', fmt(m.queued_http), 'Waiting at the relay for a free slot', 'warn') : null,
+      factRow('Denied requests', fmt(m.denied_5m), '401 and 403 answers in the last 5 minutes', num(m.denied_5m) >= 10 ? 'warn' : ''),
+      factRow('Server errors', fmt(m.failures_5m), '5xx answers in the last 5 minutes', num(m.failures_5m) >= 5 ? 'warn' : ''),
+      factRow('Audit log', m.audit_healthy === false ? 'Not writing' : 'OK', null),
+      num(m.events_dropped) ? factRow('Dropped audit events', fmt(m.events_dropped), 'Events the relay couldn’t pass on', 'warn') : null) : null;
+
+    return [tunnelCard, notices, traffic, health];
+  }
+
+  function telemetryReason() {
+    const t = state.telemetry;
+    if (!t) return 'Loading…';
+    if (t.reason === 'invalid_configuration') return 'Check the metrics token in the app’s Configuration tab.';
+    return 'Telemetry appears once the connector is connected.';
+  }
+
+  // Server-side traffic history, grouped so a chart has at most ~120 points.
+  function historySeries() {
+    const h = state.history;
+    const span = state.histWindow, step = Math.max(1, Math.round(span / 120));
+    const now = Math.floor(Date.now() / 60000), start = now - span + 1;
+    const out = {rate: [], latency: [], bad: [], bytes: [], start, span, total: 0, totalBytes: 0, signins: 0};
+    if (!h?.available) return out;
+    const f = Object.fromEntries(h.fields.map((name, i) => [name, i]));
+    const buckets = new Map();
+    for (const row of h.minutes) {
+      const minute = row[f.minute];
+      if (minute < start) continue;
+      const key = start + Math.floor((minute - start) / step) * step;
+      const b = buckets.get(key) || {req: 0, bytes: 0, lat: 0, latN: 0, bad: 0};
+      b.req += row[f.requests]; b.bytes += row[f.bytes]; b.lat += row[f.latency_sum]; b.latN += row[f.latency_count];
+      b.bad += row[f.denied] + row[f.errors];
+      buckets.set(key, b);
+      out.total += row[f.requests]; out.totalBytes += row[f.bytes]; out.signins += row[f.signins];
+    }
+    for (let key = start; key <= now; key += step) {
+      const b = buckets.get(key);
+      const at = key + step / 2;
+      out.rate.push([at, b ? b.req / step : 0]);
+      out.bad.push([at, b ? b.bad / step : 0]);
+      out.bytes.push([at, b ? b.bytes / step : 0]);
+      if (b && b.latN) out.latency.push([at, b.lat / b.latN]);
+    }
+    return out;
+  }
+
+  function chart(label, points, digits, series, format = value => fmt(value, digits)) {
+    const W = 300, H = 80;
+    const {start, span} = series;
+    const values = points.map(p => p[1]);
+    const peak = values.length ? Math.max(...values) : null;
+    const current = points.length ? points[points.length - 1][1] : null;
+    const max = Math.max(1, peak || 0) * 1.1;
+    const name = WINDOWS.find(([v]) => v === span)[1];
+    const graph = svgEl('svg', {viewBox: `0 0 ${W} ${H}`, preserveAspectRatio: 'none', role: 'img',
+      'aria-label': `${label} over the last ${name}${peak != null ? `, peak ${format(peak)}` : ''}`});
+    for (const y of [0, H / 2, H]) graph.append(svgEl('line', {x1: 0, x2: W, y1: y, y2: y, class: 'grid'}));
+    if (points.length > 1) {
+      const xy = points.map(([at, v]) => [W * (at - start) / span, H - H * v / max]);
+      const line = xy.map(([x, y], i) => `${i ? 'L' : 'M'}${x.toFixed(1)},${y.toFixed(1)}`).join(' ');
+      graph.append(svgEl('path', {d: `${line} L${xy[xy.length - 1][0].toFixed(1)},${H} L${xy[0][0].toFixed(1)},${H} Z`, class: 'area'}),
+        svgEl('path', {d: line, class: 'line'}));
+    }
+    return el('div', {class: 'chart'},
+      el('div', {class: 'actions', style: 'justify-content:space-between'},
+        el('div', {class: 'sub', style: 'margin:0'}, label),
+        el('div', {class: 'title'}, current == null ? '—' : format(current))),
+      graph,
+      el('div', {class: 'axis'}, el('span', {}, state.history?.available === false ? 'History appears once the connector runs' : `${name} ago`),
+        el('span', {}, `peak ${peak != null ? format(peak) : '—'}`), el('span', {}, 'now')));
+  }
+
+  async function setForwarding(on, input) {
+    if (!on) {
+      const warning = viaTunnel()
+        ? 'You are using Home Assistant through the tunnel right now. Turning forwarding off will disconnect this page, and you will need to turn it back on from your home network. Turn it off?'
+        : 'Turn forwarding off? The public URL will stop reaching Home Assistant until you turn it back on.';
+      if (!confirm(warning)) { input.checked = true; return; }
+    }
+    await act(() => api(on ? 'enable' : 'disable', {}), on ? 'Forwarding is on.' : 'Forwarding is off.');
+  }
+
+  // ----- Activity -----
+  function blockedRow(ip) {
+    const rows = state.blocks?.blocks || [];
+    return rows.find(row => cidrContains(row.cidr, ip));
+  }
+
+  // Minimal CIDR test for display; the app and relay make the real decision.
+  function cidrContains(cidr, ip) {
+    if (!isIp(ip)) return false;
+    const [net, bits] = cidr.split('/');
+    const parse = value => {
+      if (value.includes(':')) {
+        let [head, tail] = value.split('::');
+        const h = head ? head.split(':') : [], t = tail != null ? (tail ? tail.split(':') : []) : [];
+        if (tail == null && h.length !== 8) return null;
+        const groups = tail == null ? h : [...h, ...Array(8 - h.length - t.length).fill('0'), ...t];
+        return groups.map(g => parseInt(g || '0', 16)).flatMap(g => [g >> 8, g & 255]);
+      }
+      const parts = value.split('.').map(Number);
+      return parts.length === 4 ? parts : null;
+    };
+    const a = parse(net), b = parse(ip.replace(/^::ffff:(?=\d+\.)/i, ''));
+    if (!a || !b || a.length !== b.length) return false;
+    const prefix = bits == null ? a.length * 8 : Number(bits);
+    for (let bit = 0; bit < prefix; bit++) {
+      const mask = 0x80 >> (bit % 8);
+      if ((a[bit >> 3] & mask) !== (b[bit >> 3] & mask)) return false;
+    }
+    return true;
+  }
+
+  function renderActivity() {
+    const t = state.telemetry;
+    const m = t?.available ? t.metrics : null;
+    const blocksCard = renderBlocks();
+    if (!m) return [section(ICONS.list, 'Activity', telemetryReason(), null), blocksCard];
+    const callers = Array.isArray(m.caller_ips) ? m.caller_ips : [];
+    const events = Array.isArray(m.recent_requests) ? m.recent_requests.slice().reverse() : [];
+    const suspects = new Map((m.lockdown_candidates || []).map(row => [row.ip, row]));
+    const query = state.query.trim().toLowerCase();
+    const statusByIp = new Map(callers.map(row => [row.ip, row.status]));
+    const inCountry = ip => !state.country || state.countries[ip] === state.country;
+    const matchCaller = row => (state.filter === 'all' || row.status === state.filter) && inCountry(row.ip) && (!query || row.ip.toLowerCase().includes(query)
+      || (state.locations[row.ip] || '').toLowerCase().includes(query));
+    const rows = callers.filter(matchCaller);
+    const shown = rows.slice(0, state.callerShown);
+    const filteredEvents = events.filter(event => {
+      const ip = typeof event.ip === 'string' ? event.ip : '';
+      return (!query || ip.toLowerCase().includes(query) || String(event.route || '').toLowerCase().includes(query))
+        && inCountry(ip) && (state.filter === 'all' || (statusByIp.get(ip) || 'unknown') === state.filter);
+    });
+    const loc = ip => state.locations[ip] || null;
+
+    const search = el('input', {type: 'search', id: 'activity-search', placeholder: 'Filter by IP address, place or path', value: state.query,
+      'aria-label': 'Filter activity', oninput: e => {
+        state.query = e.target.value; state.callerShown = 25; render();
+        const input = document.getElementById('activity-search');
+        if (input) { input.focus(); input.setSelectionRange(input.value.length, input.value.length); }
+      }});
+
+    const callerRow = row => {
+      const selected = query && row.ip.toLowerCase() === query;
+      const pick = () => { state.query = selected ? '' : row.ip; render(); };
+      const block = blockedRow(row.ip);
+      const suspect = suspects.get(row.ip);
+      const stop = e => e.stopPropagation();
+      return el('div', {class: `row clickable${selected ? ' selected' : ''}`, tabindex: '0', role: 'button',
+        'aria-pressed': String(!!selected), 'aria-label': selected ? 'Show all callers' : `Show requests from ${row.ip}`,
+        onclick: pick, onkeydown: e => e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ') && (e.preventDefault(), pick())},
+        el('div', {class: 'grow'},
+          el('div', {class: 'title mono'}, state.countries[row.ip] ? `${flag(state.countries[row.ip])} ` : '', row.ip),
+          el('div', {class: 'sub'}, [loc(row.ip), plural(num(row.requests), 'request'), `last seen ${ago(row.last_seen)}`].filter(Boolean).join(' · ')),
+          el('div', {class: 'chips'},
+            row.status === 'authenticated'
+              ? chip(`Signed in to HA ${ago(row.authenticated_at)}`, 'ok', `A Home Assistant sign-in was seen from this address on ${exact(row.authenticated_at)}`)
+              : chip('No sign-in seen', 'warn', 'This address made requests but never completed a Home Assistant sign-in'),
+            block ? chip(block.cidr === row.ip ? 'Blocked' : `Blocked by ${block.cidr}`, 'bad') : null,
+            suspect ? chip([suspect.denied_10m ? plural(suspect.denied_10m, 'denied answer') : null,
+              suspect.logins_10m ? plural(suspect.logins_10m, 'login attempt') : null].filter(Boolean).join(', ') + ' in 10 min', 'warn') : null,
+            row.ip === state.myIp ? chip('You', 'info', 'The address this browser is using') : null,
+            row.first_seen ? chip(`First seen ${ago(row.first_seen)}`) : null)),
+        block
+          ? el('button', {class: 'btn text', disabled: state.busy, onclick: e => { stop(e); unblock(block.cidr); }, onkeydown: stop}, 'Unblock')
+          : el('button', {class: 'btn text danger', disabled: state.busy, onclick: e => { stop(e); blockAddress(row.ip, row.status === 'authenticated'); },
+            onkeydown: stop, 'aria-label': `Block ${row.ip}`}, icon(ICONS.block), 'Block'));
+    };
+
+    const statusTone = code => code >= 500 ? 'bad' : code >= 400 ? 'warn' : code >= 300 ? 'info' : 'ok';
+    const eventRow = event => el('div', {class: 'row'},
+      chip(event.method || '—', 'method'),
+      el('div', {class: 'grow'},
+        el('div', {class: 'title mono', style: 'font-weight:400;font-size:13px'}, event.route || '/'),
+        el('div', {class: 'sub'}, [isIp(event.ip) ? event.ip : 'IP unavailable', loc(event.ip),
+          event.duration_ms != null ? `${fmt(event.duration_ms)} ms` : null,
+          event.observed_at ? ago(event.observed_at) : null].filter(Boolean).join(' · '))),
+      chip(String(event.status ?? '—'), statusTone(num(event.status))));
+
+    const historyNote = m.caller_ip_history_ok === false ? 'History storage is unavailable; addresses are kept in memory only.'
+      : `Kept privately in Home Assistant for ${m.caller_ip_retention_days || 30} days · ${plural(callers.length, 'address', 'addresses')}`;
+    const csv = (what, run) => el('button', {class: 'btn text', onclick: run, 'aria-label': `Export ${what} as CSV`, title: `Export ${what} as CSV`},
+      icon(ICONS.download), 'CSV');
+
+    return [
+      el('div', {class: 'toolbar'}, search,
+        segmented(CALLER_FILTERS, state.filter, value => { state.filter = value; state.callerShown = 25; render(); }, 'Caller filter'),
+        state.country ? el('button', {class: 'btn', onclick: () => { state.country = ''; render(); }, 'aria-label': `Stop showing only ${countryName(state.country)}`},
+          `${flag(state.country)} ${countryName(state.country)} ×`) : null,
+        el('button', {class: 'btn', id: 'refresh-activity', onclick: () => { refreshTelemetry(); refreshBlocks(); }, 'aria-label': 'Refresh', title: 'Refresh'}, icon(ICONS.refresh))),
+      renderCountries(callers),
+      section(ICONS.people, 'Callers', historyNote, callers.length ? csv('callers', () => exportCallers(m)) : null,
+        shown.length ? shown.map(callerRow) : el('div', {class: 'empty'}, callers.length ? 'No callers match this filter.' : 'No one has called the public URL yet.'),
+        rows.length > shown.length ? el('div', {class: 'row'}, el('div', {class: 'grow sub'}, `Showing ${shown.length} of ${rows.length}`),
+          el('button', {class: 'btn text', onclick: () => { state.callerShown += 25; render(); }}, 'Show more')) : null),
+      section(ICONS.list, 'Recent requests', query || state.filter !== 'all'
+        ? `${plural(filteredEvents.length, 'request')} match the filter` : `The last ${plural(events.length, 'request')}, newest first`,
+        events.length ? csv('requests', () => exportRequests(m)) : null,
+        filteredEvents.length ? filteredEvents.map(eventRow) : el('div', {class: 'empty'}, events.length ? 'No requests match this filter.' : 'No requests yet.')),
+      blocksCard,
+      el('section', {class: 'card'}, el('div', {class: 'danger-zone'},
+        el('div', {class: 'grow'}, el('div', {class: 'title'}, 'Clear caller history'),
+          el('div', {class: 'sub'}, 'Forgets every stored caller address and sign-in marker. Blocked addresses stay blocked. This can’t be undone.')),
+        el('button', {class: 'btn danger', disabled: state.busy || !callers.length, onclick: clearHistory}, icon(ICONS.delete), 'Clear'))),
+    ];
+  }
+
+  function renderCountries(callers) {
+    const s = state.status;
+    if (!s.geolocation_enabled) {
+      return section(ICONS.shield, 'Countries', null, null, el('div', {class: 'row'},
+        el('div', {class: 'grow sub'}, 'Turn on caller locations to see where callers come from and to block countries.'),
+        el('button', {class: 'btn', onclick: () => setTab('settings')}, 'Settings')));
+    }
+    const c = s.countries || {mode: 'off', codes: []};
+    const groups = new Map();
+    for (const row of callers) {
+      const code = state.countries[row.ip];
+      if (!code) continue;
+      const g = groups.get(code) || {code, callers: 0, requests: 0, signedIn: 0};
+      g.callers++; g.requests += num(row.requests); g.signedIn += row.status === 'authenticated' ? 1 : 0;
+      groups.set(code, g);
+    }
+    const located = [...groups.values()].reduce((sum, g) => sum + g.callers, 0);
+    const sorted = [...groups.values()].sort((a, b) => b.requests - a.requests);
+    const ruleFor = code => c.mode === 'block' ? c.codes.includes(code) : c.mode === 'allow' ? !c.codes.includes(code) : false;
+    const toggle = code => {
+      if (c.mode === 'allow') {
+        const codes = c.codes.includes(code) ? c.codes.filter(x => x !== code) : [...c.codes, code];
+        if (!codes.length) { say('Keep at least one allowed country, or turn the country rule off in Settings.', true); render(); return; }
+        return saveCountries({...c, codes});
+      }
+      const codes = c.codes.includes(code) ? c.codes.filter(x => x !== code) : [...c.codes, code];
+      if (c.mode === 'off' && !confirm(`Block callers from ${countryName(code)}? New addresses from there are blocked the first time they’re seen. Addresses that have signed in are never blocked.`)) return;
+      return saveCountries({...c, codes, mode: c.mode === 'off' ? 'block' : c.mode});
+    };
+    return section(ICONS.shield, 'Countries', located
+      ? `${plural(located, 'caller')} located in ${plural(groups.size, 'country', 'countries')}${callers.length > located ? `; ${callers.length - located} still to look up` : ''}`
+      : 'Locations appear as callers are looked up.', null,
+      sorted.slice(0, 12).map(g => {
+        const pick = () => { state.country = state.country === g.code ? '' : g.code; state.callerShown = 25; render(); };
+        const blockedHere = ruleFor(g.code);
+        return el('div', {class: `row clickable${state.country === g.code ? ' selected' : ''}`, tabindex: '0', role: 'button',
+          'aria-label': `Show callers from ${countryName(g.code)}`, onclick: pick,
+          onkeydown: e => e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ') && (e.preventDefault(), pick())},
+          el('div', {class: 'grow'}, el('div', {class: 'title'}, `${flag(g.code)} ${countryName(g.code)}`),
+            el('div', {class: 'sub'}, [plural(g.callers, 'caller'), plural(g.requests, 'request'), g.signedIn ? `${g.signedIn} signed in` : null].filter(Boolean).join(' · ')),
+            blockedHere ? el('div', {class: 'chips'}, chip(c.mode === 'allow' ? 'Not allowed' : 'Blocked country', 'bad')) : null),
+          el('button', {class: `btn text${blockedHere ? '' : ' danger'}`, disabled: state.busy, onclick: e => { e.stopPropagation(); toggle(g.code); }, onkeydown: e => e.stopPropagation()},
+            c.mode === 'allow' ? (c.codes.includes(g.code) ? 'Stop allowing' : 'Allow') : (blockedHere ? 'Unblock country' : 'Block country')));
+      }),
+      sorted.length > 12 ? el('div', {class: 'row'}, el('div', {class: 'grow sub'}, `And ${plural(sorted.length - 12, 'more country', 'more countries')}`)) : null);
+  }
+
+  function renderBlocks() {
+    const b = state.blocks;
+    const rows = b?.blocks || [];
+    const sync = b?.sync || {};
+    const syncText = !state.status?.paired ? 'Blocks are enforced by the relay once Home Tunnel is paired.'
+      : sync.ok === true ? `The relay enforces ${plural(rows.length, 'block')}; checked ${sync.at ? ago(new Date(sync.at * 1000).toISOString()) : 'recently'}.`
+      : sync.error === 'relay_too_old' ? 'The relay is too old to enforce blocks. Update it to 0.5.0 or newer.'
+      : sync.ok === false ? 'Couldn’t update the relay’s block list. Retrying.'
+      : 'Sending the list to the relay…';
+    const form = el('form', {onsubmit: e => { e.preventDefault(); blockAddress(state.blockCidr.trim(), false, Number(state.blockMinutes) || null); }},
+      el('div', {class: 'fields', style: 'padding-top:4px'},
+        el('div', {}, el('label', {class: 'field', for: 'block-cidr'}, 'Address or range'),
+          el('input', {type: 'text', id: 'block-cidr', placeholder: '203.0.113.7 or 203.0.113.0/24', value: state.blockCidr, autocomplete: 'off',
+            spellcheck: 'false', oninput: e => { state.blockCidr = e.target.value; }})),
+        el('div', {style: 'flex:0 1 auto;min-width:160px'}, el('label', {class: 'field', for: 'block-minutes'}, 'For'),
+          el('select', {id: 'block-minutes', style: 'width:100%', onchange: e => { state.blockMinutes = e.target.value; }},
+            BLOCK_DURATIONS.map(([value, text]) => el('option', {value, selected: value === state.blockMinutes}, text)))),
+        el('div', {style: 'flex:0 0 auto;min-width:0'}, el('button', {class: 'btn primary', type: 'submit', disabled: state.busy}, icon(ICONS.block), 'Block'))));
+    return section(ICONS.block, 'Blocked addresses', 'The relay turns these away before they reach Home Assistant.', null,
+      el('div', {class: 'row'}, el('div', {class: `grow sub${sync.ok === false && rows.length ? ' warn' : ''}`}, syncText)),
+      rows.map(row => el('div', {class: 'row'},
+        el('div', {class: 'grow'}, el('div', {class: 'title mono'}, row.cidr),
+          el('div', {class: 'sub'}, [row.reason, until(row.until)].filter(Boolean).join(' · ')),
+          el('div', {class: 'chips'}, chip(row.source === 'auto' ? 'Automatic' : row.source === 'country' ? 'Country' : 'Manual', row.source === 'manual' ? '' : 'warn'),
+            chip(`Added ${ago(new Date(row.created * 1000).toISOString())}`))),
+        el('button', {class: 'btn text', disabled: state.busy, onclick: () => unblock(row.cidr)}, 'Unblock'))),
+      form);
+  }
+
+  async function blockAddress(cidr, signedIn = false, minutes = 1440) {
+    if (!cidr) { say('Enter an address or range to block.', true); render(); return; }
+    const mine = state.myIp && cidrContains(cidr.includes('/') ? cidr : cidr, state.myIp);
+    const warning = mine ? `You are using ${state.myIp} right now. Blocking ${cidr} cuts this browser off from Home Assistant until you unblock it from your home network. Block it anyway?`
+      : signedIn ? `${cidr} has signed in to Home Assistant before. Block it anyway?`
+      : null;
+    if (warning && !confirm(warning)) return;
+    await act(async () => {
+      state.blocks = await api('blocks', {cidr, minutes});
+      state.blockCidr = '';
+    }, `Blocked ${cidr}.`);
+  }
+
+  async function unblock(cidr) {
+    await act(async () => { state.blocks = await api('blocks/remove', {cidr}); }, `Unblocked ${cidr}.`);
+  }
+
+  async function clearHistory() {
+    if (!confirm('Clear all stored caller addresses? This can’t be undone.')) return;
+    await act(async () => { await api('caller-ips/clear', {}); await refreshTelemetry(); }, 'Caller history cleared.');
+  }
+
+
+  // ----- Settings -----
+  function renderSettings() {
+    const s = state.status;
+    const latestDev = /-dev(?:\.|$)/i.test(s.latest_relay_version || '');
+    const features = s.relay_features || [];
+    let relayStatus, relayTone;
+    if (!s.relay_version) { relayStatus = s.paired ? 'Waiting for the relay to report its version' : 'Not paired'; relayTone = ''; }
+    else if (!s.latest_relay_version) { relayStatus = 'Release information isn’t available yet'; relayTone = ''; }
+    else if (latestDev) { relayStatus = `Development build ${s.latest_relay_version} is the latest; no stable release is published`; relayTone = 'info'; }
+    else if (s.relay_update_available) { relayStatus = `Update available: ${s.latest_relay_version}`; relayTone = 'warn'; }
+    else { relayStatus = 'Up to date'; relayTone = 'ok'; }
+    const link = (href, text) => href ? el('a', {class: 'btn text', href, target: '_blank', rel: 'noopener noreferrer'}, text, icon(ICONS.open)) : null;
+    const health = s.relay_health || {};
+    const certificate = health.certificate_error === 'not_trusted' ? ['Not trusted by this system', 'bad']
+      : health.certificate_error ? ['Couldn’t be checked', 'warn']
+      : typeof health.certificate_days_left === 'number'
+        ? [`Expires in ${plural(health.certificate_days_left, 'day')} (${new Date(health.certificate_expires_at * 1000).toLocaleDateString([], {dateStyle: 'medium'})})${health.certificate_issuer ? ` · ${health.certificate_issuer}` : ''}`,
+          health.certificate_days_left < 14 ? 'warn' : '']
+        : ['Checked after pairing', ''];
+    const needsRelay = feature => features.includes(feature) ? null : 'Needs relay 0.5.0 or newer.';
+
+    return [
+      s.paired ? section(ICONS.link, 'Relay', 'The relay this app is paired with', null,
+        factRow('Public URL', null, s.relay_url || '—'),
+        factRow('Connector', null, s.connected ? 'Connected' : (s.error || 'Not connected'), s.connected ? '' : 'bad'),
+        factRow('Response time', s.relay_latency_ms != null ? `${fmt(s.relay_latency_ms)} ms` : '—', 'From Home Assistant to the relay, checked every 5 minutes'),
+        factRow('HTTPS certificate', null, certificate[0], certificate[1]),
+        el('div', {class: 'row'},
+          el('div', {class: 'grow'}, el('div', {class: 'title'}, 'Connector key'),
+            el('div', {class: `sub${needsRelay('rotate') ? ' warn' : ''}`}, needsRelay('rotate') ||
+              (s.rotation_pending ? 'A new key is waiting for the relay to confirm it.' : 'Replace the key the connector uses to reach the relay. The tunnel reconnects in a few seconds.'))),
+          el('button', {class: 'btn', disabled: state.busy || !!needsRelay('rotate'), onclick: rotateKey}, icon(ICONS.key), 'Rotate key'))) : null,
+
+      s.paired ? el('section', {class: 'card'}, el('div', {class: 'danger-zone'},
+        el('div', {class: 'grow'}, el('div', {class: 'title'}, 'Unpair'),
+          el('div', {class: 'sub'}, 'Stops the tunnel and makes this app and the relay forget each other, so you can pair again with a new setup code.')),
+        el('button', {class: 'btn danger', disabled: state.busy, onclick: unpairRelay}, icon(ICONS.delete), 'Unpair'))) : null,
+
+      renderLockdown(),
+      renderLocations(),
+      renderNotifications(),
+
+      section(ICONS.update, 'Versions', 'The app updates through Home Assistant; the relay is updated by hand on the IIS host.', null,
+        factRow('Home Tunnel app', s.home_tunnel_version || 'unknown'),
+        el('div', {class: 'row'},
+          el('div', {class: 'grow'}, el('div', {class: 'title'}, 'Relay'),
+            el('div', {class: 'chips'}, chip(relayStatus, relayTone),
+              s.relay_compatible === false ? chip('Compatibility with this app version isn’t confirmed', 'warn') : null)),
+          el('div', {class: 'value'}, s.relay_version || '—')),
+        s.release_checked_at ? factRow('Last release check', null, ago(new Date(s.release_checked_at * 1000).toISOString())) : null,
+        el('div', {class: 'row'}, el('div', {class: 'actions'},
+          link(s.release_url, 'Releases'), link(s.changelog_url, 'Changelog'), link(s.manual_update_url, 'Relay update guide')))),
+
+      section(ICONS.info, 'About', null, null,
+        el('div', {class: 'pad'}, el('p', {class: 'sub', style: 'margin:0'},
+          'Home Tunnel forwards requests from your own relay to this Home Assistant over an outgoing WebSocket. The relay is not an identity provider: Home Assistant still handles sign-in, MFA and permissions, so keep strong passwords and MFA on every account that can sign in from outside.'))),
+    ];
+  }
+
+  function renderLockdown() {
+    const saved = state.status.lockdown;
+    const draft = state.lockdownDraft || (state.lockdownDraft = {...saved});
+    const numberField = (key, label, min, max) => el('div', {style: 'min-width:150px'},
+      el('label', {class: 'field', for: `lock-${key}`}, label),
+      el('input', {type: 'number', id: `lock-${key}`, min: String(min), max: String(max), step: '1', value: String(draft[key]),
+        style: 'width:100%', disabled: !saved.enabled, oninput: e => { draft[key] = e.target.value; }}));
+    return section(ICONS.lock, 'Automatic lockdown',
+      'Blocks an address at the relay when it keeps failing. Home Assistant’s own IP ban can’t do this behind the tunnel: every request reaches it from this app.', null,
+      toggleRow('Block repeat offenders', saved.enabled
+        ? 'Addresses that have signed in to Home Assistant are never blocked automatically.'
+        : 'Off: noisy addresses are only reported.', saved.enabled, on => saveLockdown({...saved, enabled: on}), state.busy),
+      saved.enabled ? el('form', {onsubmit: e => { e.preventDefault(); saveLockdown({...saved, denied: Number(draft.denied), logins: Number(draft.logins), minutes: Number(draft.minutes)}); }},
+        el('div', {class: 'fields', style: 'padding-top:12px'},
+          numberField('denied', 'Denied answers in 10 min', 5, 1000),
+          numberField('logins', 'Login attempts in 10 min', 5, 1000),
+          numberField('minutes', 'Block for (minutes)', 5, 10080),
+          el('div', {style: 'flex:0 0 auto;min-width:0'}, el('button', {class: 'btn primary', type: 'submit', disabled: state.busy}, 'Save'))),
+        el('div', {class: 'pad sub', style: 'margin-top:-6px'}, 'A login takes 2 to 3 attempts, so 15 attempts is about 5 failed logins.')) : null);
+  }
+
+  function renderNotifications() {
+    const s = state.status;
+    const n = s.notifications;
+    if (!s.notifications_available) {
+      return section(ICONS.bell, 'Notifications', null, null, el('div', {class: 'row'}, el('div', {class: 'grow sub warn'},
+        'Home Assistant didn’t give this app API access, so it can’t send notifications. Restart the app after updating it; if this stays, reinstall it.')));
+    }
+    if (state.targets == null) loadTargets();
+    const targets = state.targets?.targets || ['persistent_notification'];
+    const label = target => target === 'persistent_notification' ? 'Home Assistant notifications (bell)' : target.replace(/^notify\./, 'Notify: ');
+    const save = changes => saveNotifications({...n, ...changes});
+    return section(ICONS.bell, 'Notifications', 'Alerts sent through Home Assistant', null,
+      el('div', {class: 'fields', style: 'padding-top:4px'},
+        el('div', {}, el('label', {class: 'field', for: 'notify-target'}, 'Send to'),
+          el('select', {id: 'notify-target', style: 'width:100%', disabled: state.busy, onchange: e => save({target: e.target.value})},
+            el('option', {value: '', selected: !n.target}, 'Don’t send notifications'),
+            [...new Set([...targets, ...(n.target ? [n.target] : [])])].map(target => el('option', {value: target, selected: target === n.target}, label(target))))),
+        el('div', {style: 'flex:0 0 auto;min-width:0'}, el('button', {class: 'btn', disabled: state.busy || !n.target, onclick: testNotification}, 'Send test'))),
+      state.targets?.error ? el('div', {class: 'pad sub warn'}, 'Couldn’t list notify services from Home Assistant; only the built-in option is shown.') : null,
+      n.target ? NOTIFY_EVENTS.map(([key, title, sub]) => toggleRow(title, sub, !!n.events[key],
+        on => save({events: {...n.events, [key]: on}}), state.busy)) : null);
+  }
+
+  async function loadTargets() {
+    state.targets = {targets: ['persistent_notification'], error: null, loading: true};
+    try { state.targets = await api('notify/targets'); } catch (error) { state.targets = {targets: ['persistent_notification'], error: 'unreachable'}; }
+    render();
+  }
+
+  async function saveLockdown(value) {
+    await act(async () => { await api('settings', {lockdown: value}); state.lockdownDraft = null; },
+      value.enabled ? 'Automatic lockdown saved.' : 'Automatic lockdown is off.');
+  }
+
+  async function saveNotifications(value) {
+    await act(() => api('settings', {notifications: value}), value.target ? 'Notification settings saved.' : 'Notifications are off.');
+  }
+
+  async function testNotification() {
+    await act(() => api('notify/test', {target: state.status.notifications.target}), 'Test notification sent.');
+  }
+
+  async function rotateKey() {
+    if (!confirm('Rotate the connector key? The tunnel drops for a few seconds while the connector reconnects with the new key.')) return;
+    await act(async () => {
+      const result = await api('rotate-key', {});
+      if (!result.rotated) throw new Error('The relay hasn’t confirmed the new key yet. Home Tunnel keeps trying; both keys work meanwhile.');
+    }, 'Connector key rotated.');
+  }
+
+  async function unpairRelay() {
+    const self = viaTunnel();
+    if (!confirm(`${self ? 'You are using Home Assistant through the tunnel right now; this page will disconnect. ' : ''}Unpair from ${state.status.relay_url}? The tunnel stops, and pairing again needs a new setup code and web.config hash.`)) return;
+    await act(async () => {
+      try {
+        await api('unpair', {});
+      } catch (error) {
+        if (!confirm(`${error.message}\n\nUnpair only here? The relay keeps its old pairing until you delete App_Data\\home-tunnel-state.json on the IIS host.`)) throw error;
+        await api('unpair', {force: true});
+      }
+      state.tab = 'overview';
+      history.replaceState(null, '', '#overview');
+    }, 'Unpaired. Create a new setup code to pair again.');
+  }
+
+  function renderLocations() {
+    const s = state.status;
+    const c = s.countries || {mode: 'off', codes: [], minutes: 43200};
+    const on = !!s.geolocation_enabled;
+    const save = changes => saveCountries({...c, ...changes});
+    const available = COUNTRY_CODES.filter(code => !c.codes.includes(code))
+      .map(code => [code, countryName(code)]).sort((a, b) => a[1].localeCompare(b[1]));
+    const add = () => {
+      const code = state.countryPick;
+      if (!code) return;
+      state.countryPick = '';
+      save({codes: [...c.codes, code]});
+    };
+    const myCountry = state.myIp ? state.countries[state.myIp] : null;
+    const selfRisk = myCountry && c.mode !== 'off' && (c.mode === 'block' ? c.codes.includes(myCountry) : !c.codes.includes(myCountry));
+    const rules = !on ? [
+      el('div', {class: 'row'}, el('div', {class: 'grow sub warn'},
+        'Country data and country blocking need caller locations. Turn it on above to use them.')),
+    ] : [
+      el('div', {class: 'group'}, el('span', {class: 'grow'}, 'Block by country')),
+      el('div', {class: 'row'},
+        el('div', {class: 'grow'}, el('div', {class: 'title'}, 'Rule'),
+          el('div', {class: 'sub'}, c.mode === 'off' ? 'Countries are shown, but nothing is blocked by country.'
+            : c.mode === 'block' ? 'Callers from the listed countries are blocked the first time they’re seen.'
+            : 'Callers from any country not listed are blocked the first time they’re seen.')),
+        segmented(COUNTRY_MODES, c.mode, mode => {
+          if (mode === 'allow' && !c.codes.length) { say('Add at least one country first, then pick Allow only listed.', true); render(); return; }
+          save({mode});
+        }, 'Country rule')),
+      el('div', {class: 'row'},
+        el('div', {class: 'grow'}, el('div', {class: 'title'}, c.mode === 'allow' ? 'Allowed countries' : 'Countries'),
+          c.codes.length ? el('div', {class: 'chips'}, c.codes.map(code => el('span', {class: 'chip info'}, `${flag(code)} ${countryName(code)}`,
+            el('button', {class: 'chip-x', type: 'button', 'aria-label': `Remove ${countryName(code)}`, title: 'Remove', disabled: state.busy,
+              onclick: () => save({codes: c.codes.filter(x => x !== code), mode: c.mode === 'allow' && c.codes.length === 1 ? 'off' : c.mode})}, '×'))))
+            : el('div', {class: 'sub'}, 'None yet.'))),
+      el('div', {class: 'fields', style: 'padding-top:12px'},
+        el('div', {}, el('label', {class: 'field', for: 'country-pick'}, 'Add a country'),
+          el('select', {id: 'country-pick', style: 'width:100%', onchange: e => { state.countryPick = e.target.value; }},
+            el('option', {value: '', selected: !state.countryPick}, 'Pick a country…'),
+            available.map(([code, name]) => el('option', {value: code, selected: code === state.countryPick}, `${flag(code)} ${name}`)))),
+        el('div', {style: 'flex:0 0 auto;min-width:0'}, el('button', {class: 'btn', type: 'button', disabled: state.busy, onclick: add}, 'Add')),
+        el('div', {style: 'min-width:160px'}, el('label', {class: 'field', for: 'country-minutes'}, 'Block for'),
+          el('select', {id: 'country-minutes', style: 'width:100%', disabled: state.busy, onchange: e => save({minutes: Number(e.target.value) || null})},
+            BLOCK_DURATIONS.filter(([value]) => value !== '60').map(([value, text]) =>
+              el('option', {value, selected: String(c.minutes ?? '') === value}, text))))),
+      selfRisk ? el('div', {class: 'pad sub warn'}, `You are connecting from ${countryName(myCountry)}. This rule would block you if you weren’t already signed in.`) : null,
+      el('div', {class: 'pad sub'}, 'Each address is checked the first time it’s seen, so its first requests get through. Addresses that have signed in to Home Assistant are never blocked by country. Lookups count toward the 200-a-day limit; once it’s reached, new addresses aren’t checked until the next day.'),
+    ];
+    return section(ICONS.shield, 'Caller locations and countries', 'What Home Tunnel looks up about callers', null,
+      toggleRow('Look up caller locations',
+        state.geoSaving ? 'Saving…' : 'Sends public caller addresses to ipapi.co for an approximate city, region and country. Results are cached for a day, at most 200 new addresses a day, and can be wrong. Turning this off also turns off country data and country blocking.',
+        on, setGeolocation, state.geoSaving),
+      rules);
+  }
+
+  async function saveCountries(value) {
+    await act(() => api('settings', {countries: value}),
+      value.mode === 'off' ? 'Country blocking is off.' : 'Country rule saved.');
+  }
+
+  async function setGeolocation(on, input) {
+    const c = state.status.countries;
+    if (!on && !confirm(c && c.mode !== 'off'
+      ? 'Turn off caller locations? This also turns off country data and country blocking: new callers won’t be checked by country. Addresses already blocked stay blocked until their block ends.'
+      : 'Turn off caller locations? Country data disappears from Activity, and country blocking can’t be used until you turn it back on.')) {
+      input.checked = true; return;
+    }
+    state.geoSaving = true; render();
+    try {
+      await api('settings', {geolocation_enabled: on});
+      state.status.geolocation_enabled = on;
+      if (!on) { state.locations = {}; state.countries = {}; state.country = ''; }
+      say(on ? 'Caller locations turned on.' : 'Caller locations turned off.');
+      if (on) lookupLocations();
+    } catch (error) {
+      input.checked = !on;
+      say(`Couldn’t save: ${error.message}`, true);
+    }
+    state.geoSaving = false; render();
+  }
+
+
+  // ---------- data ----------
+  let lastStatusKey = '';
+  async function refreshStatus() {
+    try {
+      state.status = await api('status');
+      state.statusError = null;
+    } catch (error) {
+      state.statusError = error.message;
+    }
+    const key = JSON.stringify([state.status, state.statusError]);
+    if (key !== lastStatusKey) { lastStatusKey = key; render(); }
+  }
+
   async function refreshTelemetry() {
     try {
-      const result=await api('telemetry');
-      if(!result.available) {
-        unavailableTelemetry(result.reason==='invalid_configuration'?'Check the metrics token in Configuration.':'Waiting for the connector.');
-        return;
-      }
-      telemetryNotice = '';
-      const data=result.metrics;
-      const numeric=value=>Number.isFinite(Number(value))?Number(value):0;
-      const sample={at:Date.now(),rate:numeric(data.requests_per_minute)};
-      samples.push(sample);if(samples.length>180)samples.splice(0,samples.length-180);
-      drawCharts();
-      metric('metric-health',data.healthy?'Online':(data.status||'Unknown'));
-      metric('metric-rate',data.requests_per_minute ?? 0);
-      metric('metric-latency',`${data.recent_latency_ms ?? 0} ms`);
-      metric('metric-websockets',data.active_ws ?? 0);
-      const issues=Array.isArray(data.risk_issues)?data.risk_issues:[];
-      byId('telemetry-message').textContent=issues.length?issues.join(' · '):`Metrics updated ${counted(data.telemetry_age_seconds ?? '—', 'second')} ago`;
-      recentEvents=Array.isArray(data.recent_requests)?data.recent_requests.slice(-20).reverse():[];
-      callerRecords=Array.isArray(data.caller_ips)?data.caller_ips:[];
-      byId('caller-retention').textContent=data.caller_ip_history_ok===false?'Caller history storage unavailable':`Stored privately for up to ${data.caller_ip_retention_days||30} days · ${counted(callerRecords.length, 'address', 'addresses')}`;
-      const callerAddresses=callerRecords.slice(0,10).map(row=>row.ip).filter(ip=>typeof ip==='string');
-      let locations={};
-      if(geolocationEnabled && (recentEvents.length || callerAddresses.length)) {
-        const ips=[...new Set([...callerAddresses,...recentEvents.map(event=>event.ip)].filter(ip=>typeof ip==='string' && ip!=='unknown'))].slice(0,10);
-        if(ips.length)try { const result=await api(`geolocation?ips=${encodeURIComponent(ips.join(','))}`);locations=result.locations||{}; } catch(error) {}
-      }
-      callerLocations=locations;renderCallerIps();renderRecentActivity();
-    } catch(error) { unavailableTelemetry('Telemetry unavailable'); }
-  }
-  new ResizeObserver(drawCharts).observe(byId('charts'));
-  chartWindow.addEventListener('change',drawCharts);
-  byId('refresh-statistics').addEventListener('click',async()=>{
-    const button=byId('refresh-statistics');button.disabled=true;
-    await Promise.all([refresh(),refreshTelemetry()]);
-    button.disabled=false;
-  });
-  byId('refresh-activity').addEventListener('click',async()=>{
-    const button=byId('refresh-activity');button.disabled=true;
-    await refreshTelemetry();
-    button.disabled=false;
-  });
-  function renderCallerIps() {
-    const list=byId('caller-ips');list.replaceChildren();
-    const query=byId('caller-search').value.trim().toLowerCase(), filter=byId('caller-filter').value;
-    const rows=callerRecords.filter(row=>(filter==='all'||row.status===filter)&&(!query||row.ip.toLowerCase().includes(query)));
-    const visible=rows.slice(0,callerShown);
-    byId('caller-results').textContent=rows.length?`Showing ${visible.length} of ${rows.length} callers`:' ';
-    byId('show-more-callers').classList.toggle('hidden',rows.length<=visible.length);
-    for(const row of visible) {
-      const item=document.createElement('li'), heading=document.createElement('div');
-      heading.append(makeIpButton(row.ip));
-      const badge=document.createElement('span');badge.className=`caller-status${row.status==='unknown'?' unknown':''}`;badge.textContent=row.status==='authenticated'?'This device':'Unknown';
-      if(row.status==='authenticated')badge.title='A Home Assistant login was confirmed from this IP.';
-      heading.append(badge);
-      const location=callerLocations[row.ip];const summary=document.createElement('small');summary.textContent=`${location?`${location} · `:''}${counted(row.requests, 'request')} · last seen ${displayTime(row.last_seen)}`;
-      const auth=document.createElement('small');auth.textContent=row.authenticated_at?`HA login observed ${displayTime(row.authenticated_at)}`:'No HA login observed';
-      item.append(heading,summary,auth);list.append(item);
+      state.telemetry = await api('telemetry');
+    } catch (error) {
+      state.telemetry = {available: false, reason: 'endpoint_unavailable'};
     }
-    if(!rows.length)list.append(Object.assign(document.createElement('li'),{textContent:telemetryNotice || (callerRecords.length?'No callers match this filter':'No caller IPs recorded yet')}));
+    render();
+    lookupLocations();
   }
-  function makeIpButton(ip) {
-    const button=document.createElement('button');button.type='button';button.className='ip-link';button.textContent=ip;
-    button.title=`Filter recent activity by ${ip}`;button.setAttribute('aria-label',`Filter recent activity by IP address ${ip}`);
-    button.addEventListener('click',()=>setCallerFilter(ip));return button;
+
+  async function refreshHistory() {
+    try { state.history = await api('history?minutes=1440'); } catch (error) { state.history = {available: false, fields: [], minutes: []}; }
+    render();
   }
-  function setCallerFilter(ip) {
-    byId('caller-search').value=ip;callerShown=50;showList('requests');renderCallerIps();renderRecentActivity();byId('caller-search').focus();
+
+  async function refreshBlocks() {
+    try { state.blocks = await api('blocks'); } catch (error) { /* keep the last list */ }
+    render();
   }
-  function renderRecentActivity() {
-    const list=byId('recent-requests');list.replaceChildren();
-    const query=byId('caller-search').value.trim().toLowerCase(), filter=byId('caller-filter').value;
-    const statusByIp=new Map(callerRecords.map(row=>[row.ip,row.status]));
-    const events=recentEvents.filter(event=>{
-      const ip=typeof event.ip==='string'?event.ip:'';
-      return (!query||ip.toLowerCase().includes(query))&&(filter==='all'||(statusByIp.get(ip)||'unknown')===filter);
-    });
-    const note=byId('activity-filter-note');
-    note.textContent=query?`${counted(events.length, 'request')} from ${byId('caller-search').value.trim()}`:filter==='all'?`Most recent requests first · ${events.length} shown`:`${counted(events.length, 'request')} from ${filter} callers`;
-    for(const event of events) {
-      const item=document.createElement('li');
-      const title=document.createElement('strong');title.textContent=`${event.method||'Request'} ${event.route||'/'} · ${event.status??'—'}`;
-      const location=callerLocations[event.ip];const detail=document.createElement('small');
-      if(event.ip&&event.ip!=='unknown')detail.append(makeIpButton(event.ip));else detail.append(document.createTextNode(event.ip||'IP unavailable'));
-      detail.append(document.createTextNode(`${location?` · ${location}`:''} · ${event.duration_ms??'—'} ms · ${event.observed_at?displayTime(event.observed_at):'time unavailable'}`));
-      item.append(title,detail);list.append(item);
-    }
-    if(!events.length)list.append(Object.assign(document.createElement('li'),{textContent:telemetryNotice || (recentEvents.length?'No requests match this filter':'No recent requests')}));
-  }
-  function counted(value, unit, plural = unit + 's') {
-    return `${value} ${value === 1 ? unit : plural}`;
-  }
-  function displayTime(value) { const date=new Date(value);return Number.isNaN(date.getTime())?value:date.toLocaleString(); }
-  byId('caller-search').addEventListener('input',()=>{callerShown=50;renderCallerIps();renderRecentActivity();});
-  byId('caller-filter').addEventListener('change',()=>{callerShown=50;renderCallerIps();renderRecentActivity();});
-  byId('show-more-callers').addEventListener('click',()=>{callerShown+=50;renderCallerIps();});
-  byId('clear-caller-ips').addEventListener('click',async()=>{
-    if(!window.confirm('Clear all stored caller IP history?'))return;
-    const button=byId('clear-caller-ips');button.disabled=true;
-    try { await api('caller-ips/clear',{});callerRecords=[];renderCallerIps();renderRecentActivity();byId('caller-retention').textContent='Stored privately for up to 30 days · 0 addresses'; }
-    catch(error) { byId('caller-retention').textContent='Could not clear caller history'; }
-    finally { button.disabled=false; }
-  });
-  byId('geolocation-enabled').addEventListener('change',async event=>{
-    const input=event.currentTarget;input.disabled=true;byId('geolocation-message').textContent='Saving…';
-    try { await api('settings',{geolocation_enabled:input.checked});geolocationEnabled=input.checked;byId('geolocation-message').textContent=input.checked?'Approximate location lookups enabled.':'Approximate location lookups disabled.';await refreshTelemetry(); }
-    catch(error) { input.checked=!input.checked;byId('geolocation-message').textContent=`Could not save: ${error.message}`; }
-    finally { input.disabled=false; }
-  });
-  byId('generate-code').addEventListener('click',async()=>{
-    const button=byId('generate-code');button.disabled=true;byId('setup-message').textContent='Generating…';
-    try { await api('claim-code',{});await refresh();byId('setup-message').textContent='Add the hash line to web.config before pairing.'; }
-    catch(error){byId('setup-message').textContent=error.message;button.disabled=false;}
-  });
-  byId('replace-code').addEventListener('click',async()=>{if(!confirm('Generate a new code? You will need to replace the hash in web.config.'))return;try{await api('claim-code',{});await refresh();byId('setup-message').textContent='Replace the hash line in web.config before pairing.'}catch(error){byId('setup-message').textContent=error.message}});
-  byId('copy-code').addEventListener('click',async()=>{try{await navigator.clipboard.writeText(byId('claim-code').value);byId('setup-message').textContent='Copied.'}catch(error){byId('setup-message').textContent='Select and copy the setup code.'}});
-  byId('copy-config').addEventListener('click',async()=>{try{await navigator.clipboard.writeText(byId('config-snippet').value);byId('setup-message').textContent='Copied.'}catch(error){byId('setup-message').textContent='Select and copy the web.config line.'}});
-  byId('pair-form').addEventListener('submit',async event=>{
-    event.preventDefault(); const button=byId('pair-button'); button.disabled=true; byId('setup-message').textContent='Contacting relay…';
+
+  // When this page is reached through the tunnel, ask the relay which address it sees,
+  // so blocking yourself needs a second look.
+  async function findMyIp() {
+    if (!viaTunnel()) return;
     try {
-      await api('pair',{public_url:byId('public-url').value});
-      byId('setup-message').textContent='Pairing started. The app is authenticating the relay and exchanging its permanent key.';
-      await refresh();
-    } catch(error) { byId('setup-message').textContent=error.message; button.disabled=false; }
-  });
-  for(const [id,action] of [['enable','enable'],['disable','disable']]) byId(id).addEventListener('click',async()=>{byId('control-message').textContent='Updating…';try{await api(action,{});byId('control-message').textContent='Updated.';await refresh()}catch(error){byId('control-message').textContent=error.message}});
-  refresh(); refreshTelemetry(); setInterval(refresh,3000); setInterval(refreshTelemetry,10000);
+      const response = await fetch('/_whoami.ashx', {cache: 'no-store', credentials: 'omit'});
+      const data = await response.json();
+      if (typeof data.ip === 'string') { state.myIp = data.ip; render(); }
+    } catch (error) { /* only a convenience */ }
+  }
+
+  // Ask for locations of addresses we don't know yet, newest first, 10 at a time.
+  async function lookupLocations() {
+    const m = state.telemetry?.available ? state.telemetry.metrics : null;
+    if (!m || !state.status?.geolocation_enabled) return;
+    const recent = (Array.isArray(m.recent_requests) ? m.recent_requests.slice().reverse() : []).map(e => e.ip);
+    const callers = (Array.isArray(m.caller_ips) ? m.caller_ips : []).map(r => r.ip);
+    const ips = [...new Set([...recent, ...callers])].filter(ip => isIp(ip) && !(ip in state.locations)).slice(0, 10);
+    if (!ips.length) return;
+    try {
+      const result = await api(`geolocation?ips=${encodeURIComponent(ips.join(','))}`);
+      if (!result.enabled) return;
+      for (const ip of ips) {
+        state.locations[ip] = (result.locations || {})[ip] || '';
+        if ((result.countries || {})[ip]) state.countries[ip] = result.countries[ip];
+      }
+      render();
+    } catch (error) { /* locations are optional */ }
+  }
+
+  // ---------- start ----------
+  syncTheme(); syncNarrow();
+  render();
+  refreshStatus().then(findMyIp); refreshTelemetry(); refreshHistory(); refreshBlocks();
+  setInterval(() => { if (!document.hidden) refreshStatus(); }, 3000);
+  setInterval(() => { if (!document.hidden) refreshTelemetry(); }, 10000);
+  setInterval(() => { if (!document.hidden) { refreshHistory(); refreshBlocks(); } }, 60000);
+  setInterval(() => { syncTheme(); syncNarrow(); }, 2000);
+  window.addEventListener('resize', syncNarrow);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) { refreshStatus(); refreshTelemetry(); refreshHistory(); } });
 })();
+
 </script>
 </body>
 </html>

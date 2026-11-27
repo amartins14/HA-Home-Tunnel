@@ -18,6 +18,8 @@ public sealed class RelayStateData
     public string pending_origin { get; set; }
     public string pending_expires_utc { get; set; }
     public string pending_bootstrap_fingerprint { get; set; }
+    // A rotated connector key, issued but not yet confirmed by the app. Both keys work until it is.
+    public string pending_key_hash { get; set; }
 }
 
 public static class RelayState
@@ -180,7 +182,58 @@ public static class RelayState
         if (!ValidHex(key)) return false;
         lock (Gate) {
             var state = Read();
-            return state.pairing_finalized && !String.IsNullOrEmpty(state.active_key_hash) && FixedEquals(state.active_key_hash, Hash(key));
+            if (!state.pairing_finalized || String.IsNullOrEmpty(state.active_key_hash)) return false;
+            string hash = Hash(key);
+            bool active = FixedEquals(state.active_key_hash, hash);
+            bool pending = !String.IsNullOrEmpty(state.pending_key_hash) && FixedEquals(state.pending_key_hash, hash);
+            return active | pending;
+        }
+    }
+
+    // Only the confirmed key may rotate or unpair; a pending key can only confirm itself.
+    static bool ActiveKey(RelayStateData state, string key)
+    {
+        return ValidHex(key) && state.pairing_finalized && !String.IsNullOrEmpty(state.active_key_hash) && FixedEquals(state.active_key_hash, Hash(key));
+    }
+
+    public static string Rotate(string key)
+    {
+        lock (Gate) {
+            var state = Read();
+            if (!ActiveKey(state, key)) return null;
+            string token = RandomHex();
+            state.pending_key_hash = Hash(token);
+            Write(state);
+            return token;
+        }
+    }
+
+    public static bool ConfirmRotation(string newKey)
+    {
+        if (!ValidHex(newKey)) return false;
+        lock (Gate) {
+            var state = Read();
+            string hash = Hash(newKey);
+            if (!state.pairing_finalized || String.IsNullOrEmpty(state.pending_key_hash)) {
+                // A retried confirmation after success is still a success.
+                return state.pairing_finalized && !String.IsNullOrEmpty(state.active_key_hash) && FixedEquals(state.active_key_hash, hash);
+            }
+            if (!FixedEquals(state.pending_key_hash, hash)) return false;
+            state.active_key_hash = state.pending_key_hash;
+            state.pending_key_hash = null;
+            Write(state);
+            return true;
+        }
+    }
+
+    // Forget the pairing so the relay accepts a new setup code. Forwarding stops at once.
+    public static bool Reset(string key)
+    {
+        lock (Gate) {
+            var state = Read();
+            if (!ActiveKey(state, key)) return false;
+            Write(new RelayStateData());
+            return true;
         }
     }
 
@@ -287,10 +340,153 @@ public static class RelayState
     {
         lock (Gate) {
             var state = Read();
-            if (!state.pairing_finalized || String.IsNullOrEmpty(state.active_key_hash) || !FixedEquals(state.active_key_hash, Hash(key))) return false;
+            if (!state.pairing_finalized || String.IsNullOrEmpty(state.active_key_hash)) return false;
+            string hash = Hash(key);
+            if (!FixedEquals(state.active_key_hash, hash) && (String.IsNullOrEmpty(state.pending_key_hash) || !FixedEquals(state.pending_key_hash, hash))) return false;
             state.forwarding_enabled = enabled;
             Write(state);
             return true;
+        }
+    }
+}
+
+public sealed class BlockRule
+{
+    public byte[] Network;
+    public int Prefix;
+    public DateTime? Until;
+}
+
+// Addresses the Home Tunnel app asked the relay to turn away. The app owns the list and
+// sends all of it on every change; the relay only stores and enforces it.
+public static class RelayBlocks
+{
+    public const int Limit = 256, BodyLimit = 32768;
+    static readonly object Gate = new object();
+    static List<BlockRule> rules;
+    static DateTime loadedAt = DateTime.MinValue;
+
+    static byte[] Bytes(System.Net.IPAddress address)
+    {
+        if (address.IsIPv4MappedToIPv6) address = address.MapToIPv4();
+        return address.GetAddressBytes();
+    }
+
+    // "203.0.113.7", "203.0.113.0/24" or "2001:db8::/32"; until is an ISO UTC time or null.
+    public static BlockRule Parse(string cidr, string until)
+    {
+        if (String.IsNullOrEmpty(cidr) || cidr.Length > 64) return null;
+        string[] parts = cidr.Split('/');
+        if (parts.Length > 2) return null;
+        System.Net.IPAddress address;
+        if (!System.Net.IPAddress.TryParse(parts[0], out address) || parts[0].Contains("%")) return null;
+        byte[] bytes = Bytes(address);
+        int prefix = bytes.Length * 8;
+        if (parts.Length == 2 && (!Int32.TryParse(parts[1], System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out prefix) || prefix < 1 || prefix > bytes.Length * 8)) return null;
+        // Never block more than a /8 (IPv4) or /16 (IPv6) at once.
+        if (prefix < (bytes.Length == 4 ? 8 : 16)) return null;
+        for (int bit = prefix; bit < bytes.Length * 8; bit++) bytes[bit / 8] &= (byte)~(0x80 >> (bit % 8));
+        DateTime? end = null;
+        if (until != null) {
+            DateTime parsed;
+            if (!DateTime.TryParse(until, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.AdjustToUniversal | System.Globalization.DateTimeStyles.AssumeUniversal, out parsed)) return null;
+            end = parsed;
+        }
+        return new BlockRule { Network = bytes, Prefix = prefix, Until = end };
+    }
+
+    public static bool Matches(BlockRule rule, string ip, DateTime utc)
+    {
+        System.Net.IPAddress address;
+        if (rule == null || ip == null || !System.Net.IPAddress.TryParse(ip, out address)) return false;
+        if (rule.Until.HasValue && utc >= rule.Until.Value) return false;
+        byte[] bytes = Bytes(address);
+        if (bytes.Length != rule.Network.Length) return false;
+        for (int bit = 0; bit < rule.Prefix; bit++) {
+            int mask = 0x80 >> (bit % 8);
+            if ((bytes[bit / 8] & mask) != (rule.Network[bit / 8] & mask)) return false;
+        }
+        return true;
+    }
+
+    public static bool Blocked(IEnumerable<BlockRule> list, string ip, DateTime utc)
+    {
+        return list != null && list.Any(rule => Matches(rule, ip, utc));
+    }
+
+    // Validates every entry; returns null when any is invalid so a bad list never half-applies.
+    public static List<BlockRule> FromJson(object value)
+    {
+        var entries = value as System.Collections.ArrayList;
+        if (entries == null || entries.Count > Limit) return null;
+        var result = new List<BlockRule>();
+        foreach (var item in entries) {
+            var entry = item as Dictionary<string, object>;
+            if (entry == null || entry.Keys.Any(k => k != "cidr" && k != "until")) return null;
+            object cidr, until;
+            entry.TryGetValue("cidr", out cidr);
+            entry.TryGetValue("until", out until);
+            if (until != null && !(until is string)) return null;
+            var rule = Parse(cidr as string, until as string);
+            if (rule == null) return null;
+            result.Add(rule);
+        }
+        return result;
+    }
+
+    static string FilePath
+    {
+        get {
+            string root = HostingEnvironment.MapPath("~/App_Data");
+            if (String.IsNullOrEmpty(root)) throw new InvalidOperationException("Relay data path unavailable");
+            Directory.CreateDirectory(root);
+            return Path.Combine(root, "home-tunnel-blocks.json");
+        }
+    }
+
+    static List<BlockRule> Load()
+    {
+        lock (Gate) {
+            // Re-read now and then so every IIS worker sees the latest list.
+            if (rules != null && (DateTime.UtcNow - loadedAt).TotalSeconds < 30) return rules;
+            var loaded = new List<BlockRule>();
+            try {
+                var path = FilePath;
+                if (File.Exists(path) && new FileInfo(path).Length <= BodyLimit) {
+                    var data = new JavaScriptSerializer { MaxJsonLength = BodyLimit }.DeserializeObject(File.ReadAllText(path, Encoding.UTF8)) as Dictionary<string, object>;
+                    object list;
+                    if (data != null && data.TryGetValue("blocks", out list)) {
+                        var array = list as object[];
+                        loaded = FromJson(array == null ? list : new System.Collections.ArrayList(array)) ?? new List<BlockRule>();
+                    }
+                }
+            } catch { loaded = rules ?? new List<BlockRule>(); }
+            rules = loaded; loadedAt = DateTime.UtcNow;
+            return rules;
+        }
+    }
+
+    public static bool IsBlocked(string ip)
+    {
+        try { return Blocked(Load(), ip, DateTime.UtcNow); } catch { return false; }
+    }
+
+    public static void Replace(List<BlockRule> list, string json)
+    {
+        lock (Gate) {
+            string path = FilePath, temp = path + ".tmp";
+            if (File.Exists(temp)) File.Delete(temp);
+            File.WriteAllText(temp, json, new UTF8Encoding(false));
+            if (File.Exists(path)) File.Replace(temp, path, null); else File.Move(temp, path);
+            rules = list; loadedAt = DateTime.UtcNow;
+        }
+    }
+
+    public static void Clear()
+    {
+        lock (Gate) {
+            try { var path = FilePath; if (File.Exists(path)) File.Delete(path); } catch { }
+            rules = new List<BlockRule>(); loadedAt = DateTime.UtcNow;
         }
     }
 }

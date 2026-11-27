@@ -10,15 +10,25 @@ import time
 import logging
 from aiohttp import web
 
-VERSION = "0.6.1"
+VERSION = "0.7.0"
 PUBLIC_HEALTH_MAX_AGE = 90
 IP_HISTORY_PATH = Path("/data/state/caller-ips.json")
 IP_HISTORY_TTL = 30 * 24 * 60 * 60
 IP_HISTORY_LIMIT = 2048
+TRAFFIC_HISTORY_PATH = Path("/data/state/traffic-history.json")
+TRAFFIC_MINUTES = 24 * 60
+TRAFFIC_SAVE_INTERVAL = 300
+# One row per minute: minute (epoch // 60), requests, response bytes, latency sum (ms),
+# latency samples, denied (401/403), server errors (5xx), new HA sign-ins.
+TRAFFIC_FIELDS = ("minute", "requests", "bytes", "latency_sum", "latency_count", "denied", "errors", "signins")
+LOCKDOWN_WINDOW = 600
+LOCKDOWN_REPORT_MIN = 3
+LOCKDOWN_IPS = 1024
+LOGIN_ROUTES = ("/auth/login_flow", "/auth/login_flow/[flow-id]")
 LOG = logging.getLogger("amdeploy-tunnel")
 
 class Metrics:
-    def __init__(self, history_path=IP_HISTORY_PATH):
+    def __init__(self, history_path=IP_HISTORY_PATH, traffic_path=TRAFFIC_HISTORY_PATH):
         self.connected = False
         self.updated = None
         self.stats = {}
@@ -37,6 +47,12 @@ class Metrics:
         self.ip_history_ok = True
         self.ip_history_path = Path(history_path)
         self.load_ip_history()
+        self.traffic = deque(maxlen=TRAFFIC_MINUTES)
+        self.traffic_path = Path(traffic_path)
+        self.traffic_saved = time.monotonic()
+        self.load_traffic()
+        # Per-caller denied answers and login attempts over the last 10 minutes, for lockdowns.
+        self.suspects = {}
 
     @staticmethod
     def ip_value(value):
@@ -120,6 +136,81 @@ class Metrics:
             self.save_ip_history()
         return True
 
+    def load_traffic(self):
+        try:
+            if self.traffic_path.stat().st_size > 1024 * 1024:
+                raise ValueError("traffic history exceeds its storage limit")
+            rows = json.loads(self.traffic_path.read_text(encoding="utf-8"))
+            if not isinstance(rows, list):
+                raise ValueError("traffic history is invalid")
+            oldest = int(time.time() // 60) - TRAFFIC_MINUTES
+            previous = None
+            for row in rows:
+                if (isinstance(row, list) and len(row) == len(TRAFFIC_FIELDS)
+                        and all(type(value) is int and value >= 0 for value in row)
+                        and row[0] > oldest and (previous is None or row[0] > previous)):
+                    self.traffic.append(row)
+                    previous = row[0]
+        except FileNotFoundError:
+            return
+        except (OSError, ValueError, TypeError):
+            LOG.warning("Could not read traffic history")
+
+    def save_traffic(self):
+        try:
+            self.traffic_path.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
+            temporary = self.traffic_path.with_suffix(".tmp")
+            temporary.write_text(json.dumps(list(self.traffic), separators=(",", ":")), encoding="utf-8")
+            os.chmod(temporary, 0o600)
+            os.replace(temporary, self.traffic_path)
+        except OSError:
+            LOG.warning("Could not save traffic history")
+
+    def traffic_row(self, wall=None):
+        minute = int((time.time() if wall is None else wall) // 60)
+        if not self.traffic or self.traffic[-1][0] < minute:
+            self.traffic.append([minute] + [0] * (len(TRAFFIC_FIELDS) - 1))
+        return self.traffic[-1]
+
+    def traffic_history(self, minutes=TRAFFIC_MINUTES, wall=None):
+        newest = int((time.time() if wall is None else wall) // 60)
+        oldest = newest - max(1, min(TRAFFIC_MINUTES, int(minutes)))
+        return {"fields": list(TRAFFIC_FIELDS), "minutes": [row for row in self.traffic if row[0] > oldest]}
+
+    def note_suspect(self, ip, event, now):
+        if ip == "unknown":
+            return
+        denied = event["status"] in (401, 403)
+        login = event["method"] == "POST" and event["route"] in LOGIN_ROUTES
+        if not denied and not login:
+            return
+        if ip not in self.suspects:
+            if len(self.suspects) >= LOCKDOWN_IPS:
+                self.prune_suspects(now)
+                if len(self.suspects) >= LOCKDOWN_IPS:
+                    return
+            self.suspects[ip] = deque(maxlen=500)
+        self.suspects[ip].append((now, "denied" if denied else "login"))
+
+    def prune_suspects(self, now):
+        for ip in list(self.suspects):
+            marks = self.suspects[ip]
+            while marks and now - marks[0][0] > LOCKDOWN_WINDOW:
+                marks.popleft()
+            if not marks:
+                del self.suspects[ip]
+
+    def lockdown_candidates(self, now):
+        self.prune_suspects(now)
+        rows = []
+        for ip, marks in self.suspects.items():
+            denied = sum(kind == "denied" for _, kind in marks)
+            logins = len(marks) - denied
+            if denied >= LOCKDOWN_REPORT_MIN or logins >= LOCKDOWN_REPORT_MIN:
+                rows.append({"ip": ip, "denied_10m": denied, "logins_10m": logins})
+        rows.sort(key=lambda row: row["denied_10m"] + row["logins_10m"], reverse=True)
+        return rows[:50]
+
     def clear_ip_history(self):
         self.ip_history.clear()
         self.save_ip_history()
@@ -139,6 +230,7 @@ class Metrics:
     def authenticated(self, connection_id, ip):
         self.sessions[connection_id] = {"ip":ip, "authenticated_at":datetime.now(timezone.utc).isoformat()}
         self.observe_ip(ip, authenticated=True)
+        self.traffic_row()[7] += 1
 
     def closed(self, connection_id):
         self.sessions.pop(connection_id, None)
@@ -152,7 +244,14 @@ class Metrics:
             same_worker = current["uptime_seconds"] >= old["uptime_seconds"] and current["requests"] >= old["requests"] and current["response_bytes"] >= old["response_bytes"]
             self.request_rate = (current["requests"]-old["requests"])*60/elapsed if same_worker and elapsed > 0 else 0
             self.byte_rate = (current["response_bytes"]-old["response_bytes"])/1024/elapsed if same_worker and elapsed > 0 else 0
+        delta_requests = delta_bytes = 0
+        if self.previous:
+            delta_requests = current["requests"]-old["requests"] if same_worker else current["requests"]
+            delta_bytes = current["response_bytes"]-old["response_bytes"] if same_worker else current["response_bytes"]
         self.previous = (dict(current), now)
+        row = self.traffic_row()
+        row[1] += max(0, delta_requests)
+        row[2] += max(0, delta_bytes)
         if current.get("events_dropped", 0) > self.stats.get("events_dropped", 0):
             self.loss_observed = now
         self.stats = {**current, **counters}
@@ -162,13 +261,21 @@ class Metrics:
         for event in message["events"]:
             self.events.append({**event, "observed_at": timestamp})
             self.security_events.append((now, event["status"]))
+            row[3] += event["duration_ms"]
+            row[4] += 1
+            row[5] += event["status"] in (401, 403)
+            row[6] += event["status"] >= 500
             ip = event["ip"]
+            self.note_suspect(ip, event, now)
             history_changed = self.observe_ip(ip, persist=False) or history_changed
             if ip != "unknown" and (ip in self.clients or len(self.clients) < 1024):
                 old = self.clients.get(ip, {"calls":0})
                 self.clients[ip] = {"ip":ip, "seen":now, "last_seen":timestamp, "calls":old["calls"]+1}
         if history_changed:
             self.save_ip_history()
+        if now - self.traffic_saved >= TRAFFIC_SAVE_INTERVAL:
+            self.traffic_saved = now
+            self.save_traffic()
         self.updated = now
 
     def snapshot(self, now=None):
@@ -211,6 +318,7 @@ class Metrics:
             "recent_requests": recent, "recent_request_count": len(recent),
             "caller_ips": callers, "caller_ip_retention_days": 30, "caller_ip_history_ok": self.ip_history_ok,
             "unique_ips_15m":len(clients), "clients":clients[:100],
+            "lockdown_candidates": self.lockdown_candidates(now),
             "authenticated_connections":len(sessions), "authenticated_ips":len({s["ip"] for s in sessions if s["ip"] != "unknown"}), "authenticated_sessions":sessions,
             "last_client_ip": recent[-1]["ip"] if recent else "none"}
 
@@ -229,6 +337,16 @@ def application(metrics, token):
         if not metrics.ip_history_ok:
             return web.json_response({"error":"storage_unavailable"}, status=503, headers={"Cache-Control":"no-store"})
         return web.json_response({"cleared":True}, headers={"Cache-Control":"no-store", "X-Content-Type-Options":"nosniff"})
+    async def history(request):
+        value = request.headers.get("Authorization", "")
+        if not hmac.compare_digest(value.encode("utf-8"), ("Bearer " + token).encode("ascii")):
+            return web.json_response({"error":"unauthorized"}, status=401, headers={"Cache-Control":"no-store"})
+        try:
+            minutes = int(request.query.get("minutes", TRAFFIC_MINUTES))
+        except ValueError:
+            minutes = TRAFFIC_MINUTES
+        return web.json_response(metrics.traffic_history(minutes), headers={"Cache-Control":"no-store", "X-Content-Type-Options":"nosniff"})
     app.router.add_get("/metrics", read)
+    app.router.add_get("/history", history)
     app.router.add_post("/ip-history/clear", clear_ip_history)
     return app

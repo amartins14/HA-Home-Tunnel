@@ -22,6 +22,6 @@ Home Assistant app updates remain managed by Supervisor. An app update does not 
 
 The relay requires full-trust classic ASP.NET on IIS and the .NET Framework 4.8 runtime. Linux containers and non-IIS reverse-proxy hosting are not supported by this code. Shared hosting must allow the application pool to write persistent files under `App_Data`; use the host's permission controls or ask the provider if it does not.
 
-If the code or hash is lost before pairing, generate a replacement in HA and replace the setting in `web.config`. The app keeps the code privately for up to 24 hours while pairing is pending. Preserve `App_Data` after pairing; it contains the active key verifier and forwarding state. Removing it unpairs the connector and disables forwarding.
+If the code or hash is lost before pairing, generate a replacement in HA and replace the setting in `web.config`. The app keeps the code privately for up to 24 hours while pairing is pending. Preserve `App_Data` after pairing; it contains the active key verifier, forwarding state and, from relay 0.5.0, the block list sent by the app (`home-tunnel-blocks.json`). Removing it unpairs the connector and disables forwarding. With relay 0.5.0 or newer you can unpair from the app's Settings tab instead; the relay then forgets its pairing and block list.
 
 For rollback, retain the previous relay files and the private `App_Data` state in protected recovery storage until the new build passes health checks. Never place backups or keys in Git or the public web root.

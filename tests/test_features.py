@@ -1,0 +1,299 @@
+"""Checks for traffic history, lockdowns, blocked addresses, key rotation, unpairing and alerts."""
+import json
+import os
+from pathlib import Path
+import sys
+import tempfile
+import time
+import unittest
+from unittest.mock import patch
+
+ROOT = Path(__file__).resolve().parents[1]
+sys.path[:0] = [str(ROOT / "home-assistant" / "connector")]
+from aiohttp import web
+import service
+from metrics import Metrics
+
+
+def telemetry(requests, events, uptime=100, response_bytes=0):
+    stats = {"requests": requests, "errors_4xx": 0, "errors_5xx": 0, "response_bytes": response_bytes, "active_http": 0,
+             "active_ws": 0, "queued_http": 0, "events_dropped": 0, "uptime_seconds": uptime, "forwarding_enabled": 1}
+    return {"type": "telemetry", "stats": stats, "events": events}
+
+
+def event(ip="203.0.113.9", status=200, method="GET", route="/api/states", duration=10):
+    return {"ip": ip, "method": method, "route": route, "status": status, "duration_ms": duration,
+            "request_bytes": 0, "response_bytes": 0}
+
+
+class Request:
+    def __init__(self, body):
+        self.body = body
+
+    async def json(self):
+        return self.body
+
+
+class TrafficAndLockdownMetricsTests(unittest.TestCase):
+    def test_traffic_history_counts_minutes_and_survives_restart(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "traffic.json"
+            metrics = Metrics(Path(directory) / "ips.json", path)
+            metrics.update(telemetry(10, []), {}, now=0)
+            metrics.update(telemetry(25, [event(status=401, duration=30), event(status=502, duration=50)], response_bytes=4096), {}, now=10)
+            row = metrics.traffic[-1]
+            # The first sample only sets the baseline: relay counters run since the relay started.
+            self.assertEqual(row[1:7], [15, 4096, 80, 2, 1, 1])
+            metrics.save_traffic()
+            restored = Metrics(Path(directory) / "ips.json", path)
+            self.assertEqual(restored.traffic_history()["minutes"][-1], row)
+            self.assertEqual(restored.traffic_history()["fields"][0], "minute")
+
+    def test_traffic_history_drops_old_or_malformed_rows(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "traffic.json"
+            minute = int(time.time() // 60)
+            path.write_text(json.dumps([[minute - 3000, 1, 0, 0, 0, 0, 0, 0], ["x"], [minute - 5, 2, 0, 0, 0, 0, 0, 0],
+                                        [minute - 6, 3, 0, 0, 0, 0, 0, 0]]))
+            metrics = Metrics(Path(directory) / "ips.json", path)
+            self.assertEqual([row[0] for row in metrics.traffic], [minute - 5])
+
+    def test_lockdown_candidates_count_denied_answers_and_login_posts_per_caller(self):
+        with tempfile.TemporaryDirectory() as directory:
+            metrics = Metrics(Path(directory) / "ips.json", Path(directory) / "traffic.json")
+            events = [event(status=401) for _ in range(4)]
+            events += [event(ip="198.51.100.2", method="POST", route="/auth/login_flow/[flow-id]") for _ in range(3)]
+            events += [event(ip="192.0.2.5", status=200), event(ip="unknown", status=403)]
+            metrics.update(telemetry(9, events), {}, now=1000)
+            rows = {row["ip"]: row for row in metrics.snapshot(now=1000)["lockdown_candidates"]}
+            self.assertEqual(rows["203.0.113.9"]["denied_10m"], 4)
+            self.assertEqual(rows["198.51.100.2"]["logins_10m"], 3)
+            self.assertNotIn("192.0.2.5", rows)
+            self.assertNotIn("unknown", rows)
+            self.assertEqual(metrics.lockdown_candidates(now=1000 + 601), [])
+
+
+class ServiceFeatureTests(unittest.IsolatedAsyncioTestCase):
+    def test_block_ranges_are_normalized_and_bounded(self):
+        self.assertEqual(service.normalize_cidr("203.0.113.7"), "203.0.113.7")
+        self.assertEqual(service.normalize_cidr("203.0.113.9/24"), "203.0.113.0/24")
+        self.assertEqual(service.normalize_cidr("::ffff:203.0.113.7"), "203.0.113.7")
+        self.assertEqual(service.normalize_cidr("2001:db8::1/32"), "2001:db8::/32")
+        for value in ("", "nope", "10.0.0.0/7", "::/0", "1.2.3.4/33", None, "1" * 80):
+            with self.assertRaises(ValueError):
+                service.normalize_cidr(value)
+
+    def test_lockdown_blocks_noisy_callers_but_never_signed_in_ones(self):
+        settings = {"enabled": True, "denied": 20, "logins": 15, "minutes": 60}
+        metrics = {"caller_ips": [{"ip": "198.51.100.2", "status": "authenticated"}],
+                   "lockdown_candidates": [{"ip": "203.0.113.9", "denied_10m": 25, "logins_10m": 0},
+                                           {"ip": "198.51.100.2", "denied_10m": 50, "logins_10m": 0},
+                                           {"ip": "192.0.2.5", "denied_10m": 3, "logins_10m": 15},
+                                           {"ip": "192.0.2.6", "denied_10m": 3, "logins_10m": 4}]}
+        rows = []
+        added = service.apply_lockdown(metrics, rows, settings, now=1000)
+        self.assertEqual([row["cidr"] for row in added], ["203.0.113.9", "192.0.2.5"])
+        self.assertTrue(all(row["until"] == 1000 + 3600 and row["source"] == "auto" for row in added))
+        self.assertEqual(service.apply_lockdown(metrics, rows, settings, now=1001), [], "blocked callers are not added twice")
+        self.assertEqual(service.apply_lockdown(metrics, [], {**settings, "enabled": False}), [])
+
+    def test_expired_blocks_are_dropped_and_ranges_match(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "blocks.json"
+            path.write_text(json.dumps([{"cidr": "203.0.113.0/24", "until": None}, {"cidr": "192.0.2.1", "until": 10}, {"cidr": "bad"}]))
+            with patch.object(service, "BLOCKS", path):
+                rows = service.read_blocks(now=100)
+            self.assertEqual([row["cidr"] for row in rows], ["203.0.113.0/24"])
+            self.assertTrue(service.blocked(rows, "203.0.113.200"))
+            self.assertFalse(service.blocked(rows, "2001:db8::1"))
+
+    def test_settings_validate_lockdown_and_notifications(self):
+        events = {name: True for name in service.NOTIFY_EVENTS}
+        service.valid_lockdown({"enabled": True, "denied": 20, "logins": 15, "minutes": 60})
+        service.valid_notifications({"target": "notify.mobile_app_phone", "events": events})
+        service.valid_notifications({"target": "", "events": events})
+        for bad in ({"enabled": True, "denied": 1, "logins": 15, "minutes": 60},
+                    {"enabled": "yes", "denied": 20, "logins": 15, "minutes": 60}, {}):
+            with self.assertRaises(ValueError):
+                service.valid_lockdown(bad)
+        for target in ("notify.Bad", "light.kitchen", "notify.a/b", "persistent_notification.create"):
+            with self.assertRaises(ValueError):
+                service.valid_notifications({"target": target, "events": events})
+
+    def test_country_settings_are_validated(self):
+        self.assertEqual(service.valid_countries({"mode": "block", "codes": ["RU", "CN", "RU"], "minutes": None}),
+                         {"mode": "block", "codes": ["CN", "RU"], "minutes": None})
+        for bad in ({"mode": "allow", "codes": [], "minutes": 60}, {"mode": "block", "codes": ["usa"], "minutes": 60},
+                    {"mode": "block", "codes": ["us"], "minutes": 60}, {"mode": "deny", "codes": [], "minutes": 60},
+                    {"mode": "block", "codes": [], "minutes": 5}, {"mode": "block", "codes": []}):
+            with self.assertRaises(ValueError):
+                service.valid_countries(bad)
+
+    def test_location_answer_gives_label_and_country_code(self):
+        self.assertEqual(service.parse_location({"city": "Porto", "region": "Porto", "country_name": "Portugal", "country_code": "pt"}),
+                         ("Porto, Portugal", "PT"))
+        self.assertEqual(service.parse_location({"error": True}), ("", ""))
+        self.assertEqual(service.parse_location({"country_code": "XYZ"}), ("", ""))
+
+    def test_country_rules_block_on_first_sight(self):
+        found = {"203.0.113.7": ("Moscow, Russia", "RU"), "198.51.100.2": ("Porto, Portugal", "PT"),
+                 "192.0.2.5": ("", ""), "192.0.2.9": ("Berlin, Germany", "DE")}
+        rows = []
+        added = service.apply_country_rules(found, rows, {"mode": "block", "codes": ["RU", "DE"], "minutes": 60}, {"192.0.2.9"}, now=1000)
+        self.assertEqual([row["cidr"] for row in added], ["203.0.113.7"], "signed-in and unknown-country callers are skipped")
+        self.assertEqual((added[0]["source"], added[0]["until"]), ("country", 1000 + 3600))
+        self.assertIn("Russia (RU)", added[0]["reason"])
+        allow = service.apply_country_rules(found, [], {"mode": "allow", "codes": ["PT"], "minutes": None}, set(), now=1000)
+        self.assertEqual(sorted(row["cidr"] for row in allow), ["192.0.2.9", "203.0.113.7"])
+        self.assertIsNone(allow[0]["until"])
+        self.assertEqual(service.apply_country_rules(found, [], {"mode": "off", "codes": ["RU"], "minutes": 60}, set()), [])
+
+    async def test_location_lookups_share_the_daily_cap_and_cache(self):
+        with patch.object(service, "GEOLOCATION_CACHE", {"8.8.8.8": (time.monotonic(), "Porto, Portugal", "PT")}), \
+                patch.object(service, "GEOLOCATION_LOOKUP_COUNT", service.GEOLOCATION_LOOKUP_LIMIT), \
+                patch.object(service, "GEOLOCATION_WINDOW_STARTED", time.monotonic()):
+            found = await service.lookup_locations(["8.8.8.8", "1.1.1.1", "10.0.0.1"])
+        self.assertEqual(found, {"8.8.8.8": ("Porto, Portugal", "PT")}, "cached answers are free; the cap stops new lookups")
+
+    def test_supervisor_token_is_taken_out_of_the_environment(self):
+        with patch.dict(os.environ, {"HOME_TUNNEL_SUPERVISOR_TOKEN": "secret", "SUPERVISOR_TOKEN": "x"}):
+            service.take_supervisor_token()
+            self.assertEqual(service.SUPERVISOR_TOKEN, "secret")
+            self.assertNotIn("HOME_TUNNEL_SUPERVISOR_TOKEN", os.environ)
+            self.assertNotIn("SUPERVISOR_TOKEN", os.environ)
+        service.SUPERVISOR_TOKEN = ""
+
+    def test_connector_environment_never_gets_the_supervisor_token(self):
+        source = (ROOT / "home-assistant" / "connector" / "service.py").read_text()
+        self.assertIn('if key not in ("HOME_TUNNEL_SUPERVISOR_TOKEN", "SUPERVISOR_TOKEN", "HASSIO_TOKEN")', source)
+        self.assertIn("HOME_TUNNEL_SUPERVISOR_TOKEN", (ROOT / "home-assistant" / "connector" / "connector.py").read_text())
+
+    def paired_state(self, directory):
+        state = Path(directory)
+        (state / "tunnel-token.txt").write_text("a" * 64 + "\n")
+        (state / "connection.json").write_text(json.dumps({"public_url": "https://tunnel.example.test"}))
+        names = {"TOKEN": "tunnel-token.txt", "TOKEN_NEXT": "tunnel-token.next", "CONNECTION": "connection.json",
+                 "FINALIZE": "finalize.json", "PAIRING": "pairing.json", "STATUS": "status.json",
+                 "RELAY_VERSION": "relay-version.json", "RELAY_HEALTH": "relay-health.json"}
+        patches = [patch.object(service, key, state / name) for key, name in names.items()] + [patch.object(service, "child", None)]
+        for item in patches:
+            item.start()
+        self.addCleanup(lambda: [item.stop() for item in patches])
+        return state
+
+    async def test_rotation_confirms_new_key_before_using_it(self):
+        with tempfile.TemporaryDirectory() as directory:
+            state = self.paired_state(directory)
+            new = "b" * 64
+            calls = []
+
+            async def relay(connection, action, payload=None, authenticate=True, token=None):
+                calls.append((action, token))
+                return (200, {"connector_token": new}) if action == "rotate" else (200, {})
+            with patch.object(service, "relay_request", relay):
+                response = await service.rotate_key(None)
+            self.assertEqual(json.loads(response.text), {"rotated": True})
+            self.assertEqual(calls, [("rotate", None), ("confirm_rotation", new)])
+            self.assertEqual((state / "tunnel-token.txt").read_text().strip(), new)
+            self.assertFalse((state / "tunnel-token.next").exists())
+
+    async def test_refused_confirmation_keeps_the_old_key(self):
+        with tempfile.TemporaryDirectory() as directory:
+            state = self.paired_state(directory)
+
+            async def relay(connection, action, payload=None, authenticate=True, token=None):
+                return (200, {"connector_token": "b" * 64}) if action == "rotate" else (403, {})
+            with patch.object(service, "relay_request", relay):
+                with self.assertRaises(web.HTTPBadGateway):
+                    await service.rotate_key(None)
+            self.assertEqual((state / "tunnel-token.txt").read_text().strip(), "a" * 64)
+            self.assertFalse((state / "tunnel-token.next").exists())
+
+    async def test_interrupted_rotation_is_finished_later(self):
+        with tempfile.TemporaryDirectory() as directory:
+            state = self.paired_state(directory)
+            (state / "tunnel-token.next").write_text("c" * 64)
+
+            async def relay(connection, action, payload=None, authenticate=True, token=None):
+                return (200, {}) if action == "confirm_rotation" and token == "c" * 64 else (500, {})
+            with patch.object(service, "relay_request", relay):
+                await service.reconcile_rotation()
+            self.assertEqual((state / "tunnel-token.txt").read_text().strip(), "c" * 64)
+
+    async def test_old_relay_rotation_is_explained(self):
+        with tempfile.TemporaryDirectory() as directory:
+            self.paired_state(directory)
+
+            async def relay(connection, action, payload=None, authenticate=True, token=None):
+                return 404, {}
+            with patch.object(service, "relay_request", relay):
+                with self.assertRaises(web.HTTPConflict) as raised:
+                    await service.rotate_key(None)
+            self.assertIn("0.5.0", raised.exception.text)
+
+    async def test_unpair_clears_local_pairing_only_after_relay_agrees_or_when_forced(self):
+        with tempfile.TemporaryDirectory() as directory:
+            state = self.paired_state(directory)
+
+            async def refuses(connection, action, payload=None, authenticate=True, token=None):
+                return 404, {}
+
+            async def agrees(connection, action, payload=None, authenticate=True, token=None):
+                return 200, {}
+            with patch.object(service, "relay_request", refuses):
+                with self.assertRaises(web.HTTPBadGateway):
+                    await service.unpair(Request({}))
+                self.assertTrue((state / "tunnel-token.txt").exists())
+                response = await service.unpair(Request({"force": True}))
+                self.assertEqual(json.loads(response.text), {"unpaired": True, "relay_reset": False})
+            self.assertFalse((state / "tunnel-token.txt").exists() or (state / "connection.json").exists())
+            (state / "tunnel-token.txt").write_text("a" * 64)
+            (state / "connection.json").write_text(json.dumps({"public_url": "https://tunnel.example.test"}))
+            with patch.object(service, "relay_request", agrees):
+                response = await service.unpair(Request({}))
+            self.assertTrue(json.loads(response.text)["relay_reset"])
+
+    async def test_blocks_are_sent_to_the_relay_with_utc_expiry(self):
+        with tempfile.TemporaryDirectory() as directory:
+            state = self.paired_state(directory)
+            sent = []
+
+            async def relay(connection, action, payload=None, authenticate=True, token=None):
+                sent.append((action, payload))
+                return 200, {}
+            with patch.object(service, "BLOCKS", state / "blocks.json"), patch.object(service, "relay_request", relay):
+                await service.add_block(Request({"cidr": "203.0.113.7", "minutes": 60}))
+                await service.add_block(Request({"cidr": "198.51.100.0/24", "minutes": None, "reason": "scanner"}))
+                with self.assertRaises(web.HTTPBadRequest):
+                    await service.add_block(Request({"cidr": "0.0.0.0/0"}))
+                await service.remove_block(Request({"cidr": "203.0.113.7"}))
+            self.assertEqual(sent[0][0], "blocks")
+            self.assertRegex(sent[0][1]["blocks"][0]["until"], r"\A\d{4}-\d\d-\d\dT\d\d:\d\d:\d\dZ\Z")
+            self.assertEqual(sent[-1][1], {"blocks": [{"cidr": "198.51.100.0/24", "until": None}]})
+            self.assertTrue(service.BLOCK_SYNC["ok"])
+
+    async def test_alerts_notify_once_for_new_sign_ins_and_offline(self):
+        with tempfile.TemporaryDirectory() as directory:
+            state = self.paired_state(directory)
+            sent = []
+
+            async def notify(event, title, message, target=None):
+                sent.append(event)
+                return True
+            metrics = {"caller_ips": [{"ip": "203.0.113.7", "status": "authenticated"}], "risk_issues": []}
+            with patch.object(service, "ALERTS", state / "alerts.json"), patch.object(service, "RELAY_RELEASE", state / "release.json"), \
+                    patch.object(service, "notify", notify):
+                (state / "status.json").write_text(json.dumps({"connection": "disconnected", "updated_at": 1000}))
+                await service.evaluate_alerts(metrics, now=1100)
+                self.assertEqual(sent, [], "first run remembers existing sign-ins; offline not yet long enough")
+                metrics["caller_ips"].append({"ip": "198.51.100.2", "status": "authenticated"})
+                await service.evaluate_alerts(metrics, now=1300)
+                await service.evaluate_alerts(metrics, now=1310)
+                self.assertEqual(sent, ["offline", "signin"])
+                (state / "status.json").write_text(json.dumps({"connection": "connected", "updated_at": 1400}))
+                await service.evaluate_alerts(metrics, now=1405)
+                self.assertEqual(sent, ["offline", "signin", "offline"])
+
+
+if __name__ == "__main__":
+    unittest.main(verbosity=2)
