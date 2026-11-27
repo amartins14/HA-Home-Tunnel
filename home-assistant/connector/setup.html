@@ -293,8 +293,9 @@
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
   function exportCallers(m) {
-    downloadCsv('callers', ['ip', 'status', 'requests', 'first_seen', 'last_seen', 'signed_in_at', 'location'],
-      (m.caller_ips || []).map(r => [r.ip, r.status, r.requests, r.first_seen, r.last_seen, r.authenticated_at, state.locations[r.ip] || '']));
+    downloadCsv('callers', ['ip', 'status', 'requests', 'first_seen', 'last_seen', 'signed_in_at', 'location', 'country', 'devices'],
+      (m.caller_ips || []).map(r => [r.ip, r.status, r.requests, r.first_seen, r.last_seen, r.authenticated_at, state.locations[r.ip] || '',
+        state.countries[r.ip] || '', (r.devices || []).join('; ')]));
   }
   function exportRequests(m) {
     downloadCsv('requests', ['time', 'ip', 'method', 'path', 'status', 'duration_ms', 'request_bytes', 'response_bytes', 'location'],
@@ -728,7 +729,7 @@
     const statusByIp = new Map(callers.map(row => [row.ip, row.status]));
     const inCountry = ip => !state.country || state.countries[ip] === state.country;
     const matchCaller = row => (state.filter === 'all' || row.status === state.filter) && inCountry(row.ip) && (!query || row.ip.toLowerCase().includes(query)
-      || (state.locations[row.ip] || '').toLowerCase().includes(query));
+      || (state.locations[row.ip] || '').toLowerCase().includes(query) || (row.devices || []).some(d => d.toLowerCase().includes(query)));
     const rows = callers.filter(matchCaller);
     const shown = rows.slice(0, state.callerShown);
     const filteredEvents = events.filter(event => {
@@ -738,7 +739,7 @@
     });
     const loc = ip => state.locations[ip] || null;
 
-    const search = el('input', {type: 'search', id: 'activity-search', placeholder: 'Filter by IP address, place or path', value: state.query,
+    const search = el('input', {type: 'search', id: 'activity-search', placeholder: 'Filter by IP address, place, device or path', value: state.query,
       'aria-label': 'Filter activity', oninput: e => {
         state.query = e.target.value; state.callerShown = 25; render();
         const input = document.getElementById('activity-search');
@@ -765,6 +766,7 @@
             suspect ? chip([suspect.denied_10m ? plural(suspect.denied_10m, 'denied answer') : null,
               suspect.logins_10m ? plural(suspect.logins_10m, 'login attempt') : null].filter(Boolean).join(', ') + ' in 10 min', 'warn') : null,
             row.ip === state.myIp ? chip('You', 'info', 'The address this browser is using') : null,
+            (row.devices || []).map(device => chip(device, 'info', 'Device type, from the browser or app that opened Home Assistant from this address')),
             row.first_seen ? chip(`First seen ${ago(row.first_seen)}`) : null)),
         block
           ? el('button', {class: 'btn text', disabled: state.busy, onclick: e => { stop(e); unblock(block.cidr); }, onkeydown: stop}, 'Unblock')

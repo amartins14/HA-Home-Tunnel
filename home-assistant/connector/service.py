@@ -1236,13 +1236,17 @@ async def evaluate_alerts(metrics, now=None):
         # Sign-ins from an address that never signed in before.
         signed = {row["ip"] for row in metrics.get("caller_ips") or []
                   if isinstance(row, dict) and row.get("status") == "authenticated" and isinstance(row.get("ip"), str)}
+        device_of = {row["ip"]: (row.get("devices") or [None])[0] for row in metrics.get("caller_ips") or []
+                     if isinstance(row, dict) and isinstance(row.get("ip"), str)}
         known = alerts.get("signin_ips")
         if not isinstance(known, list):
             known = sorted(signed)  # first run: remember, don't flood
             changed = True
         fresh = sorted(signed - set(known))
         for ip in fresh[:5]:
-            await notify("signin", "New Home Assistant sign-in", f"Someone signed in to Home Assistant through Home Tunnel from {ip}, an address not seen signing in before.")
+            device = device_of.get(ip)
+            await notify("signin", "New Home Assistant sign-in",
+                         f"Someone signed in to Home Assistant through Home Tunnel from {ip}{f' ({device})' if isinstance(device, str) else ''}, an address not seen signing in before.")
         if fresh:
             known = (known + fresh)[-512:]
             changed = True

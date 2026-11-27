@@ -7,6 +7,15 @@ Release notes for Home Tunnel. Relay releases are installed manually on IIS; the
 - Let crawlers fetch the IIS relay so they can read its no-index response header.
 - Add an app icon and logo for the Home Assistant app store, and rewrite the README, app documentation and architecture guide with screenshots, badges and My Home Assistant buttons.
 
+## 0.7.4
+
+- Show which kind of device used each caller address, such as "Safari · iPhone" or "Home Assistant app · iOS 18", from the User-Agent of the browser or app that opened Home Assistant. Only this short label is kept, up to four per address. Search, CSV export and new sign-in notifications include it.
+- Needs relay 0.5.2 to stop iPhones offering to download a file named "authorize" while Home Assistant reconnects.
+
+### Relay 0.5.2
+
+- Give every relay error a body and a content type. A bare 502 or 503 while the connector reconnected made Safari, and home-screen web apps above all, offer to download the sign-in page as a file named "authorize". Browsers now get a short page that retries by itself.
+
 ## 0.7.3
 
 - Bring the configuration and security guides up to date, and remove emoji from the documentation.

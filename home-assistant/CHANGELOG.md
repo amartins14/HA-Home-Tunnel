@@ -2,6 +2,11 @@
 
 Release notes for Home Tunnel. This copy is read by Home Assistant Supervisor. Relay releases are installed manually on IIS; the Home Assistant app is updated through Supervisor.
 
+## 0.7.4
+
+- Show which kind of device used each caller address, such as "Safari · iPhone" or "Home Assistant app · iOS 18", from the User-Agent of the browser or app that opened Home Assistant. Only this short label is kept, up to four per address. Search, CSV export and new sign-in notifications include it.
+- Needs relay 0.5.2 to stop iPhones offering to download a file named "authorize" while Home Assistant reconnects.
+
 ## 0.7.3
 
 - Show countries as two-letter codes instead of flag emoji on the Activity and Settings pages.

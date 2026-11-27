@@ -30,7 +30,7 @@ When the connector shows **Connected**, turn on **Forwarding**. Then sign in fro
 ## Activity
 
 - **Countries** (with caller locations on): callers and requests per country. Select a country to show only its callers, or block it straight from here.
-- **Callers:** every address that reached the relay in the last 30 days, up to 2,048. *Signed in to HA* means Home Assistant confirmed a sign-in from that address; *No sign-in seen* means it never did. Select an address to show only its requests. **Block** blocks it at the relay.
+- **Callers:** every address that reached the relay in the last 30 days, up to 2,048. *Signed in to HA* means Home Assistant confirmed a sign-in from that address; *No sign-in seen* means it never did. Device chips, such as *Safari · iPhone* or *Home Assistant app · iOS 18*, show which browsers and apps opened Home Assistant from that address. Select an address to show only its requests. **Block** blocks it at the relay.
 - **Recent requests:** the last 20 requests, with method, path, status, time and address. Query strings, ingress tokens and login-flow IDs are never shown.
 - **Refused WebSocket connections:** appears when the relay has refused a WebSocket, with its path, address and reason. If an app's web UI doesn't load through the tunnel, look here first.
 - **Blocked addresses:** everything the relay is turning away, why, and for how long. Add an address or range (like `203.0.113.0/24`) here, or **Unblock** one.
@@ -107,7 +107,7 @@ The **Home Tunnel** integration in the same GitHub repository adds sensors for s
 Everything stays in the app's private data:
 
 - The connector key, pairing state and settings.
-- Caller addresses for 30 days (up to 2,048), with request counts and sign-in times.
+- Caller addresses for 30 days (up to 2,048), with request counts, sign-in times and up to four device labels each.
 - Per-minute traffic for 24 hours.
 - The block list, which is also sent to the relay.
 - A rotating audit log of requests (10 MiB, four backups).
@@ -121,6 +121,7 @@ Uninstalling the app or removing its data deletes all of this and unpairs it on 
 - **Public check failing:** the relay answers, but requests aren't coming back through this tunnel. Usually a proxy or CDN in front of IIS, or a second relay worker. The app reconnects on its own.
 - **An app's web UI doesn't load through the tunnel:** check **Activity → Refused WebSocket connections**. Home Assistant's own WebSocket and any WebSocket inside an app web UI are allowed (relay 0.5.1 or newer; older relays only allow Zigbee2MQTT's). **Settings → What the tunnel lets through** shows the rules.
 - **A country rule didn't block my test:** addresses that have signed in to Home Assistant are never blocked by country. Test from a device that hasn't signed in, and give it 15 seconds. If the Settings card says lookups are limited or used up, new addresses wait for a country.
+- **An iPhone offers to download a file called "authorize":** update the relay to 0.5.2. Older relays sent an empty error while Home Assistant reconnected, which Safari treats as a download.
 - **Notifications say there's no API access:** restart the app; if that doesn't help, reinstall it so Home Assistant grants the permission again.
 
 ## Limits

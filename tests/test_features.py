@@ -73,6 +73,54 @@ class TrafficAndLockdownMetricsTests(unittest.TestCase):
             self.assertEqual(metrics.lockdown_candidates(now=1000 + 601), [])
 
 
+class DeviceTests(unittest.TestCase):
+    def test_user_agents_become_short_labels(self):
+        from metrics import device_label
+        cases = {
+            "Home Assistant/2025.11.2 (io.robbie.HomeAssistant; build:2025.1489; iOS 18.1.0) Alamofire/5.10.2": "Home Assistant app · iOS 18",
+            "Home Assistant/2025.11.1-full (Android 14; Pixel 8)": "Home Assistant app · Android 14",
+            "Mozilla/5.0 (iPhone; CPU iPhone OS 18_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.1 Mobile/15E148 Safari/604.1": "Safari · iPhone",
+            "Mozilla/5.0 (iPhone; CPU iPhone OS 18_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/131.0 Mobile/15E148 Safari/604.1": "Chrome · iPhone",
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0 Safari/537.36 Edg/131.0": "Edge · Windows",
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.1 Safari/605.1.15": "Safari · macOS",
+            "Mozilla/5.0 (X11; Linux x86_64; rv:133.0) Gecko/20100101 Firefox/133.0": "Firefox · Linux",
+            "Mozilla/5.0 (Linux; Android 14; SM-S918B) AppleWebKit/537.36 (KHTML, like Gecko) SamsungBrowser/26.0 Chrome/122.0 Mobile Safari/537.36": "Samsung Internet · Android 14",
+            "curl/8.5.0": "curl",
+            "": None,
+            None: None,
+        }
+        for agent, label in cases.items():
+            with self.subTest(agent=agent):
+                self.assertEqual(device_label(agent), label)
+
+    def test_devices_are_kept_per_caller_and_survive_restart(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "ips.json"
+            metrics = Metrics(path, Path(directory) / "traffic.json")
+            iphone = "Mozilla/5.0 (iPhone; CPU iPhone OS 18_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.1 Mobile/15E148 Safari/604.1"
+            app = "Home Assistant/2025.11.2 (io.robbie.HomeAssistant; build:1; iOS 18.1.0)"
+            start = time.time() - 60
+            metrics.observe_device("203.0.113.7", iphone, now=start)
+            metrics.observe_device("203.0.113.7", app, now=start + 1)
+            metrics.observe_device("203.0.113.7", iphone, now=start + 2)
+            for n in range(6):
+                metrics.observe_device("203.0.113.7", f"tool{n}/1.0", now=start + 3 + n)
+            callers = {row["ip"]: row for row in metrics.snapshot()["caller_ips"]}
+            self.assertEqual(len(callers["203.0.113.7"]["devices"]), 4, "only the latest four devices are kept")
+            self.assertEqual(callers["203.0.113.7"]["requests"], 0, "opening a socket isn't counted as a request")
+            restored = Metrics(path, Path(directory) / "traffic.json")
+            self.assertEqual(restored.snapshot()["caller_ips"][0]["devices"], callers["203.0.113.7"]["devices"])
+            self.assertIsNone(metrics.observe_device("not-an-ip", iphone))
+
+    def test_history_without_devices_still_loads(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "ips.json"
+            now = time.time()
+            path.write_text(json.dumps([{"ip": "203.0.113.7", "first_seen": now - 10, "last_seen": now, "authenticated_at": None, "requests": 3}]))
+            row = Metrics(path, Path(directory) / "traffic.json").snapshot()["caller_ips"][0]
+            self.assertEqual((row["requests"], row["devices"]), (3, []))
+
+
 class ServiceFeatureTests(unittest.IsolatedAsyncioTestCase):
     def test_block_ranges_are_normalized_and_bounded(self):
         self.assertEqual(service.normalize_cidr("203.0.113.7"), "203.0.113.7")

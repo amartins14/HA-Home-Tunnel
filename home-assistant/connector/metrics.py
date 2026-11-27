@@ -5,12 +5,13 @@ import hmac
 import ipaddress
 import json
 import os
+import re
 from pathlib import Path
 import time
 import logging
 from aiohttp import web
 
-VERSION = "0.7.3"
+VERSION = "0.7.4"
 PUBLIC_HEALTH_MAX_AGE = 90
 IP_HISTORY_PATH = Path("/data/state/caller-ips.json")
 IP_HISTORY_TTL = 30 * 24 * 60 * 60
@@ -25,6 +26,45 @@ LOCKDOWN_WINDOW = 600
 LOCKDOWN_REPORT_MIN = 3
 LOCKDOWN_IPS = 1024
 LOGIN_ROUTES = ("/auth/login_flow", "/auth/login_flow/[flow-id]")
+DEVICES_PER_CALLER = 4
+DEVICE_LABEL = re.compile(r"\A[\w .,()/+·-]{1,60}\Z")
+
+
+def device_label(agent):
+    """A short, non-identifying label for a User-Agent, such as "Safari · iPhone"."""
+    if not isinstance(agent, str) or not agent.strip():
+        return None
+    agent = agent[:512]
+    app = re.search(r"Home ?Assistant/[\d.]+.*?\b(iOS|iPadOS|macOS|Android|watchOS)\s?([\d]+)?", agent)
+    if app:
+        return f"Home Assistant app · {app.group(1)}" + (f" {app.group(2)}" if app.group(2) else "")
+    if re.match(r"Home ?Assistant/", agent):
+        return "Home Assistant app"
+    if "iPhone" in agent:
+        system = "iPhone"
+    elif "iPad" in agent:
+        system = "iPad"
+    elif "Android" in agent:
+        version = re.search(r"Android (\d+)", agent)
+        system = "Android" + (f" {version.group(1)}" if version else "")
+    elif "CrOS" in agent:
+        system = "ChromeOS"
+    elif "Windows" in agent:
+        system = "Windows"
+    elif "Macintosh" in agent or "Mac OS X" in agent:
+        system = "macOS"
+    elif "Linux" in agent:
+        system = "Linux"
+    else:
+        system = None
+    for pattern, name in ((r"Edg(A|iOS)?/", "Edge"), (r"OPR/|Opera", "Opera"), (r"SamsungBrowser/", "Samsung Internet"),
+                          (r"Firefox/|FxiOS/", "Firefox"), (r"Chrome/|CriOS/", "Chrome"), (r"Version/[\d.]+.*Safari/", "Safari")):
+        if re.search(pattern, agent):
+            return f"{name} · {system}" if system else name
+    if system:
+        return f"Browser · {system}"
+    tool = re.match(r"([A-Za-z][\w.-]{0,30})/", agent)
+    return tool.group(1) if tool else "Unknown device"
 LOG = logging.getLogger("amdeploy-tunnel")
 
 class Metrics:
@@ -83,8 +123,12 @@ class Metrics:
                     continue
                 if (0 < first <= last <= now + 300 and (auth is None or 0 < auth <= now + 300)
                         and 0 <= now - last <= IP_HISTORY_TTL):
+                    devices = [device for device in row.get("devices") or []
+                               if isinstance(device, dict) and isinstance(device.get("label"), str)
+                               and DEVICE_LABEL.fullmatch(device["label"]) and type(device.get("last_seen")) in (int, float)]
                     self.ip_history[ip] = {"ip": ip, "first_seen": first, "last_seen": last,
-                                           "authenticated_at": auth, "requests": max(0, calls)}
+                                           "authenticated_at": auth, "requests": max(0, calls),
+                                           "devices": devices[:DEVICES_PER_CALLER]}
             self.prune_ip_history(now)
         except FileNotFoundError:
             return
@@ -125,7 +169,7 @@ class Metrics:
             if len(self.ip_history) >= IP_HISTORY_LIMIT:
                 oldest = min(self.ip_history, key=lambda value: self.ip_history[value]["last_seen"])
                 self.ip_history.pop(oldest, None)
-            row = {"ip": ip, "first_seen": now, "last_seen": now, "authenticated_at": None, "requests": 0}
+            row = {"ip": ip, "first_seen": now, "last_seen": now, "authenticated_at": None, "requests": 0, "devices": []}
             self.ip_history[ip] = row
         row["last_seen"] = max(now, row["last_seen"])
         if authenticated:
@@ -211,6 +255,21 @@ class Metrics:
         rows.sort(key=lambda row: row["denied_10m"] + row["logins_10m"], reverse=True)
         return rows[:50]
 
+    def observe_device(self, ip, agent, now=None):
+        """Remember which kind of device used an address (from its WebSocket's User-Agent)."""
+        label = device_label(agent)
+        ip = self.ip_value(ip)
+        if label is None or ip is None or not DEVICE_LABEL.fullmatch(label):
+            return None
+        now = time.time() if now is None else now
+        self.observe_ip(ip, now=now, persist=False)
+        row = self.ip_history[ip]
+        row["requests"] = max(0, row["requests"] - 1)  # observe_ip counted a request; this isn't one
+        devices = [device for device in row.setdefault("devices", []) if device["label"] != label]
+        row["devices"] = [{"label": label, "last_seen": now}] + devices[:DEVICES_PER_CALLER - 1]
+        self.save_ip_history()
+        return label
+
     def clear_ip_history(self):
         self.ip_history.clear()
         self.save_ip_history()
@@ -229,6 +288,7 @@ class Metrics:
 
     def authenticated(self, connection_id, ip):
         self.sessions[connection_id] = {"ip":ip, "authenticated_at":datetime.now(timezone.utc).isoformat()}
+        # The device was recorded when its socket opened; keep that address's history current.
         self.observe_ip(ip, authenticated=True)
         self.traffic_row()[7] += 1
 
@@ -295,7 +355,8 @@ class Metrics:
                             "first_seen": datetime.fromtimestamp(row["first_seen"], timezone.utc).isoformat(),
                             "last_seen": datetime.fromtimestamp(row["last_seen"], timezone.utc).isoformat(),
                             "authenticated_at": datetime.fromtimestamp(row["authenticated_at"], timezone.utc).isoformat() if row["authenticated_at"] is not None else None,
-                            "requests": row["requests"]})
+                            "requests": row["requests"],
+                            "devices": [device["label"] for device in row.get("devices") or []]})
         callers.sort(key=lambda row: row["last_seen"], reverse=True)
         status = "online" if healthy else ("disabled" if self.connected and self.stats.get("forwarding_enabled") == 0 else "waiting" if self.connected and age is None else "stale" if self.connected else "offline")
         window = [status for observed, status in self.security_events if now-observed <= 300]

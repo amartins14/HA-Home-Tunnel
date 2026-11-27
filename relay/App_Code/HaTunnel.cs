@@ -233,7 +233,7 @@ public static class RelayPolicy
 public static class RelayBuild
 {
     // Keep this aligned with release-manifest.json when publishing a relay build.
-    public const string Version = "0.5.1";
+    public const string Version = "0.5.2";
     // Pairing actions this build supports, so the app can tell what an older relay lacks.
     public static readonly string[] Features = { "rotate", "unpair", "blocks", "refused" };
     public static bool NativeClients { get { return ConfigurationManager.AppSettings["HaTunnelNativeClientsEnabled"] == "true"; } }
@@ -448,6 +448,42 @@ public static class HaTunnel
             finally { peer.SendLock.Release(); }
         }
     }
+    // Every error the relay sends has a body and a content type. A bare 502/503 makes Safari, and
+    // above all a home-screen web app, offer the response as a download named after the URL
+    // ("authorize"). Browsers opening a page get a short HTML page that retries by itself.
+    public static void ErrorPage(HttpContext context, int status, string title = null, string detail = null, bool retry = false)
+    {
+        if (context.Items["HaErrorWritten"] != null) return;
+        context.Items["HaErrorWritten"] = true;
+        var response = context.Response;
+        try {
+            response.ClearContent();
+            response.StatusCode = status;
+            response.TrySkipIisCustomErrors = true;
+            response.Cache.SetCacheability(HttpCacheability.NoCache);
+            response.Cache.SetNoStore();
+            response.Headers["X-Content-Type-Options"] = "nosniff";
+            if (retry) response.Headers["Retry-After"] = "5";
+            title = title ?? (status >= 500 ? "Home Assistant is not reachable right now" : "This request can't be handled");
+            detail = detail ?? (retry ? "The connection to your home is being re-established. This page retries in a few seconds." : "");
+            string accept = context.Request.Headers["Accept"] ?? "";
+            if (context.Request.HttpMethod == "GET" && accept.IndexOf("text/html", StringComparison.OrdinalIgnoreCase) >= 0) {
+                response.ContentType = "text/html";
+                response.Charset = "utf-8";
+                response.Headers["Content-Security-Policy"] = "default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'; frame-ancestors 'none'";
+                response.Write("<!doctype html><html lang='en'><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'>"
+                    + (retry ? "<meta http-equiv='refresh' content='5'>" : "")
+                    + "<title>" + HttpUtility.HtmlEncode(title) + "</title><style>body{margin:0;min-height:100vh;display:grid;place-items:center;font:16px system-ui,sans-serif;background:#111;color:#e1e1e1;padding:20px;box-sizing:border-box}"
+                    + "main{max-width:420px;text-align:center}h1{font-size:1.25rem;font-weight:500;margin:0 0 10px}p{color:#9b9b9b;line-height:1.5;margin:0}"
+                    + "@media(prefers-color-scheme:light){body{background:#fafafa;color:#212121}p{color:#727272}}</style>"
+                    + "<main><h1>" + HttpUtility.HtmlEncode(title) + "</h1><p>" + HttpUtility.HtmlEncode(detail) + "</p></main></html>");
+            } else {
+                response.ContentType = "text/plain";
+                response.Charset = "utf-8";
+                response.Write(title + (detail.Length > 0 ? "\n" + detail : "") + "\n");
+            }
+        } catch { /* headers may already be sent; nothing more can be done */ }
+    }
     public static bool Secure(HttpContext context)
     {
         context.Response.TrySkipIisCustomErrors = true;
@@ -540,15 +576,20 @@ public class HaRelay : HttpTaskAsyncHandler
     public override async Task ProcessRequestAsync(HttpContext context)
     {
         var watch = Stopwatch.StartNew();
-        try { await RelayRequest(context); }
+        try {
+            await RelayRequest(context);
+            // Any error that would otherwise leave without a body gets a proper one.
+            int status = context.Response.StatusCode;
+            if (status >= 400 && context.Items["HaResponseBytes"] == null && context.Items["HaWsAccepted"] == null && context.Items["HaStreaming"] == null)
+                HaTunnel.ErrorPage(context, status, retry: status == 502 || status == 503 || status == 504);
+        }
         finally { HaTunnel.Record(context, watch.ElapsedMilliseconds); }
     }
     async Task RelayRequest(HttpContext context)
     {
         // Addresses the app blocked never reach the connector, or even the setup page.
         if (RelayBlocks.IsBlocked(context.Request.UserHostAddress)) {
-            context.Response.TrySkipIisCustomErrors = true;
-            context.Response.StatusCode = 403; context.Response.ContentType = "text/plain"; context.Response.Write("Blocked"); return;
+            HaTunnel.ErrorPage(context, 403, "Access from this address is blocked", ""); return;
         }
         string originalUrl = context.Request.ServerVariables["UNENCODED_URL"] ?? context.Request.RawUrl;
         bool rootRequest = originalUrl == "/" || originalUrl.StartsWith("/?", StringComparison.Ordinal);
@@ -572,9 +613,9 @@ public class HaRelay : HttpTaskAsyncHandler
         bool nativeClient = context.Request.Headers["Origin"] == null && ConfigurationManager.AppSettings["HaTunnelNativeClientsEnabled"] == "true";
         bool originAllowed = RelayPolicy.GoodWebSocketOrigin(context.Request.Headers["Origin"], nativeClient, path);
         if (context.IsWebSocketRequest && !originAllowed) { HaTunnel.RecordRefusal(ip, path, "origin"); context.Response.StatusCode = 403; return; }
-        if (!HaTunnel.ForwardingEnabled) { context.Response.StatusCode = 503; context.Response.Write("Relay disabled"); return; }
+        if (!HaTunnel.ForwardingEnabled) { HaTunnel.ErrorPage(context, 503, "Remote access is turned off", "Turn on forwarding in the Home Tunnel app in Home Assistant."); return; }
         var connector = HaTunnel.Connector;
-        if (connector == null || connector.Lifetime.IsCancellationRequested || !connector.IsReady) { context.Response.StatusCode = 503; context.Response.Write("Home connector offline"); return; }
+        if (connector == null || connector.Lifetime.IsCancellationRequested || !connector.IsReady) { HaTunnel.ErrorPage(context, 503, "Home Assistant is reconnecting", retry: true); return; }
         if (!RelayPolicy.Methods.Contains(context.Request.HttpMethod)) { context.Response.StatusCode = 405; return; }
         if (context.IsWebSocketRequest && (!RelayPolicy.AllowedWebSocketPath(path) || !originAllowed)) { HaTunnel.RecordRefusal(ip, path, "path"); context.Response.StatusCode = 403; return; }
         RelayLease lease;
@@ -633,6 +674,7 @@ public class HaRelay : HttpTaskAsyncHandler
                 }
                 context.Response.Headers["X-Content-Type-Options"] = "nosniff";
                 if ((string)reply["type"] == "http_start") {
+                    context.Items["HaStreaming"] = true;
                     context.Response.BufferOutput = false;
                     using (var timer = CancellationTokenSource.CreateLinkedTokenSource(connector.Lifetime.Token)) {
                         timer.CancelAfter(60000); int sequence = 0; long total = 0;
@@ -647,6 +689,8 @@ public class HaRelay : HttpTaskAsyncHandler
                     return;
                 }
                 var bytes = RelayPolicy.LoginPage(path, (int)reply["status"], context.Response.ContentType, RelayPolicy.Payload(reply["body"], RelayPolicy.HttpLimit));
+                // The connector answers a failed request with an empty 5xx; give it a real body.
+                if ((int)reply["status"] >= 500 && bytes.Length == 0) { HaTunnel.ErrorPage(context, (int)reply["status"], retry: true); return; }
                 context.Items["HaResponseBytes"] = (long)bytes.Length;
                 using (var timer = CancellationTokenSource.CreateLinkedTokenSource(connector.Lifetime.Token)) {
                     timer.CancelAfter(10000);

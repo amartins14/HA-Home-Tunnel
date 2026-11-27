@@ -50,7 +50,7 @@ The dashboard opens from the Home Assistant sidebar and follows your Home Assist
 | **Tunnel control** | One switch turns public forwarding on or off. A live health check confirms the public address really reaches your Home Assistant. |
 | **Paired, not configured** | The app and relay pair with a one-time setup code using challenge-response; the code itself never leaves Home Assistant. Rotate the connector key or unpair from the dashboard. |
 | **Traffic history** | Requests, latency, data sent, denied and failed answers, and sign-ins, kept per minute for 24 hours. |
-| **Who's calling** | Every caller address for 30 days, with request counts and whether it ever signed in to Home Assistant. Optional city and country lookups. |
+| **Who's calling** | Every caller address for 30 days, with request counts, the kind of device ("Safari · iPhone", "Home Assistant app · Android 14") and whether it ever signed in to Home Assistant. Optional city and country lookups. |
 | **App web UIs** | Zigbee2MQTT, Node-RED, ESPHome and other app web UIs work through the tunnel, live updates included. |
 | **Blocking** | Block an address or range at the relay, for an hour, a day or for good. Blocked callers never reach Home Assistant. |
 | **Automatic lockdown** | Blocks an address after too many denied answers or login attempts. Home Assistant's own IP ban can't do this behind a tunnel, because every request reaches it from the app. |

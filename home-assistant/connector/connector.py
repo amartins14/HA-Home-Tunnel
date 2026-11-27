@@ -157,6 +157,9 @@ class Connector:
 
     async def websocket(self, message):
         connection_id = message["id"]
+        # The relay sends the browser's address with every socket; its User-Agent says what device it is.
+        if "client_ip" in message:
+            METRICS.observe_device(message["client_ip"], message["headers"].get("user-agent"))
         try:
             async with asyncio.timeout(10):
                 socket = await self.local.ws_connect(URL(local_url(message["path"]), encoded=True), headers=message["headers"], max_msg_size=MAX_WS, heartbeat=30, compress=0, timeout=aiohttp.ClientWSTimeout(ws_receive=90, ws_close=5))
