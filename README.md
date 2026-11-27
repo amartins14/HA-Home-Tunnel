@@ -37,9 +37,9 @@ The relay is not a login system. Home Assistant's own sign-in, MFA and user perm
 
 ## Screenshots
 
-| Overview | Activity | Settings |
+| Overview | Activity | Security |
 | --- | --- | --- |
-| <img src="docs/images/overview.jpg" alt="Overview: tunnel status, forwarding switch and 24-hour traffic charts" width="280"> | <img src="docs/images/activity.jpg" alt="Activity: callers by country, caller list with sign-in status and block buttons" width="280"> | <img src="docs/images/settings.jpg" alt="Settings: automatic lockdown, country rules and notifications" width="280"> |
+| <img src="docs/images/overview.jpg" alt="Overview: tunnel status with a 24-hour uptime strip, forwarding switch, latest block and the timeline" width="280"> | <img src="docs/images/activity.jpg" alt="Activity: one list of callers, requests and refused WebSockets, with one status per caller" width="280"> | <img src="docs/images/security.jpg" alt="Security: blocked addresses, the country rule and automatic lockdown" width="280"> |
 
 The dashboard opens from the Home Assistant sidebar and follows your Home Assistant theme.
 
@@ -49,12 +49,12 @@ The dashboard opens from the Home Assistant sidebar and follows your Home Assist
 | --- | --- |
 | **Tunnel control** | One switch turns public forwarding on or off. A live health check confirms the public address really reaches your Home Assistant. |
 | **Paired, not configured** | The app and relay pair with a one-time setup code using challenge-response; the code itself never leaves Home Assistant. Rotate the connector key or unpair from the dashboard. |
-| **Traffic history** | Requests, latency, data sent, denied and failed answers, and sign-ins, kept per minute for 24 hours. |
+| **Traffic and uptime** | Requests, latency, data sent, denied and failed answers, and sign-ins, kept per minute for 24 hours, plus a 24-hour uptime strip and a timeline of sign-ins, blocks and outages. |
 | **Who's calling** | Every caller address for 30 days, with request counts, the kind of device ("Safari · iPhone", "Home Assistant app · Android 14") and whether it ever signed in to Home Assistant. Countries are looked up offline; city names are optional. |
 | **App web UIs** | Zigbee2MQTT, Node-RED, ESPHome and other app web UIs work through the tunnel, live updates included. |
 | **Blocking** | Block an address or range at the relay, for an hour, a day or for good. Blocked callers never reach Home Assistant. |
 | **Automatic lockdown** | Blocks an address after too many denied answers or login attempts. Home Assistant's own IP ban can't do this behind a tunnel, because every request reaches it from the app. |
-| **Country rules** | Block listed countries, or allow only the ones you list, using an offline country database: no rate limits, and no caller address leaves your home. The rule applies to everyone, signed in or not. |
+| **Country rules** | Block listed countries, or allow only the ones you list, using an offline country database: no rate limits, and no caller address leaves your home. The rule applies to everyone, signed in or not; travel mode lets a country through for a while. |
 | **Notifications** | Through Home Assistant: tunnel offline, new sign-in location, attacks, blocks, relay updates and an expiring HTTPS certificate. |
 | **CSV export** | Callers, recent requests and traffic history. |
 | **Entities (optional)** | The Home Tunnel integration adds status, traffic and security sensors to Home Assistant. |

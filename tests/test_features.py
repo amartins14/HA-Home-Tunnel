@@ -122,6 +122,16 @@ class DeviceTests(unittest.TestCase):
 
 
 class ServiceFeatureTests(unittest.IsolatedAsyncioTestCase):
+    def setUp(self):
+        # Keep the event log and uptime out of /data during tests.
+        directory = tempfile.TemporaryDirectory()
+        self.addCleanup(directory.cleanup)
+        self.logs = Path(directory.name)
+        for name, file in (("EVENTS", "events.json"), ("UPTIME", "uptime.json")):
+            patcher = patch.object(service, name, self.logs / file)
+            patcher.start()
+            self.addCleanup(patcher.stop)
+
     def test_block_ranges_are_normalized_and_bounded(self):
         self.assertEqual(service.normalize_cidr("203.0.113.7"), "203.0.113.7")
         self.assertEqual(service.normalize_cidr("203.0.113.9/24"), "203.0.113.0/24")
@@ -437,7 +447,7 @@ class ServiceFeatureTests(unittest.IsolatedAsyncioTestCase):
             state = self.paired_state(directory)
             sent = []
 
-            async def notify(event, title, message, target=None):
+            async def notify(event, title, message, target=None, kind=None):
                 sent.append(event)
                 return True
             metrics = {"caller_ips": [{"ip": "203.0.113.7", "status": "authenticated"}], "risk_issues": []}
@@ -453,6 +463,91 @@ class ServiceFeatureTests(unittest.IsolatedAsyncioTestCase):
                 (state / "status.json").write_text(json.dumps({"connection": "connected", "updated_at": 1400}))
                 await service.evaluate_alerts(metrics, now=1405)
                 self.assertEqual(sent, ["offline", "signin", "offline"])
+
+
+    def test_travel_entries_are_validated_and_expired_ones_dropped(self):
+        now = 1_000_000
+        travel = service.valid_travel([{"code": "ES", "until": now + 86400}, {"code": "ES", "until": now + 2 * 86400},
+                                       {"code": "FR", "until": now - 1}], now)
+        self.assertEqual(travel, [{"code": "ES", "until": now + 2 * 86400}])
+        for bad in ([{"code": "es", "until": now + 60}], [{"code": "ES", "until": now + 91 * 86400}],
+                    [{"code": "ES"}], "ES", [{"code": "ES", "until": "soon"}]):
+            with self.assertRaises(ValueError):
+                service.valid_travel(bad, now)
+
+    def test_travel_mode_lets_a_blocked_country_through_until_it_ends(self):
+        found = {"203.0.113.7": ("", "ES"), "198.51.100.2": ("", "RU")}
+        policy = {"mode": "block", "codes": ["ES", "RU"], "minutes": 60}
+        travel = [{"code": "ES", "until": 2000}]
+        added = service.apply_country_rules(found, [], policy, now=1000, travel=travel)
+        self.assertEqual([row["cidr"] for row in added], ["198.51.100.2"])
+        later = service.apply_country_rules(found, [], policy, now=2001, travel=travel)
+        self.assertEqual(sorted(row["cidr"] for row in later), ["198.51.100.2", "203.0.113.7"])
+        allow = service.apply_country_rules(found, [], {"mode": "allow", "codes": ["PT"], "minutes": 60}, now=1000, travel=travel)
+        self.assertEqual([row["cidr"] for row in allow], ["198.51.100.2"])
+
+    def test_country_blocks_know_their_country(self):
+        self.assertEqual(service.block_country({"source": "country", "reason": "Country: ES is blocked"}), "ES")
+        self.assertEqual(service.block_country({"source": "country", "reason": "Country: Madrid, Spain (ES) is not on the allowed list"}), "ES")
+        self.assertIsNone(service.block_country({"source": "manual", "reason": "Country: ES is blocked"}))
+        self.assertIsNone(service.block_country({"source": "country", "reason": "scanner"}))
+
+    async def test_turning_on_travel_mode_lifts_country_blocks_and_is_logged(self):
+        with tempfile.TemporaryDirectory() as directory:
+            state = self.paired_state(directory)
+            sent = []
+
+            async def relay(connection, action, payload=None, authenticate=True, token=None):
+                sent.append(payload)
+                return 200, {}
+            now = time.time()
+            (state / "blocks.json").write_text(json.dumps([
+                {"cidr": "203.0.113.7", "until": None, "reason": "Country: ES is blocked", "source": "country", "created": now},
+                {"cidr": "198.51.100.2", "until": None, "reason": "Country: RU is blocked", "source": "country", "created": now},
+                {"cidr": "192.0.2.1", "until": None, "reason": "Blocked by you", "source": "manual", "created": now}]))
+            (state / "settings.json").write_text(json.dumps({"homeassistant_url": "http://homeassistant:8123", "app_option_url": "http://homeassistant:8123",
+                                                              "countries": {"mode": "block", "codes": ["ES", "RU"], "minutes": 60}}))
+            with patch.object(service, "BLOCKS", state / "blocks.json"), patch.object(service, "SETTINGS", state / "settings.json"),                     patch.object(service, "APP_CONFIG", state / "missing-config.yaml"), patch.object(service, "relay_request", relay),                     patch.dict(os.environ, {"HOMEASSISTANT_URL": "http://homeassistant:8123"}):
+                response = await service.update_settings(Request({"travel": [{"code": "ES", "until": now + 7 * 86400}]}))
+                self.assertEqual(json.loads(response.text)["travel"][0]["code"], "ES")
+                self.assertEqual([row["cidr"] for row in service.read_blocks()], ["198.51.100.2", "192.0.2.1"])
+                self.assertEqual(len(sent[-1]["blocks"]), 2)
+                titles = [row["title"] for row in service.read_events()]
+                self.assertEqual(titles, ["Lifted 1 country block", "Travel mode: ES allowed"])
+                # Taking RU off the rule lifts its block too; the manual block stays.
+                response = await service.update_settings(Request({"countries": {"mode": "block", "codes": ["ES"], "minutes": 60}}))
+                self.assertEqual(json.loads(response.text)["lifted"], 1)
+                self.assertEqual([row["cidr"] for row in service.read_blocks()], ["192.0.2.1"])
+                self.assertEqual(service.read_events()[0]["title"], "Lifted 1 country block")
+                service.expire_travel(now + 8 * 86400)
+                self.assertEqual(service.app_settings()["travel"], [])
+                self.assertEqual(service.read_events()[0]["title"], "Travel mode for ES ended")
+
+    async def test_events_are_logged_newest_first_even_with_notifications_off(self):
+        with patch.object(service, "SETTINGS", self.logs / "settings.json"):
+            self.assertFalse(await service.notify("blocked", "Home Tunnel blocked an address", "203.0.113.7 was blocked."))
+            await service.notify("offline", "Home Tunnel is back online", "Reached the relay.", kind="online")
+            await service.notify("test", "Test", "Not logged")
+        events = service.read_events()
+        self.assertEqual([row["kind"] for row in events], ["online", "blocked"])
+        for n in range(service.EVENT_LIMIT + 5):
+            service.log_event("forwarding", f"Event {n}")
+        self.assertEqual(len(service.read_events()), service.EVENT_LIMIT)
+        self.assertEqual(service.read_events()[0]["title"], f"Event {service.EVENT_LIMIT + 4}")
+
+    def test_uptime_is_kept_as_runs_with_the_worst_state_per_minute(self):
+        with tempfile.TemporaryDirectory() as directory:
+            state = self.paired_state(directory)
+            base = int(time.time() // 60) * 60
+
+            def at(minute, connected=True, forwarding=True, second=0):
+                now = base + minute * 60 + second
+                (state / "status.json").write_text(json.dumps({"connection": "connected" if connected else "disconnected",
+                                                               "updated_at": now, "forwarding_enabled": forwarding}))
+                service.record_uptime(now)
+            at(0); at(0, second=30); at(1); at(2, connected=False); at(2, second=30); at(3, forwarding=False); at(6)
+            m = base // 60
+            self.assertEqual(service.read_uptime(base + 400), [[m, m + 1, 2], [m + 2, m + 2, 0], [m + 3, m + 3, 1], [m + 6, m + 6, 2]])
 
 
 if __name__ == "__main__":

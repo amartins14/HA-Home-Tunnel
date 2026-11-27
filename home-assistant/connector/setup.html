@@ -42,10 +42,12 @@
     .tabs button[aria-selected=true]{color:var(--primary-color);border-bottom-color:var(--primary-color)}
     main{max-width:960px;margin:0 auto;padding:16px 16px 64px}
     .intro{color:var(--secondary-text-color);margin:4px 4px 16px;line-height:1.45}
-    .card{background:var(--card-background-color);border-radius:var(--ha-card-border-radius);border:1px solid var(--divider-color);margin:0 0 16px;overflow:hidden}
-    .head{display:flex;gap:12px;align-items:flex-start;padding:16px 16px 12px}
-    .head h2{font-size:17px;font-weight:500;margin:2px 0 4px}
-    .head p{margin:0;font-size:14px;line-height:1.4;color:var(--secondary-text-color)}
+    .card{background:var(--card-background-color);border-radius:var(--ha-card-border-radius);border:1px solid var(--divider-color);margin:0 0 12px;overflow:hidden}
+    .head{display:flex;gap:12px;align-items:center;flex-wrap:wrap;padding:14px 16px 10px}
+    .head h2{font-size:16px;font-weight:500;margin:0}
+    .head p{margin:2px 0 0;font-size:13px;line-height:1.4;color:var(--secondary-text-color);overflow-wrap:anywhere}
+    .head p.warn{color:var(--warning-color)}
+    .head .grow{min-width:180px}
     .icon{flex:none;width:40px;height:40px;border-radius:50%;display:grid;place-items:center;background:rgba(var(--rgb-primary-color),.15);color:var(--primary-color)}
     .icon.ok{background:rgba(var(--rgb-success-color),.15);color:var(--success-color)}
     .icon.warn{background:rgba(var(--rgb-warning-color),.15);color:var(--warning-color)}
@@ -110,7 +112,11 @@
     .danger-zone{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:16px}
     .code{display:block;margin:0;padding:12px;border-radius:8px;background:var(--secondary-background-color);font-family:var(--code-font-family);font-size:13px;overflow-wrap:anywhere;user-select:all}
     .tiles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));border-top:1px solid var(--divider-color)}
-    .tile{padding:14px 16px;border-left:1px solid var(--divider-color);min-width:0}
+    .tile{padding:12px 16px;border:0;border-left:1px solid var(--divider-color);min-width:0;background:none;color:inherit;font:inherit;text-align:left;cursor:pointer;box-shadow:inset 0 -2px 0 transparent}
+    .tile:hover{background:var(--secondary-background-color)}
+    .tile[aria-pressed=true]{box-shadow:inset 0 -2px 0 var(--primary-color)}
+    .tile[aria-pressed=true] .sub{color:var(--primary-color)}
+    .tile:focus-visible{outline:2px solid var(--primary-color);outline-offset:-2px}
     .tile:first-child{border-left:0}
     .tile .sub{margin:0}
     .tile strong{display:block;font-size:22px;font-weight:400;margin-top:6px;overflow-wrap:anywhere}
@@ -118,7 +124,8 @@
     .charts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0;border-top:1px solid var(--divider-color)}
     .chart{padding:12px 16px 14px;min-width:0}
     .chart+.chart{border-left:1px solid var(--divider-color)}
-    .chart svg{display:block;width:100%;height:84px;margin-top:8px;overflow:visible}
+    .chart{border-top:1px solid var(--divider-color)}
+    .chart svg{display:block;width:100%;height:150px;margin-top:8px;overflow:visible}
     .chart .line{fill:none;stroke:var(--primary-color);stroke-width:2;vector-effect:non-scaling-stroke;stroke-linejoin:round}
     .chart .area{fill:rgba(var(--rgb-primary-color),.14);stroke:none}
     .chart .grid{stroke:var(--divider-color);stroke-width:1;vector-effect:non-scaling-stroke}
@@ -139,18 +146,81 @@
     @keyframes spin{to{transform:rotate(360deg)}}
     @media (prefers-reduced-motion:reduce){.spinner{animation:none}.switch,.switch::after{transition:none}}
     .hidden{display:none!important}
+    .row.heading .title{font-size:16px}
+    .row.dense{min-height:44px;padding:8px 16px}
+    .title.path{font-weight:400;font-size:13px}
+    .title .chip{margin-left:8px;font-family:var(--ha-font-family-body);font-weight:500;vertical-align:1px}
+    .btn.icon-only{padding:6px 8px}
+    .foot{padding:10px 16px 12px;font-size:12px;color:var(--secondary-text-color);border-top:1px solid var(--divider-color)}
+    .kv{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:12px 16px;padding:4px 16px 16px}
+    .tone-warn{color:var(--warning-color)}
+    .tone-bad{color:var(--error-color)}
+    details.more{border-top:1px solid var(--divider-color)}
+    details.more>summary,details.fold>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:8px}
+    details.more>summary{padding:12px 16px;color:var(--primary-color);font-weight:500}
+    details.more>summary::-webkit-details-marker,details.fold>summary::-webkit-details-marker{display:none}
+    details.more>summary:hover,details.fold>summary:hover{background:var(--secondary-background-color)}
+    details[open]>summary>.chev{transform:rotate(180deg)}
+    details.fold[open]>summary{border-bottom:1px solid var(--divider-color)}
+    details.fold>summary+.row{border-top:0}
+    summary:focus-visible{outline:2px solid var(--primary-color);outline-offset:-2px}
+    .inline-form{display:flex;gap:8px;flex-wrap:wrap;padding:12px 16px 16px;border-top:1px solid var(--divider-color)}
+    .inline-form input{flex:1;min-width:200px;width:auto}
+    .chip-select{max-width:160px;min-height:26px;padding:2px 8px;border-radius:999px;font-size:12px;width:auto;background:none;border:1px dashed var(--divider-color);color:var(--primary-color);cursor:pointer}
+    .chip-btn{border:1px solid transparent;font:inherit;font-size:12px;cursor:pointer}
+    .chip-btn:hover{border-color:var(--divider-color)}
+    .chip-btn.danger-chip:hover{border-color:var(--error-color);color:var(--error-color)}
+    .chip .count{margin-left:6px;opacity:.7}
+    .toolbar{flex-direction:column;align-items:stretch;gap:8px}
+    .toolbar input{width:100%}
+    .toolbar-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+    .toolbar-row select{flex:0 1 auto;min-height:40px}
+    .toolbar-row.nowrap{flex-wrap:nowrap}
+    .toolbar-row input{flex:1;min-width:0}
+    .row.nowrap{flex-wrap:nowrap}
+    .row.nowrap>.grow{min-width:0}
+    .side{display:flex;align-items:center;gap:4px;flex:none}
+    .seg button{white-space:nowrap}
+    .notice{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+    .notice .btn{margin-top:0}
+    .card>.row:first-child,.card>.row.heading{border-top:0}
+    .tl{align-items:flex-start}
+    .tl>.dot{margin-top:6px}
+    .tl .when{white-space:nowrap;margin-top:2px}
+    .tl.now{background:rgba(var(--rgb-warning-color),.06)}
+    .dot.info{background:var(--primary-color);box-shadow:0 0 0 3px rgba(var(--rgb-primary-color),.25)}
+    .uptime{padding:0 16px 12px}
+    .strip{display:flex;gap:1px;height:22px}
+    .strip span{flex:1;border-radius:2px;background:var(--divider-color)}
+    .strip .u2{background:var(--success-color)}
+    .strip .u1{background:var(--warning-color)}
+    .strip .u0{background:var(--error-color)}
+    .btn .box{width:14px;height:14px;border:2px solid currentColor;border-radius:3px;display:inline-block}
+    .btn .box.checked{background:currentColor;box-shadow:inset 0 0 0 2px var(--card-background-color)}
+    body.locked{overflow:hidden}
+    .overlay{position:fixed;inset:0;z-index:10;background:rgba(0,0,0,.45);display:flex;justify-content:flex-end}
+    .panel{width:min(440px,100%);height:100%;background:var(--card-background-color);border-left:1px solid var(--divider-color);display:flex;flex-direction:column;box-shadow:-8px 0 24px rgba(0,0,0,.25)}
+    .panel-head{display:flex;align-items:center;gap:4px;padding:10px 8px 10px 16px;border-bottom:1px solid var(--divider-color)}
+    .panel-head h2{font-size:17px;font-weight:500;margin:0;overflow-wrap:anywhere}
+    .panel-head h2 .chip{margin-left:8px;font-family:var(--ha-font-family-body);vertical-align:2px}
+    #panel-close{font-size:24px;line-height:1;padding:4px 12px}
+    .panel-body{flex:1;overflow-y:auto;padding-bottom:24px}
+    .panel-body .row select{width:auto}
+    @media (max-width:600px){.overlay{align-items:flex-end}.panel{height:88%;border-left:0;border-radius:16px 16px 0 0}}
     @media (max-width:700px){
       .tiles{grid-template-columns:repeat(2,minmax(0,1fr))}
       .tile:nth-child(3){border-left:0}
       .tile:nth-child(n+3){border-top:1px solid var(--divider-color)}
       .charts{grid-template-columns:minmax(0,1fr)}
-      .chart+.chart{border-left:0;border-top:1px solid var(--divider-color)}
+      .chart svg{height:120px}
     }
     @media (max-width:600px){
       main{padding:12px 12px 64px}
       .bar{padding:0 12px}
-      .tabs button{flex:1;padding:12px 8px}
+      .tabs button{flex:1;padding:12px 4px}
       .value{text-align:left}
+      .side{flex-direction:column;align-items:flex-end}
+      .seg button{padding:6px 10px}
     }
   </style>
 </head>
@@ -180,7 +250,8 @@
   ICONS.bell = 'M21,19V20H3V19L5,17V11C5,7.9 7.03,5.17 10,4.29C10,4.19 10,4.1 10,4A2,2 0 0,1 12,2A2,2 0 0,1 14,4C14,4.1 14,4.19 14,4.29C16.97,5.17 19,7.9 19,11V17L21,19M14,21A2,2 0 0,1 12,23A2,2 0 0,1 10,21';
   ICONS.lock = 'M12,17A2,2 0 0,0 14,15C14,13.89 13.1,13 12,13A2,2 0 0,0 10,15A2,2 0 0,0 12,17M18,8A2,2 0 0,1 20,10V20A2,2 0 0,1 18,22H6A2,2 0 0,1 4,20V10C4,8.89 4.9,8 6,8H7V6A5,5 0 0,1 12,1A5,5 0 0,1 17,6V8H18M12,3A3,3 0 0,0 9,6V8H15V6A3,3 0 0,0 12,3Z';
   ICONS.download = 'M5,20H19V18H5M19,9H15V3H9V9H5L12,16L19,9Z';
-  const TABS = [['overview', 'Overview'], ['activity', 'Activity'], ['settings', 'Settings']];
+  const CHEVRON = 'M7.41,8.58L12,13.17L16.59,8.58L18,10L12,16L6,10L7.41,8.58Z';
+  const TABS = [['overview', 'Overview'], ['activity', 'Activity'], ['security', 'Security'], ['settings', 'Settings']];
   const WINDOWS = [[60, '1 h'], [360, '6 h'], [1440, '24 h']];
   const CALLER_FILTERS = [['all', 'All'], ['authenticated', 'Signed in'], ['unknown', 'Unknown']];
   const BLOCK_DURATIONS = [['60', '1 hour'], ['1440', '1 day'], ['10080', '1 week'], ['43200', '30 days'], ['', 'Until I unblock it']];
@@ -204,7 +275,10 @@
   const countryName = code => { try { return regionNames?.of(code) || code; } catch (error) { return code; } };
   // A two-letter country code, shown as a small tag in place of a flag.
   const countryTag = code => /^[A-Z]{2}$/.test(code || '') ? el('span', {class: 'cc', title: countryName(code)}, code) : null;
-  const COUNTRY_MODES = [['off', 'Off'], ['block', 'Block listed'], ['allow', 'Allow only listed']];
+  const TRAVEL_DAYS = [['1', '1 day'], ['3', '3 days'], ['7', '1 week'], ['14', '2 weeks'], ['30', '30 days'], ['90', '90 days']];
+  const EVENT_TONES = {offline: 'bad', online: 'ok', signin: 'info', attention: 'warn', blocked: 'bad', unblocked: 'ok',
+    relay_update: 'info', certificate: 'warn', forwarding: '', rule: '', travel: 'info'};
+  const COUNTRY_MODES = [['off', 'Off'], ['block', 'Block these'], ['allow', 'Only allow these']];
 
   const state = {
     tab: TABS.some(([id]) => id === location.hash.slice(1)) ? location.hash.slice(1) : 'overview',
@@ -213,6 +287,7 @@
     setupMessage: '', publicUrl: '', geoSaving: false,
     blocks: null, blockCidr: '', blockMinutes: '1440', myIp: null,
     targets: null, lockdownDraft: null, countries: {}, country: '', countryPick: '',
+    view: 'callers', metric: 'rate', open: {}, caller: null, problems: false, timeline: null, travelPick: '', travelDays: '7',
   };
 
   // ---------- helpers ----------
@@ -258,8 +333,8 @@
   function duration(seconds) {
     seconds = Math.max(0, Math.round(num(seconds)));
     const d = Math.floor(seconds / 86400), h = Math.floor(seconds % 86400 / 3600), m = Math.floor(seconds % 3600 / 60);
-    if (d) return `${d} d ${h} h`;
-    if (h) return `${h} h ${m} min`;
+    if (d) return h ? `${d} d ${h} h` : `${d} d`;
+    if (h) return m ? `${h} h ${m} min` : `${h} h`;
     if (m) return `${m} min`;
     return `${seconds} s`;
   }
@@ -385,7 +460,7 @@
     // Leave any text field so the result can be shown (render waits while someone types).
     if (document.activeElement?.matches?.('input')) document.activeElement.blur();
     state.busy = true; render();
-    try { await work(); if (done) say(done); await refreshStatus(); }
+    try { await work(); if (done) say(done); await refreshStatus(); refreshTimeline(); }
     catch (error) { say(error.message || 'Something went wrong.', true); }
     state.busy = false; render();
   }
@@ -397,11 +472,19 @@
   }
 
   // ---------- building blocks ----------
-  function section(iconPath, title, text, extra, ...body) {
+  function section(title, text, extra, ...body) {
     return el('section', {class: 'card'},
-      el('div', {class: 'head'}, iconPath ? el('div', {class: 'icon'}, icon(iconPath)) : null,
-        el('div', {class: 'grow'}, el('h2', {}, title), text ? el('p', {}, text) : null), extra),
+      el('div', {class: 'head'}, el('div', {class: 'grow'}, el('h2', {}, title), text ? el('p', {}, text) : null), extra),
       body);
+  }
+  // Pages are rebuilt on every refresh, so open/closed state lives in state.open.
+  function more(key, label, ...body) {
+    return el('details', {class: 'more', open: !!state.open[key], ontoggle: e => { state.open[key] = e.target.open; }},
+      el('summary', {}, el('span', {class: 'grow'}, label), icon(CHEVRON, 'chev')), body);
+  }
+  function fold(key, title, text, ...body) {
+    return el('details', {class: 'card fold', open: !!state.open[key], ontoggle: e => { state.open[key] = e.target.open; }},
+      el('summary', {class: 'head'}, el('div', {class: 'grow'}, el('h2', {}, title), text ? el('p', {}, text) : null), icon(CHEVRON, 'chev')), body);
   }
   function factRow(title, value, sub, tone) {
     return el('div', {class: 'row'},
@@ -409,9 +492,9 @@
       value != null ? el('div', {class: 'value'}, value) : null);
   }
   let switchId = 0;
-  function toggleRow(title, sub, checked, onChange, disabled = false, tone = '') {
+  function toggleRow(title, sub, checked, onChange, disabled = false, tone = '', heading = false) {
     const id = `s${++switchId}`;
-    return el('div', {class: 'row'},
+    return el('div', {class: `row${heading ? ' heading' : ''}`},
       el('label', {class: 'grow', for: id}, el('div', {class: 'title'}, title), sub ? el('div', {class: `sub${tone ? ` ${tone}` : ''}`}, sub) : null),
       el('input', {type: 'checkbox', role: 'switch', class: 'switch', id, checked, disabled, onchange: e => onChange(e.target.checked, e.target)}));
   }
@@ -443,11 +526,17 @@
     let body;
     if (!state.status) body = el('section', {class: 'card'}, el('div', {class: 'empty'}, state.statusError ? `Couldn’t load Home Tunnel: ${state.statusError}` : 'Loading…'));
     else if (state.tab === 'activity') body = renderActivity();
+    else if (state.tab === 'security') body = renderSecurity();
     else if (state.tab === 'settings') body = renderSettings();
     else body = state.status.paired ? renderOverview() : renderSetup();
     const scroll = window.scrollY;
-    document.getElementById('app').replaceChildren(top, el('main', {}, status, body));
+    const panelScroll = document.querySelector('.panel-body')?.scrollTop || 0;
+    const panel = state.caller && state.status?.paired ? renderCallerPanel() : null;
+    document.getElementById('app').replaceChildren(top, el('main', {}, status, body), panel);
+    document.body.classList.toggle('locked', !!panel);
     if (scroll) window.scrollTo(0, scroll);
+    const panelBody = document.querySelector('.panel-body');
+    if (panelScroll && panelBody) panelBody.scrollTop = panelScroll;
     const again = focusId && document.getElementById(focusId);
     if (again) {
       again.focus();
@@ -455,6 +544,7 @@
     }
   }
   document.addEventListener('focusout', () => setTimeout(() => { if (pendingRender) render(); }, 0));
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && state.caller) closeCaller(); });
 
   function setTab(id) {
     state.tab = id;
@@ -540,79 +630,138 @@
       : s.forwarding_enabled ? (self ? 'On. You are using it right now: turning it off disconnects this page.' : 'On: the public URL reaches Home Assistant.')
       : 'Off: the relay answers, but nothing reaches Home Assistant.';
 
-    const tunnelCard = el('section', {class: 'card'},
+    const kv = (label, value, tone) => el('div', {}, el('div', {class: 'sub', style: 'margin:0'}, label),
+      el('div', {class: `title${tone ? ` tone-${tone}` : ''}`}, value));
+    const details = m ? more('details', 'Connection details', el('div', {class: 'kv'},
+      kv('Connector', s.connected ? 'Connected' : (s.error || 'Reconnecting…'), s.connected ? '' : 'bad'),
+      kv('Public health check', m.public_reachable ? `Passing · ${m.public_check_age_seconds != null ? `${fmt(m.public_check_age_seconds)} s ago` : 'recently'}`
+        : s.forwarding_enabled ? `Failing${m.public_check_failures ? ` · ${plural(num(m.public_check_failures), 'failure')}` : ''}` : 'Paused', m.public_reachable || !s.forwarding_enabled ? '' : 'warn'),
+      kv('Uptime', duration(m.uptime_seconds)),
+      kv('Automatic reconnects', fmt(m.automatic_reconnects)),
+      kv('Callers, last 15 min', fmt(m.unique_ips_15m)),
+      kv('Signed-in sessions', fmt(m.authenticated_connections)),
+      kv('Open WebSockets', fmt(m.active_ws)),
+      kv('Denied, last 5 min', fmt(m.denied_5m), num(m.denied_5m) >= 10 ? 'warn' : ''),
+      kv('Server errors, last 5 min', fmt(m.failures_5m), num(m.failures_5m) >= 5 ? 'warn' : ''),
+      num(m.queued_http) ? kv('Queued requests', fmt(m.queued_http), 'warn') : null,
+      kv('Audit log', m.audit_healthy === false ? 'Not writing' : 'OK', m.audit_healthy === false ? 'warn' : ''),
+      num(m.events_dropped) ? kv('Dropped audit events', fmt(m.events_dropped), 'warn') : null)) : null;
+
+    const hero = el('section', {class: 'card'},
       el('div', {class: 'head'}, el('div', {class: `icon ${tunnel.tone}`}, icon(ICONS.tunnel)),
         el('div', {class: 'grow'}, el('h2', {}, tunnel.title), el('p', {}, tunnel.detail))),
+      uptimeStrip(),
       toggleRow('Forwarding', forwardingSub, !!s.forwarding_enabled, setForwarding,
         state.busy || (!s.connected && !s.forwarding_enabled), self && s.forwarding_enabled ? 'warn' : ''),
       el('div', {class: 'row'},
         el('div', {class: 'grow'}, el('div', {class: 'title'}, 'Public URL'), el('div', {class: 'sub mono'}, s.relay_url || '—')),
         s.relay_url ? el('button', {class: 'btn text', onclick: () => copy(s.relay_url, 'Public URL'), 'aria-label': 'Copy public URL', title: 'Copy'}, icon(ICONS.copy)) : null,
         s.relay_url ? el('a', {class: 'btn text', href: s.relay_url, target: '_blank', rel: 'noopener noreferrer', 'aria-label': 'Open public URL', title: 'Open'}, icon(ICONS.open)) : null),
-      factRow('Connector', null, s.connected ? 'Connected to the relay' : (s.error || 'Reconnecting to the relay…'), s.connected ? '' : 'bad'),
-      m ? factRow('Public health check', null,
-        m.public_reachable ? `Passing · checked ${m.public_check_age_seconds != null ? `${fmt(m.public_check_age_seconds)} s ago` : 'recently'}`
-          : s.forwarding_enabled ? `Failing${m.public_check_failures ? ` · ${plural(num(m.public_check_failures), 'failed check')}` : ''}` : 'Runs while forwarding is on',
-        m.public_reachable || !s.forwarding_enabled ? '' : 'warn') : null);
+      latestBlockRow(),
+      details);
 
     const relayHealth = s.relay_health || {};
     const sync = state.blocks?.sync;
+    const notice = (title, sub, tone = 'warn', action = null) => el('div', {class: 'row dense tl now', role: tone === 'info' ? null : 'alert'},
+      el('span', {class: `dot ${tone}`, 'aria-hidden': 'true'}),
+      el('div', {class: 'grow'}, el('div', {class: 'title'}, title), sub ? el('div', {class: 'sub'}, sub) : null),
+      action || el('div', {class: 'sub when'}, 'Now'));
     const notices = [
-      issues.length ? el('div', {class: 'notice', role: 'alert'}, el('div', {class: 'title'}, 'Needs attention'),
-        el('ul', {}, issues.map(issue => el('li', {}, issue))),
-        el('button', {class: 'btn', onclick: () => setTab('activity')}, 'See activity')) : null,
-      relayHealth.certificate_error ? el('div', {class: 'notice', role: 'alert'}, el('div', {class: 'title'},
-        relayHealth.certificate_error === 'not_trusted' ? 'The relay’s HTTPS certificate isn’t trusted' : 'Couldn’t check the relay’s HTTPS certificate'),
-        el('div', {class: 'sub'}, relayHealth.certificate_error === 'not_trusted' ? 'Browsers will warn visitors. Renew or fix the certificate on the IIS host.' : 'The relay didn’t answer the last certificate check.')) : null,
-      typeof relayHealth.certificate_days_left === 'number' && relayHealth.certificate_days_left < 14 ? el('div', {class: 'notice', role: 'alert'},
-        el('div', {class: 'title'}, relayHealth.certificate_days_left < 0 ? 'The relay’s HTTPS certificate has expired' : `The relay’s HTTPS certificate expires in ${plural(relayHealth.certificate_days_left, 'day')}`),
-        el('div', {class: 'sub'}, 'Renew it on the IIS host before it runs out.')) : null,
-      sync && sync.ok === false && state.blocks.blocks.length ? el('div', {class: 'notice', role: 'alert'},
-        el('div', {class: 'title'}, 'Blocked addresses aren’t enforced'),
-        el('div', {class: 'sub'}, sync.error === 'relay_too_old' ? 'The relay is too old to enforce blocks. Update it to 0.5.0 or newer.' : 'The relay couldn’t be reached to update its block list. Retrying.')) : null,
-      s.rotation_pending ? el('div', {class: 'notice'}, el('div', {class: 'title'}, 'Key rotation is finishing'),
-        el('div', {class: 'sub'}, 'The relay hasn’t confirmed the new connector key yet. Both keys work until it does.')) : null,
-      s.relay_update_available && !latestDev ? el('div', {class: 'notice info'},
-        el('div', {class: 'title'}, `Relay ${s.latest_relay_version} is available`),
-        el('div', {class: 'sub'}, `Your relay runs ${s.relay_version}. The relay is updated by hand on the IIS host.`),
-        el('button', {class: 'btn', onclick: () => setTab('settings')}, 'Update details')) : null,
-    ];
+      issues.length ? notice('Needs attention', issues.join(' '), 'warn', el('button', {class: 'btn text', onclick: () => setTab('activity')}, 'Activity')) : null,
+      relayHealth.certificate_error ? notice(relayHealth.certificate_error === 'not_trusted' ? 'The relay’s HTTPS certificate isn’t trusted' : 'Couldn’t check the relay’s HTTPS certificate',
+        relayHealth.certificate_error === 'not_trusted' ? 'Browsers will warn visitors. Renew or fix the certificate on the IIS host.' : 'The relay didn’t answer the last certificate check.') : null,
+      typeof relayHealth.certificate_days_left === 'number' && relayHealth.certificate_days_left < 14
+        ? notice(relayHealth.certificate_days_left < 0 ? 'The relay’s HTTPS certificate has expired' : `The relay’s HTTPS certificate expires in ${plural(relayHealth.certificate_days_left, 'day')}`,
+          'Renew it on the IIS host before it runs out.') : null,
+      sync && sync.ok === false && state.blocks.blocks.length ? notice('Blocked addresses aren’t enforced',
+        sync.error === 'relay_too_old' ? 'The relay is too old to enforce blocks. Update it to 0.5.0 or newer.' : 'The relay couldn’t be reached to update its block list. Retrying.') : null,
+      s.rotation_pending ? notice('Key rotation is finishing', 'The relay hasn’t confirmed the new connector key yet. Both keys work until it does.') : null,
+      s.relay_update_available && !latestDev ? notice(`Relay ${s.latest_relay_version} is available`, `Your relay runs ${s.relay_version}. It’s updated by hand on the IIS host.`, 'info',
+        el('button', {class: 'btn text', onclick: () => setTab('settings')}, 'Details')) : null,
+    ].filter(Boolean);
 
-    const tile = (label, value, unit) => el('div', {class: 'tile'}, el('div', {class: 'sub'}, label),
-      el('strong', {}, value, unit ? el('small', {}, unit) : null));
+    // The numbers double as the chart picker.
     const series = historySeries();
     const windowName = WINDOWS.find(([v]) => v === state.histWindow)[1];
-    const traffic = section(ICONS.chart, 'Traffic',
-      m ? `Live numbers from ${m.telemetry_age_seconds != null ? `${fmt(m.telemetry_age_seconds)} s` : 'moments'} ago. Charts keep 24 hours.` : telemetryReason(),
+    const tile = (id, label, value, unit) => el('button', {class: 'tile', type: 'button', 'aria-pressed': String(state.metric === id),
+      onclick: () => { state.metric = id; render(); }}, el('div', {class: 'sub'}, label), el('strong', {}, value, unit ? el('small', {}, unit) : null));
+    const CHARTS = {
+      rate: ['Requests per minute', series.rate, 1, undefined],
+      latency: ['Average latency (ms)', series.latency, 0, undefined],
+      bad: ['Denied and failed per minute', series.bad, 1, undefined],
+      bytes: ['Data sent per minute', series.bytes, 0, bytes],
+    };
+    const [label, points, digits, format] = CHARTS[state.metric] || CHARTS.rate;
+    const traffic = section('Traffic',
+      m ? null : telemetryReason(),
       segmented(WINDOWS, state.histWindow, value => { state.histWindow = value; render(); }, 'Chart window'),
       el('div', {class: 'tiles'},
-        tile('Requests', m ? fmt(m.requests_per_minute, 1) : '—', '/min'),
-        tile('Latency', m ? fmt(m.recent_latency_ms) : '—', 'ms'),
-        tile('Data out', m ? fmt(m.http_kib_per_second, 1) : '—', 'KiB/s'),
-        tile('Open WebSockets', m ? fmt(m.active_ws) : '—')),
-      el('div', {class: 'charts'},
-        chart('Requests per minute', series.rate, 1, series),
-        chart('Average latency (ms)', series.latency, 0, series),
-        chart('Denied and failed per minute', series.bad, 1, series),
-        chart('Data sent per minute', series.bytes, 0, series, bytes)),
+        tile('rate', 'Requests', m ? fmt(m.requests_per_minute, 1) : '—', '/min'),
+        tile('latency', 'Latency', m ? fmt(m.recent_latency_ms) : '—', 'ms'),
+        tile('bad', 'Denied and errors', m ? fmt(num(m.denied_5m) + num(m.failures_5m)) : '—', '/5 min'),
+        tile('bytes', 'Data out', m ? fmt(m.http_kib_per_second, 1) : '—', 'KiB/s')),
+      chart(label, points, digits, series, format),
       el('div', {class: 'row'}, el('div', {class: 'grow sub'}, series.total
         ? `${fmt(series.total)} requests, ${bytes(series.totalBytes)} sent and ${plural(series.signins, 'sign-in')} in the last ${windowName}.`
         : `No traffic recorded in the last ${windowName}.`),
-        state.history?.available ? el('button', {class: 'btn text', onclick: exportHistory}, icon(ICONS.download), 'Export CSV') : null));
+        state.history?.available ? el('button', {class: 'btn text', onclick: exportHistory, title: 'Export the last 24 hours as CSV'}, icon(ICONS.download), 'CSV') : null));
 
-    const health = m ? section(ICONS.heart, 'Health', 'Since the connector last started',
-      null,
-      factRow('Uptime', duration(m.uptime_seconds)),
-      factRow('Automatic reconnects', fmt(m.automatic_reconnects)),
-      factRow('Callers in the last 15 minutes', fmt(m.unique_ips_15m), 'Different addresses that reached the relay'),
-      factRow('Signed-in sessions', fmt(m.authenticated_connections), 'Open Home Assistant connections that completed sign-in'),
-      num(m.queued_http) ? factRow('Queued requests', fmt(m.queued_http), 'Waiting at the relay for a free slot', 'warn') : null,
-      factRow('Denied requests', fmt(m.denied_5m), '401 and 403 answers in the last 5 minutes', num(m.denied_5m) >= 10 ? 'warn' : ''),
-      factRow('Server errors', fmt(m.failures_5m), '5xx answers in the last 5 minutes', num(m.failures_5m) >= 5 ? 'warn' : ''),
-      factRow('Audit log', m.audit_healthy === false ? 'Not writing' : 'OK', null),
-      num(m.events_dropped) ? factRow('Dropped audit events', fmt(m.events_dropped), 'Events the relay couldn’t pass on', 'warn') : null) : null;
+    return [hero, renderTimeline(notices), traffic];
+  }
 
-    return [tunnelCard, notices, traffic, health];
+  // What happened lately, with anything that needs you right now pinned on top.
+  function renderTimeline(notices) {
+    const events = state.timeline?.events || [];
+    if (!notices.length && !events.length) return null;
+    const all = !!state.open.timeline;
+    const shown = all ? events : events.slice(0, 5);
+    const row = event => {
+      const iso = new Date(event.at * 1000).toISOString();
+      return el('div', {class: 'row dense tl'},
+        el('span', {class: `dot ${EVENT_TONES[event.kind] || ''}`, 'aria-hidden': 'true'}),
+        el('div', {class: 'grow'}, el('div', {class: 'title'}, event.title), event.detail ? el('div', {class: 'sub'}, event.detail) : null),
+        el('div', {class: 'sub when', title: exact(iso)}, ago(iso)));
+    };
+    return section('Timeline', null, null, notices, shown.map(row),
+      !events.length ? el('div', {class: 'empty'}, 'Nothing has happened yet. Sign-ins, blocks and outages show up here.') : null,
+      events.length > 5 ? el('div', {class: 'row'}, el('button', {class: 'btn text', onclick: () => { state.open.timeline = !all; render(); }},
+        all ? 'Show fewer' : `Show all ${events.length}`)) : null);
+  }
+
+  // The tunnel over the last 24 hours, in 15-minute slices; a slice shows its worst minute.
+  function uptimeStrip() {
+    const t = state.timeline;
+    if (!t || !Array.isArray(t.uptime)) return null;
+    const SLICE = 15, now = t.minute, start = now - 24 * 60 + 1;
+    const slices = Array(96).fill(null);
+    let recorded = 0, online = 0;
+    for (const [first, last, value] of t.uptime) {
+      for (let minute = Math.max(first, start); minute <= Math.min(last, now); minute++) {
+        const i = Math.floor((minute - start) / SLICE);
+        slices[i] = slices[i] == null ? value : Math.min(slices[i], value);
+        recorded++; if (value === 2) online++;
+      }
+    }
+    const NAMES = ['Offline', 'Forwarding off', 'Online'];
+    const clock = minute => new Date(minute * 60000).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'});
+    return el('div', {class: 'uptime'},
+      el('div', {class: 'strip', role: 'img', 'aria-label': recorded ? `Online ${fmt(100 * online / recorded, 1)}% of the recorded last 24 hours` : 'No uptime recorded yet'},
+        slices.map((value, i) => el('span', {class: `u${value == null ? 'x' : value}`,
+          title: `${clock(start + i * SLICE)}–${clock(start + (i + 1) * SLICE)}: ${value == null ? 'not recorded' : NAMES[value]}`}))),
+      el('div', {class: 'axis'}, el('span', {}, '24 h ago'),
+        el('span', {}, recorded ? `${fmt(100 * online / recorded, recorded === online ? 0 : 1)}% online` : 'Recording from now on'), el('span', {}, 'now')));
+  }
+
+  function latestBlockRow() {
+    const rows = state.blocks?.blocks || [];
+    if (!rows.length) return null;
+    const newest = rows.reduce((a, b) => (b.created > a.created ? b : a));
+    const go = () => setTab('security');
+    return el('div', {class: 'row clickable', tabindex: '0', role: 'link', onclick: go,
+      onkeydown: e => (e.key === 'Enter' || e.key === ' ') && (e.preventDefault(), go())},
+      el('div', {class: 'grow'}, el('div', {class: 'title'}, rows.length > 1 ? `Latest block · ${rows.length} in total` : 'Latest block'),
+        el('div', {class: 'sub'}, [newest.cidr, newest.reason, ago(new Date(newest.created * 1000).toISOString())].filter(Boolean).join(' · '))),
+      icon('M8.59,16.58L13.17,12L8.59,7.41L10,6L16,12L10,18L8.59,16.58Z', 'chev'));
   }
 
   function telemetryReason() {
@@ -653,7 +802,7 @@
   }
 
   function chart(label, points, digits, series, format = value => fmt(value, digits)) {
-    const W = 300, H = 80;
+    const W = 600, H = 140;
     const {start, span} = series;
     const values = points.map(p => p[1]);
     const peak = values.length ? Math.max(...values) : null;
@@ -672,10 +821,9 @@
     return el('div', {class: 'chart'},
       el('div', {class: 'actions', style: 'justify-content:space-between'},
         el('div', {class: 'sub', style: 'margin:0'}, label),
-        el('div', {class: 'title'}, current == null ? '—' : format(current))),
+        el('div', {class: 'sub', style: 'margin:0'}, `peak ${peak != null ? format(peak) : '—'} · now ${current == null ? '—' : format(current)}`)),
       graph,
-      el('div', {class: 'axis'}, el('span', {}, state.history?.available === false ? 'History appears once the connector runs' : `${name} ago`),
-        el('span', {}, `peak ${peak != null ? format(peak) : '—'}`), el('span', {}, 'now')));
+      el('div', {class: 'axis'}, el('span', {}, state.history?.available === false ? 'History appears once the connector runs' : `${name} ago`), el('span', {}, 'now')));
   }
 
   async function setForwarding(on, input) {
@@ -719,13 +867,26 @@
     return true;
   }
 
+  // Callers per country, most requests first.
+  function countryGroups(callers) {
+    const groups = new Map();
+    for (const row of callers) {
+      const code = state.countries[row.ip];
+      if (!code) continue;
+      const g = groups.get(code) || {code, callers: 0, requests: 0};
+      g.callers++; g.requests += num(row.requests);
+      groups.set(code, g);
+    }
+    return [...groups.values()].sort((a, b) => b.requests - a.requests);
+  }
+
   function renderActivity() {
     const t = state.telemetry;
     const m = t?.available ? t.metrics : null;
-    const blocksCard = renderBlocks();
-    if (!m) return [section(ICONS.list, 'Activity', telemetryReason(), null), blocksCard];
+    if (!m) return section('Activity', telemetryReason(), null);
     const callers = Array.isArray(m.caller_ips) ? m.caller_ips : [];
     const events = Array.isArray(m.recent_requests) ? m.recent_requests.slice().reverse() : [];
+    const refused = state.status.relay_refused || [];
     const suspects = new Map((m.lockdown_candidates || []).map(row => [row.ip, row]));
     const query = state.query.trim().toLowerCase();
     const statusByIp = new Map(callers.map(row => [row.ip, row.status]));
@@ -736,179 +897,204 @@
     const shown = rows.slice(0, state.callerShown);
     const filteredEvents = events.filter(event => {
       const ip = typeof event.ip === 'string' ? event.ip : '';
+      if (state.problems && num(event.status) < 400) return false;
       return (!query || ip.toLowerCase().includes(query) || String(event.route || '').toLowerCase().includes(query))
         && inCountry(ip) && (state.filter === 'all' || (statusByIp.get(ip) || 'unknown') === state.filter);
     });
     const loc = ip => state.locations[ip] || null;
+    const groups = countriesReady() ? countryGroups(callers) : [];
 
-    const search = el('input', {type: 'search', id: 'activity-search', placeholder: 'Filter by IP address, place, device or path', value: state.query,
+    const search = el('input', {type: 'search', id: 'activity-search', placeholder: 'Filter by address, place, device or path', value: state.query,
       'aria-label': 'Filter activity', oninput: e => {
         state.query = e.target.value; state.callerShown = 25; render();
         const input = document.getElementById('activity-search');
         if (input) { input.focus(); input.setSelectionRange(input.value.length, input.value.length); }
       }});
+    const countryPick = groups.length || state.country ? el('select', {'aria-label': 'Country', id: 'activity-country',
+      onchange: e => { state.country = e.target.value; state.callerShown = 25; render(); }},
+      el('option', {value: '', selected: !state.country}, 'All countries'),
+      groups.map(g => el('option', {value: g.code, selected: g.code === state.country}, `${countryName(g.code)} (${g.callers})`))) : null;
 
     const callerRow = row => {
-      const selected = query && row.ip.toLowerCase() === query;
-      const pick = () => { state.query = selected ? '' : row.ip; render(); };
+      const pick = () => openCaller(row.ip);
       const block = blockedRow(row.ip);
       const suspect = suspects.get(row.ip);
       const stop = e => e.stopPropagation();
-      return el('div', {class: `row clickable${selected ? ' selected' : ''}`, tabindex: '0', role: 'button',
-        'aria-pressed': String(!!selected), 'aria-label': selected ? 'Show all callers' : `Show requests from ${row.ip}`,
-        onclick: pick, onkeydown: e => e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ') && (e.preventDefault(), pick())},
+      // One chip: the most important thing about this address.
+      const status = block ? chip(block.cidr === row.ip ? 'Blocked' : `Blocked by ${block.cidr}`, 'bad')
+        : suspect ? chip([suspect.denied_10m ? `${suspect.denied_10m} denied` : null,
+            suspect.logins_10m ? plural(suspect.logins_10m, 'login') : null].filter(Boolean).join(' · '), 'warn', 'Denied answers and login attempts in the last 10 minutes')
+        : row.status === 'authenticated' ? chip('Signed in', 'ok', `Signed in to Home Assistant ${ago(row.authenticated_at)} (${exact(row.authenticated_at)})`)
+        : chip('Not signed in', '', 'This address made requests but never completed a Home Assistant sign-in');
+      return el('div', {class: `row nowrap clickable${state.caller === row.ip ? ' selected' : ''}`, tabindex: '0', role: 'button',
+        'aria-label': `Details for ${row.ip}`, onclick: pick,
+        onkeydown: e => e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ') && (e.preventDefault(), pick())},
         el('div', {class: 'grow'},
-          el('div', {class: 'title mono'}, countryTag(state.countries[row.ip]), row.ip),
-          el('div', {class: 'sub'}, [loc(row.ip), plural(num(row.requests), 'request'), `last seen ${ago(row.last_seen)}`].filter(Boolean).join(' · ')),
-          el('div', {class: 'chips'},
-            row.status === 'authenticated'
-              ? chip(`Signed in to HA ${ago(row.authenticated_at)}`, 'ok', `A Home Assistant sign-in was seen from this address on ${exact(row.authenticated_at)}`)
-              : chip('No sign-in seen', 'warn', 'This address made requests but never completed a Home Assistant sign-in'),
-            block ? chip(block.cidr === row.ip ? 'Blocked' : `Blocked by ${block.cidr}`, 'bad') : null,
-            suspect ? chip([suspect.denied_10m ? plural(suspect.denied_10m, 'denied answer') : null,
-              suspect.logins_10m ? plural(suspect.logins_10m, 'login attempt') : null].filter(Boolean).join(', ') + ' in 10 min', 'warn') : null,
-            row.ip === state.myIp ? chip('You', 'info', 'The address this browser is using') : null,
-            (row.devices || []).map(device => chip(device, 'info', 'Device type, from the browser or app that opened Home Assistant from this address')),
-            row.first_seen ? chip(`First seen ${ago(row.first_seen)}`) : null)),
+          el('div', {class: 'title mono'}, countryTag(state.countries[row.ip]), row.ip,
+            row.ip === state.myIp ? chip('You', 'info', 'The address this browser is using') : null),
+          el('div', {class: 'sub', title: row.first_seen ? `First seen ${exact(row.first_seen)}` : null},
+            [loc(row.ip), (row.devices || []).join(', '), plural(num(row.requests), 'request'), `last seen ${ago(row.last_seen)}`].filter(Boolean).join(' · '))),
+        el('div', {class: 'side'}, status,
         block
           ? el('button', {class: 'btn text', disabled: state.busy, onclick: e => { stop(e); unblock(block.cidr); }, onkeydown: stop}, 'Unblock')
-          : el('button', {class: 'btn text danger', disabled: state.busy, onclick: e => { stop(e); blockAddress(row.ip, row.status === 'authenticated'); },
-            onkeydown: stop, 'aria-label': `Block ${row.ip}`}, icon(ICONS.block), 'Block'));
+          : el('button', {class: 'btn text danger icon-only', disabled: state.busy, onclick: e => { stop(e); blockAddress(row.ip, row.status === 'authenticated'); },
+            onkeydown: stop, 'aria-label': `Block ${row.ip}`, title: `Block ${row.ip}`}, icon(ICONS.block))));
     };
 
-    const statusTone = code => code >= 500 ? 'bad' : code >= 400 ? 'warn' : code >= 300 ? 'info' : 'ok';
-    const eventRow = event => el('div', {class: 'row'},
-      chip(event.method || '—', 'method'),
-      el('div', {class: 'grow'},
-        el('div', {class: 'title mono', style: 'font-weight:400;font-size:13px'}, event.route || '/'),
-        el('div', {class: 'sub'}, [isIp(event.ip) ? event.ip : 'IP unavailable', loc(event.ip),
-          event.duration_ms != null ? `${fmt(event.duration_ms)} ms` : null,
-          event.observed_at ? ago(event.observed_at) : null].filter(Boolean).join(' · '))),
-      chip(String(event.status ?? '—'), statusTone(num(event.status))));
+    const eventRow = event => requestRow(event);
+    const reason = code => code === 'origin' ? ['From another website', 'The browser page that opened it wasn’t your public address.']
+      : ['Path not allowed', 'Only Home Assistant’s WebSocket and app web UI sockets go through.'];
+    const refusedRow = row => el('div', {class: 'row dense'},
+      el('div', {class: 'grow'}, el('div', {class: 'title mono path'}, row.route),
+        el('div', {class: 'sub'}, [isIp(row.ip) ? row.ip : 'IP unavailable', state.locations[row.ip], ago(row.at)].filter(Boolean).join(' · '))),
+      chip(reason(row.reason)[0], 'warn', reason(row.reason)[1]));
 
-    const historyNote = m.caller_ip_history_ok === false ? 'History storage is unavailable; addresses are kept in memory only.'
-      : `Kept privately in Home Assistant for ${m.caller_ip_retention_days || 30} days · ${plural(callers.length, 'address', 'addresses')}`;
-    const csv = (what, run) => el('button', {class: 'btn text', onclick: run, 'aria-label': `Export ${what} as CSV`, title: `Export ${what} as CSV`},
-      icon(ICONS.download), 'CSV');
+    const filtered = query || state.filter !== 'all' || state.country;
+    const VIEWS = [['callers', `Callers ${filtered ? `${rows.length}/` : ''}${callers.length}`],
+      ['requests', `Requests ${filtered || state.problems ? `${filteredEvents.length}/` : ''}${events.length}`],
+      ...(refused.length ? [['refused', `Refused ${refused.length}`]] : [])];
+    const view = VIEWS.some(([id]) => id === state.view) ? state.view : 'callers';
+    const csv = view === 'callers' && callers.length ? () => exportCallers(m) : view === 'requests' && events.length ? () => exportRequests(m) : null;
+
+    let body;
+    if (view === 'callers') {
+      body = [shown.length ? shown.map(callerRow) : el('div', {class: 'empty'}, callers.length ? 'No callers match this filter.' : 'No one has called the public URL yet.'),
+        rows.length > shown.length ? el('div', {class: 'row'}, el('div', {class: 'grow sub'}, `Showing ${shown.length} of ${rows.length}`),
+          el('button', {class: 'btn text', onclick: () => { state.callerShown += 25; render(); }}, 'Show more')) : null,
+        el('div', {class: 'foot'}, m.caller_ip_history_ok === false ? 'History storage is unavailable; addresses are kept in memory only.'
+          : `Kept privately in Home Assistant for ${m.caller_ip_retention_days || 30} days. Tap an address for details.`)];
+    } else if (view === 'requests') {
+      body = filteredEvents.length ? filteredEvents.map(eventRow)
+        : el('div', {class: 'empty'}, !events.length ? 'No requests yet.' : state.problems ? 'No denied or failed requests among the last 20.' : 'No requests match this filter.');
+    } else {
+      body = [refused.map(refusedRow), el('div', {class: 'foot'}, 'WebSockets the relay turned away. If an app’s web UI doesn’t load through the tunnel, its socket shows up here.')];
+    }
 
     return [
-      el('div', {class: 'toolbar'}, search,
-        segmented(CALLER_FILTERS, state.filter, value => { state.filter = value; state.callerShown = 25; render(); }, 'Caller filter'),
-        state.country ? el('button', {class: 'btn', onclick: () => { state.country = ''; render(); }, 'aria-label': `Stop showing only ${countryName(state.country)}`},
-          countryTag(state.country), `${countryName(state.country)} ×`) : null,
-        el('button', {class: 'btn', id: 'refresh-activity', onclick: () => { refreshTelemetry(); refreshBlocks(); }, 'aria-label': 'Refresh', title: 'Refresh'}, icon(ICONS.refresh))),
-      renderCountries(callers),
-      section(ICONS.people, 'Callers', historyNote, callers.length ? csv('callers', () => exportCallers(m)) : null,
-        shown.length ? shown.map(callerRow) : el('div', {class: 'empty'}, callers.length ? 'No callers match this filter.' : 'No one has called the public URL yet.'),
-        rows.length > shown.length ? el('div', {class: 'row'}, el('div', {class: 'grow sub'}, `Showing ${shown.length} of ${rows.length}`),
-          el('button', {class: 'btn text', onclick: () => { state.callerShown += 25; render(); }}, 'Show more')) : null),
-      section(ICONS.list, 'Recent requests', query || state.filter !== 'all'
-        ? `${plural(filteredEvents.length, 'request')} match the filter` : `The last ${plural(events.length, 'request')}, newest first`,
-        events.length ? csv('requests', () => exportRequests(m)) : null,
-        filteredEvents.length ? filteredEvents.map(eventRow) : el('div', {class: 'empty'}, events.length ? 'No requests match this filter.' : 'No requests yet.')),
-      renderRefused(),
-      blocksCard,
-      el('section', {class: 'card'}, el('div', {class: 'danger-zone'},
-        el('div', {class: 'grow'}, el('div', {class: 'title'}, 'Clear caller history'),
-          el('div', {class: 'sub'}, 'Forgets every stored caller address and sign-in marker. Blocked addresses stay blocked. This can’t be undone.')),
-        el('button', {class: 'btn danger', disabled: state.busy || !callers.length, onclick: clearHistory}, icon(ICONS.delete), 'Clear'))),
+      el('div', {class: 'toolbar'},
+        el('div', {class: 'toolbar-row nowrap'}, search,
+          el('button', {class: 'btn', id: 'refresh-activity', onclick: () => { refreshTelemetry(); refreshBlocks(); }, 'aria-label': 'Refresh', title: 'Refresh'}, icon(ICONS.refresh))),
+        el('div', {class: 'toolbar-row'},
+          segmented(CALLER_FILTERS, state.filter, value => { state.filter = value; state.callerShown = 25; render(); }, 'Caller filter'),
+          countryPick)),
+      el('section', {class: 'card'},
+        el('div', {class: 'head'},
+          el('div', {class: 'grow'}, segmented(VIEWS, view, value => { state.view = value; render(); }, 'Show')),
+          view === 'requests' ? el('button', {class: `btn text${state.problems ? ' on' : ''}`, 'aria-pressed': String(state.problems),
+            title: 'Only show denied and failed requests (4xx and 5xx)', onclick: () => { state.problems = !state.problems; render(); }},
+            el('span', {class: `box${state.problems ? ' checked' : ''}`, 'aria-hidden': 'true'}), 'Problems only') : null,
+          csv ? el('button', {class: 'btn text', onclick: csv, title: 'Export as CSV'}, icon(ICONS.download), 'CSV') : null),
+        body),
     ];
   }
 
-  function renderRefused() {
-    const rows = state.status.relay_refused || [];
-    if (!rows.length) return null;
-    const reason = code => code === 'origin' ? ['From another website', 'The browser page that opened it wasn’t your public address.']
-      : ['Path not allowed', 'Only Home Assistant’s WebSocket and app web UI sockets go through.'];
-    return section(ICONS.block, 'Refused WebSocket connections',
-      'The relay’s last refusals. If an app’s web UI doesn’t load through the tunnel, its socket shows up here.', null,
-      rows.map(row => el('div', {class: 'row'},
-        el('div', {class: 'grow'}, el('div', {class: 'title mono', style: 'font-weight:400;font-size:13px'}, row.route),
-          el('div', {class: 'sub'}, [isIp(row.ip) ? row.ip : 'IP unavailable', state.locations[row.ip], ago(row.at)].filter(Boolean).join(' · '))),
-        chip(reason(row.reason)[0], 'warn', reason(row.reason)[1]))));
+  const statusTone = code => code >= 500 ? 'bad' : code >= 400 ? 'warn' : code >= 300 ? 'info' : 'ok';
+  function requestRow(event, showIp = true) {
+    return el('div', {class: 'row dense'},
+      chip(event.method || '—', 'method'),
+      el('div', {class: 'grow'},
+        el('div', {class: 'title mono path'}, event.route || '/'),
+        el('div', {class: 'sub'}, [showIp ? (isIp(event.ip) ? event.ip : 'IP unavailable') : null, showIp ? state.locations[event.ip] : null,
+          event.duration_ms != null ? `${fmt(event.duration_ms)} ms` : null,
+          event.observed_at ? ago(event.observed_at) : null].filter(Boolean).join(' · '))),
+      chip(String(event.status ?? '—'), statusTone(num(event.status))));
   }
 
-  function renderCountries(callers) {
-    const s = state.status;
-    if (!countriesReady()) {
-      return section(ICONS.shield, 'Countries', null, null, el('div', {class: 'row'},
-        el('div', {class: 'grow sub'}, 'Country data is downloading. Countries appear here when it’s ready.'),
-        el('button', {class: 'btn', onclick: () => setTab('settings')}, 'Settings')));
-    }
-    const c = s.countries || {mode: 'off', codes: []};
-    const groups = new Map();
-    for (const row of callers) {
-      const code = state.countries[row.ip];
-      if (!code) continue;
-      const g = groups.get(code) || {code, callers: 0, requests: 0, signedIn: 0};
-      g.callers++; g.requests += num(row.requests); g.signedIn += row.status === 'authenticated' ? 1 : 0;
-      groups.set(code, g);
-    }
-    const located = [...groups.values()].reduce((sum, g) => sum + g.callers, 0);
-    const sorted = [...groups.values()].sort((a, b) => b.requests - a.requests);
-    const ruleFor = code => c.mode === 'block' ? c.codes.includes(code) : c.mode === 'allow' ? !c.codes.includes(code) : false;
-    const toggle = code => {
-      if (c.mode === 'allow') {
-        const codes = c.codes.includes(code) ? c.codes.filter(x => x !== code) : [...c.codes, code];
-        if (!codes.length) { say('Keep at least one allowed country, or turn the country rule off in Settings.', true); render(); return; }
-        return saveCountries({...c, codes});
-      }
-      const codes = c.codes.includes(code) ? c.codes.filter(x => x !== code) : [...c.codes, code];
-      if (c.mode === 'off' && !confirm(`Block callers from ${countryName(code)}? Every address from there is blocked, including ones that have signed in to Home Assistant.`)) return;
-      return saveCountries({...c, codes, mode: c.mode === 'off' ? 'block' : c.mode});
-    };
-    return section(ICONS.shield, 'Countries', located
-      ? `${plural(located, 'caller')} located in ${plural(groups.size, 'country', 'countries')}${
-          callers.some(row => !(row.ip in state.countries)) ? `; ${callers.filter(row => !(row.ip in state.countries)).length} still to look up`
-          : callers.length > located ? `; ${callers.length - located} without a known country` : ''}`
-      : 'Locations appear as callers are looked up.', null,
-      sorted.slice(0, 12).map(g => {
-        const pick = () => { state.country = state.country === g.code ? '' : g.code; state.callerShown = 25; render(); };
-        const blockedHere = ruleFor(g.code);
-        return el('div', {class: `row clickable${state.country === g.code ? ' selected' : ''}`, tabindex: '0', role: 'button',
-          'aria-label': `Show callers from ${countryName(g.code)}`, onclick: pick,
-          onkeydown: e => e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ') && (e.preventDefault(), pick())},
-          el('div', {class: 'grow'}, el('div', {class: 'title'}, countryTag(g.code), countryName(g.code)),
-            el('div', {class: 'sub'}, [plural(g.callers, 'caller'), plural(g.requests, 'request'), g.signedIn ? `${g.signedIn} signed in` : null].filter(Boolean).join(' · ')),
-            blockedHere ? el('div', {class: 'chips'}, chip(c.mode === 'allow' ? 'Not allowed' : 'Blocked country', 'bad')) : null),
-          el('button', {class: `btn text${blockedHere ? '' : ' danger'}`, disabled: state.busy, onclick: e => { e.stopPropagation(); toggle(g.code); }, onkeydown: e => e.stopPropagation()},
-            c.mode === 'allow' ? (c.codes.includes(g.code) ? 'Stop allowing' : 'Allow') : (blockedHere ? 'Unblock country' : 'Block country')));
-      }),
-      sorted.length > 12 ? el('div', {class: 'row'}, el('div', {class: 'grow sub'}, `And ${plural(sorted.length - 12, 'more country', 'more countries')}`)) : null);
+  function openCaller(ip) {
+    state.caller = ip;
+    render();
+    document.getElementById('panel-close')?.focus();
+  }
+  function closeCaller() {
+    const ip = state.caller;
+    state.caller = null;
+    render();
+    [...document.querySelectorAll('.row.clickable[aria-label]')].find(row => row.getAttribute('aria-label') === `Details for ${ip}`)?.focus();
+  }
+
+  // Everything about one caller, with block controls.
+  function renderCallerPanel() {
+    const m = state.telemetry?.available ? state.telemetry.metrics : null;
+    const ip = state.caller;
+    const row = (m?.caller_ips || []).find(r => r.ip === ip);
+    if (!row) { state.caller = null; return null; }
+    const block = blockedRow(ip);
+    const suspect = (m.lockdown_candidates || []).find(r => r.ip === ip);
+    const requests = (m.recent_requests || []).filter(e => e.ip === ip).slice().reverse();
+    const code = state.countries[ip];
+    const signedIn = row.status === 'authenticated';
+    const kv = (label, value, tone) => value ? el('div', {}, el('div', {class: 'sub', style: 'margin:0'}, label),
+      el('div', {class: `title${tone ? ` tone-${tone}` : ''}`}, value)) : null;
+    return el('div', {class: 'overlay', onclick: e => { if (e.target === e.currentTarget) closeCaller(); }},
+      el('aside', {class: 'panel', role: 'dialog', 'aria-modal': 'true', 'aria-labelledby': 'panel-title'},
+        el('div', {class: 'panel-head'},
+          el('div', {class: 'grow'}, el('h2', {id: 'panel-title', class: 'mono'}, countryTag(code), ip,
+            ip === state.myIp ? chip('You', 'info', 'The address this browser is using') : null)),
+          el('button', {class: 'btn text', onclick: () => copy(ip, 'Address'), 'aria-label': 'Copy address', title: 'Copy address'}, icon(ICONS.copy)),
+          el('button', {class: 'btn text', id: 'panel-close', onclick: closeCaller, 'aria-label': 'Close', title: 'Close'}, '×')),
+        el('div', {class: 'panel-body'},
+          el('div', {class: 'kv', style: 'padding-top:12px'},
+            kv('Status', block ? 'Blocked' : signedIn ? 'Signed in to Home Assistant' : 'Never signed in', block ? 'bad' : signedIn ? '' : 'warn'),
+            kv('Country', code ? `${countryName(code)} (${code})` : countriesReady() ? 'Unknown' : null),
+            kv('Place', state.locations[ip] || null),
+            kv('Requests', fmt(row.requests)),
+            kv('Last sign-in', signedIn ? exact(row.authenticated_at) : null),
+            kv('First seen', row.first_seen ? exact(row.first_seen) : null),
+            kv('Last seen', row.last_seen ? exact(row.last_seen) : null),
+            suspect ? kv('Last 10 minutes', [suspect.denied_10m ? `${suspect.denied_10m} denied` : null,
+              suspect.logins_10m ? plural(suspect.logins_10m, 'login attempt') : null].filter(Boolean).join(', '), 'warn') : null),
+          (row.devices || []).length ? el('div', {class: 'pad'}, el('div', {class: 'sub', style: 'margin:0 0 6px'}, 'Devices'),
+            el('div', {class: 'chips', style: 'margin:0'}, row.devices.map(device => chip(device, 'info')))) : null,
+          block
+            ? el('div', {class: 'row'}, el('div', {class: 'grow'}, el('div', {class: 'title tone-bad'}, block.cidr === ip ? 'Blocked' : `Blocked by the range ${block.cidr}`),
+                el('div', {class: 'sub'}, [block.reason, until(block.until)].filter(Boolean).join(' · '))),
+              el('button', {class: 'btn', disabled: state.busy, onclick: () => unblock(block.cidr)}, block.cidr === ip ? 'Unblock' : 'Unblock range'))
+            : el('div', {class: 'row'},
+              el('div', {class: 'grow'}, el('div', {class: 'title'}, 'Block this address'),
+                el('div', {class: 'sub'}, 'The relay turns it away before it reaches Home Assistant.')),
+              el('select', {id: 'panel-minutes', 'aria-label': 'Block for', onchange: e => { state.blockMinutes = e.target.value; }},
+                BLOCK_DURATIONS.map(([value, text]) => el('option', {value, selected: value === state.blockMinutes}, text))),
+              el('button', {class: 'btn danger', disabled: state.busy, onclick: () => blockAddress(ip, signedIn, Number(state.blockMinutes) || null)}, icon(ICONS.block), 'Block')),
+          el('div', {class: 'group'}, requests.length ? `Recent requests · ${requests.length}` : 'Recent requests'),
+          requests.length ? requests.map(event => requestRow(event, false))
+            : el('div', {class: 'empty'}, 'None of the last 20 requests came from this address.'))));
+  }
+
+  // ----- Security -----
+  function renderSecurity() {
+    return [renderBlocks(), renderCountryRule(), renderLockdown(), state.status.paired ? renderAllowed() : null];
   }
 
   function renderBlocks() {
     const b = state.blocks;
     const rows = b?.blocks || [];
     const sync = b?.sync || {};
-    const syncText = !state.status?.paired ? 'Blocks are enforced by the relay once Home Tunnel is paired.'
-      : sync.ok === true ? `The relay enforces ${plural(rows.length, 'block')}; checked ${sync.at ? ago(new Date(sync.at * 1000).toISOString()) : 'recently'}.`
+    const syncText = !state.status?.paired ? 'Enforced by the relay once Home Tunnel is paired.'
+      : sync.ok === true ? `The relay turns these away before they reach Home Assistant. Checked ${sync.at ? ago(new Date(sync.at * 1000).toISOString()) : 'recently'}.`
       : sync.error === 'relay_too_old' ? 'The relay is too old to enforce blocks. Update it to 0.5.0 or newer.'
       : sync.ok === false ? 'Couldn’t update the relay’s block list. Retrying.'
       : 'Sending the list to the relay…';
-    const form = el('form', {onsubmit: e => { e.preventDefault(); blockAddress(state.blockCidr.trim(), false, Number(state.blockMinutes) || null); }},
-      el('div', {class: 'fields', style: 'padding-top:4px'},
-        el('div', {}, el('label', {class: 'field', for: 'block-cidr'}, 'Address or range'),
-          el('input', {type: 'text', id: 'block-cidr', placeholder: '203.0.113.7 or 203.0.113.0/24', value: state.blockCidr, autocomplete: 'off',
-            spellcheck: 'false', oninput: e => { state.blockCidr = e.target.value; }})),
-        el('div', {style: 'flex:0 1 auto;min-width:160px'}, el('label', {class: 'field', for: 'block-minutes'}, 'For'),
-          el('select', {id: 'block-minutes', style: 'width:100%', onchange: e => { state.blockMinutes = e.target.value; }},
-            BLOCK_DURATIONS.map(([value, text]) => el('option', {value, selected: value === state.blockMinutes}, text)))),
-        el('div', {style: 'flex:0 0 auto;min-width:0'}, el('button', {class: 'btn primary', type: 'submit', disabled: state.busy}, icon(ICONS.block), 'Block'))));
-    return section(ICONS.block, 'Blocked addresses', 'The relay turns these away before they reach Home Assistant.', null,
-      el('div', {class: 'row'}, el('div', {class: `grow sub${sync.ok === false && rows.length ? ' warn' : ''}`}, syncText)),
-      rows.map(row => el('div', {class: 'row'},
+    const source = row => row.source === 'auto' ? 'Automatic' : row.source === 'country' ? 'Country' : 'Manual';
+    const form = el('form', {class: 'inline-form', onsubmit: e => { e.preventDefault(); blockAddress(state.blockCidr.trim(), false, Number(state.blockMinutes) || null); }},
+      el('input', {type: 'text', id: 'block-cidr', 'aria-label': 'Address or range to block', placeholder: 'Block an address or range, e.g. 203.0.113.0/24',
+        value: state.blockCidr, autocomplete: 'off', spellcheck: 'false', oninput: e => { state.blockCidr = e.target.value; }}),
+      el('select', {id: 'block-minutes', 'aria-label': 'Block for', onchange: e => { state.blockMinutes = e.target.value; }},
+        BLOCK_DURATIONS.map(([value, text]) => el('option', {value, selected: value === state.blockMinutes}, text))),
+      el('button', {class: 'btn primary', type: 'submit', disabled: state.busy}, 'Block'));
+    return el('section', {class: 'card'},
+      el('div', {class: 'head'}, el('div', {class: 'grow'}, el('h2', {}, rows.length ? `Blocked addresses · ${rows.length}` : 'Blocked addresses'),
+        el('p', {class: sync.ok === false && rows.length ? 'warn' : ''}, syncText))),
+      rows.length ? rows.map(row => el('div', {class: 'row'},
         el('div', {class: 'grow'}, el('div', {class: 'title mono'}, row.cidr),
-          el('div', {class: 'sub'}, [row.reason, until(row.until)].filter(Boolean).join(' · ')),
-          el('div', {class: 'chips'}, chip(row.source === 'auto' ? 'Automatic' : row.source === 'country' ? 'Country' : 'Manual', row.source === 'manual' ? '' : 'warn'),
-            chip(`Added ${ago(new Date(row.created * 1000).toISOString())}`))),
-        el('button', {class: 'btn text', disabled: state.busy, onclick: () => unblock(row.cidr)}, 'Unblock'))),
+          el('div', {class: 'sub', title: `Added ${exact(new Date(row.created * 1000).toISOString())}`}, [source(row), row.reason, until(row.until)].filter(Boolean).join(' · '))),
+        el('button', {class: 'btn text', disabled: state.busy, onclick: () => unblock(row.cidr)}, 'Unblock')))
+        : el('div', {class: 'empty'}, 'Nothing is blocked.'),
       form);
   }
 
   async function blockAddress(cidr, signedIn = false, minutes = 1440) {
     if (!cidr) { say('Enter an address or range to block.', true); render(); return; }
-    const mine = state.myIp && cidrContains(cidr.includes('/') ? cidr : cidr, state.myIp);
+    const mine = state.myIp && cidrContains(cidr, state.myIp);
     const warning = mine ? `You are using ${state.myIp} right now. Blocking ${cidr} cuts this browser off from Home Assistant until you unblock it from your home network. Block it anyway?`
       : signedIn ? `${cidr} has signed in to Home Assistant before. Block it anyway?`
       : null;
@@ -928,65 +1114,132 @@
     await act(async () => { await api('caller-ips/clear', {}); await refreshTelemetry(); }, 'Caller history cleared.');
   }
 
+  // Whether a country rule blocks callers from this country (travel mode lets a country through).
+  function ruleBlocks(policy, code) {
+    if (!code || policy.mode === 'off' || travelling(code)) return false;
+    return policy.mode === 'block' ? policy.codes.includes(code) : !policy.codes.includes(code);
+  }
+  const nameList = codes => {
+    const names = codes.map(countryName);
+    return names.length <= 1 ? (names[0] || '') : `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
+  };
+  // Callers from the last 30 days that a rule would block.
+  function ruleImpact(policy) {
+    const callers = state.telemetry?.metrics?.caller_ips || [];
+    const hit = callers.filter(row => ruleBlocks(policy, state.countries[row.ip]));
+    return {callers: hit.length, signedIn: hit.filter(row => row.status === 'authenticated').length,
+      countries: [...new Set(hit.map(row => state.countries[row.ip]))]};
+  }
 
-  // ----- Settings -----
-  function renderSettings() {
+  function renderCountryRule() {
     const s = state.status;
-    const latestDev = /-dev(?:\.|$)/i.test(s.latest_relay_version || '');
-    const features = s.relay_features || [];
-    let relayStatus, relayTone;
-    if (!s.relay_version) { relayStatus = s.paired ? 'Waiting for the relay to report its version' : 'Not paired'; relayTone = ''; }
-    else if (!s.latest_relay_version) { relayStatus = 'Release information isn’t available yet'; relayTone = ''; }
-    else if (latestDev) { relayStatus = `Development build ${s.latest_relay_version} is the latest; no stable release is published`; relayTone = 'info'; }
-    else if (s.relay_update_available) { relayStatus = `Update available: ${s.latest_relay_version}`; relayTone = 'warn'; }
-    else { relayStatus = 'Up to date'; relayTone = 'ok'; }
-    const link = (href, text) => href ? el('a', {class: 'btn text', href, target: '_blank', rel: 'noopener noreferrer'}, text, icon(ICONS.open)) : null;
-    const health = s.relay_health || {};
-    const certificate = health.certificate_error === 'not_trusted' ? ['Not trusted by this system', 'bad']
-      : health.certificate_error ? ['Couldn’t be checked', 'warn']
-      : typeof health.certificate_days_left === 'number'
-        ? [`Expires in ${plural(health.certificate_days_left, 'day')} (${new Date(health.certificate_expires_at * 1000).toLocaleDateString([], {dateStyle: 'medium'})})${health.certificate_issuer ? ` · ${health.certificate_issuer}` : ''}`,
-          health.certificate_days_left < 14 ? 'warn' : '']
-        : ['Checked after pairing', ''];
-    const needsRelay = feature => features.includes(feature) ? null : 'Needs relay 0.5.0 or newer.';
+    const c = s.countries || {mode: 'off', codes: [], minutes: 43200};
+    if (!countriesReady()) {
+      return section('Country rule', 'Starts working once the country database has downloaded. Its status is in Settings.', null);
+    }
+    const allow = c.mode === 'allow';
+    const add = code => {
+      state.countryPick = '';
+      if (!code) return;
+      saveCountries({...c, codes: [...c.codes, code]}, allow ? `${countryName(code)} is allowed.` : c.mode === 'block' ? `${countryName(code)} is blocked.` : `${countryName(code)} added.`);
+    };
+    const remove = code => {
+      const codes = c.codes.filter(x => x !== code);
+      if (allow && !codes.length) {
+        if (!confirm(`${countryName(code)} is the only allowed country. Removing it turns the country rule off. Continue?`)) return;
+        return saveCountries({...c, codes, mode: 'off'}, 'Country rule is off.');
+      }
+      saveCountries({...c, codes}, allow ? `${countryName(code)} is no longer allowed.` : c.mode === 'block' ? `${countryName(code)} is no longer blocked.` : `${countryName(code)} removed.`);
+    };
+    const switchMode = mode => {
+      if (mode === c.mode) return;
+      if (mode === 'allow' && !c.codes.length) { say('Add the countries to allow first, then pick Only allow these.', true); render(); return; }
+      const lead = mode === 'allow' && c.codes.length
+        ? `Only allow ${nameList(c.codes)}? Callers from every other country will be blocked.`
+        : mode === 'block' && c.mode === 'allow' && c.codes.length
+          ? `Block ${nameList(c.codes)}? They stop being the allowed countries and become the blocked ones; every other country gets through.`
+          : null;
+      saveCountries({...c, mode}, mode === 'off' ? 'Country rule is off. Its blocks were lifted.' : 'Country rule saved.', lead);
+    };
+    const available = COUNTRY_CODES.filter(code => !c.codes.includes(code))
+      .map(code => [code, countryName(code)]).sort((x, y) => x[1].localeCompare(y[1]));
+    const myCountry = state.myIp ? state.countries[state.myIp] : null;
+    const selfRisk = ruleBlocks(c, myCountry);
+    const m = state.telemetry?.available ? state.telemetry.metrics : null;
+    const seen = countryGroups(Array.isArray(m?.caller_ips) ? m.caller_ips : []).filter(g => !c.codes.includes(g.code)).slice(0, 8);
+    const impact = ruleImpact(c);
+    const summary = c.mode === 'off' ? 'Off. Nothing is blocked by country.'
+      : !c.codes.length ? 'Add the countries to block.'
+      : c.mode === 'block' ? `Blocking ${nameList(c.codes)}. Every other country gets through.`
+      : `Only ${nameList(c.codes)} ${c.codes.length === 1 ? 'gets' : 'get'} through. Every other country is blocked.`;
+    const effectText = c.mode === 'off' ? null : impact.callers
+      ? `${plural(impact.callers, 'caller')} seen in the last 30 days ${impact.callers === 1 ? 'is' : 'are'} blocked by this rule${impact.signedIn ? `, including ${impact.signedIn} that signed in to Home Assistant` : ''}.`
+      : 'No caller seen in the last 30 days is blocked by this rule.';
+    const listLabel = c.mode === 'allow' ? 'Allowed countries' : c.mode === 'block' ? 'Blocked countries' : 'Saved countries, not applied while the rule is off';
+    return section('Country rule', summary,
+      segmented(COUNTRY_MODES, c.mode, switchMode, 'Country rule'),
+      selfRisk ? el('div', {class: 'pad'}, el('div', {class: 'notice', role: 'alert', style: 'margin:0'},
+        el('div', {class: 'grow'}, el('div', {class: 'title'}, 'This rule blocks you'),
+          el('div', {class: 'sub'}, `You are connecting from ${countryName(myCountry)}. This browser is cut off until you change the rule from your home network.`)))) : null,
+      el('div', {class: 'row'},
+        el('div', {class: 'grow'}, el('div', {class: 'sub', style: 'margin:0 0 6px'}, listLabel),
+          el('div', {class: 'chips'},
+            c.codes.map(code => el('span', {class: `chip ${allow ? 'ok' : c.mode === 'block' ? 'bad' : ''}`}, countryTag(code), countryName(code),
+              el('button', {class: 'chip-x', type: 'button', 'aria-label': `Remove ${countryName(code)}`, title: 'Remove', disabled: state.busy,
+                onclick: () => remove(code)}, '×'))),
+            el('select', {id: 'country-pick', class: 'chip-select', 'aria-label': allow ? 'Allow a country' : 'Block a country', disabled: state.busy, onchange: e => add(e.target.value)},
+              el('option', {value: '', selected: true}, allow ? '+ Allow a country' : c.mode === 'block' ? '+ Block a country' : '+ Add a country'),
+              available.map(([code, name]) => el('option', {value: code}, `${name} (${code})`)))),
+          effectText ? el('div', {class: `sub${impact.signedIn ? ' warn' : ''}`, style: 'margin-top:8px'}, effectText) : null)),
+      seen.length ? el('div', {class: 'row'},
+        el('div', {class: 'grow'}, el('div', {class: 'sub', style: 'margin:0 0 6px'}, allow ? 'Allow a country your callers came from' : 'Block a country your callers came from'),
+          el('div', {class: 'chips'}, seen.map(g => el('button', {class: `chip chip-btn${allow ? '' : ' danger-chip'}`, type: 'button', disabled: state.busy,
+            title: `${plural(g.callers, 'caller')}, ${plural(g.requests, 'request')}`, onclick: () => add(g.code)},
+            allow ? 'Allow ' : 'Block ', countryTag(g.code), countryName(g.code), el('span', {class: 'count'}, plural(g.callers, 'caller'))))))) : null,
+      c.mode !== 'off' ? renderTravel() : null,
+      c.mode !== 'off' ? el('div', {class: 'row'},
+        el('div', {class: 'grow'}, el('div', {class: 'title'}, 'Block for'),
+          el('div', {class: 'sub'}, 'Applies to every address, signed in or not, about 15 seconds after its first request. Changing the rule lifts blocks it no longer wants at once.')),
+        el('select', {id: 'country-minutes', disabled: state.busy, 'aria-label': 'Block for', onchange: e => saveCountries({...c, minutes: Number(e.target.value) || null}, 'Saved.')},
+          BLOCK_DURATIONS.filter(([value]) => value !== '60').map(([value, text]) =>
+            el('option', {value, selected: String(c.minutes ?? '') === value}, text)))) : null);
+  }
 
-    return [
-      s.paired ? section(ICONS.link, 'Relay', 'The relay this app is paired with', null,
-        factRow('Public URL', null, s.relay_url || '—'),
-        factRow('Connector', null, s.connected ? 'Connected' : (s.error || 'Not connected'), s.connected ? '' : 'bad'),
-        factRow('Response time', s.relay_latency_ms != null ? `${fmt(s.relay_latency_ms)} ms` : '—', 'From Home Assistant to the relay, checked every 5 minutes'),
-        factRow('HTTPS certificate', null, certificate[0], certificate[1]),
-        el('div', {class: 'row'},
-          el('div', {class: 'grow'}, el('div', {class: 'title'}, 'Connector key'),
-            el('div', {class: `sub${needsRelay('rotate') ? ' warn' : ''}`}, needsRelay('rotate') ||
-              (s.rotation_pending ? 'A new key is waiting for the relay to confirm it.' : 'Replace the key the connector uses to reach the relay. The tunnel reconnects in a few seconds.'))),
-          el('button', {class: 'btn', disabled: state.busy || !!needsRelay('rotate'), onclick: rotateKey}, icon(ICONS.key), 'Rotate key'))) : null,
+  const travelling = code => (state.status?.travel || []).some(t => t.code === code && t.until * 1000 > Date.now());
 
-      s.paired ? el('section', {class: 'card'}, el('div', {class: 'danger-zone'},
-        el('div', {class: 'grow'}, el('div', {class: 'title'}, 'Unpair'),
-          el('div', {class: 'sub'}, 'Stops the tunnel and makes this app and the relay forget each other, so you can pair again with a new setup code.')),
-        el('button', {class: 'btn danger', disabled: state.busy, onclick: unpairRelay}, icon(ICONS.delete), 'Unpair'))) : null,
+  // Allow a country for a while; it turns itself off.
+  function renderTravel() {
+    const travel = (state.status.travel || []).filter(t => t.until * 1000 > Date.now());
+    const options = COUNTRY_CODES.filter(code => !travel.some(t => t.code === code))
+      .map(code => [code, countryName(code)]).sort((a, b) => a[1].localeCompare(b[1]));
+    const left = t => `${duration(t.until - Date.now() / 1000)} left`;
+    return el('div', {class: 'row'},
+      el('div', {class: 'grow'}, el('div', {class: 'title'}, 'Travel mode'),
+        el('div', {class: 'sub'}, travel.length
+          ? 'The rule doesn’t block these countries until their time runs out. Their country blocks were lifted.'
+          : 'Going away? Let a country through for a while; it turns itself off.'),
+        travel.length ? el('div', {class: 'chips'}, travel.map(t => el('span', {class: 'chip info', title: `Until ${exact(new Date(t.until * 1000).toISOString())}`},
+          countryTag(t.code), `${countryName(t.code)} · ${left(t)}`,
+          el('button', {class: 'chip-x', type: 'button', 'aria-label': `End travel mode for ${countryName(t.code)}`, title: 'End now', disabled: state.busy,
+            onclick: () => saveTravel(travel.filter(x => x.code !== t.code), `Travel mode for ${countryName(t.code)} ended.`)}, '×')))) : null,
+        el('div', {class: 'actions', style: 'margin-top:8px'},
+          el('select', {id: 'travel-pick', 'aria-label': 'Country to let through', onchange: e => { state.travelPick = e.target.value; }},
+            el('option', {value: '', selected: !state.travelPick}, 'Pick a country…'),
+            options.map(([code, name]) => el('option', {value: code, selected: code === state.travelPick}, `${name} (${code})`))),
+          el('select', {id: 'travel-days', 'aria-label': 'For how long', onchange: e => { state.travelDays = e.target.value; }},
+            TRAVEL_DAYS.map(([value, text]) => el('option', {value, selected: value === state.travelDays}, text))),
+          el('button', {class: 'btn', disabled: state.busy, onclick: () => {
+            const code = state.travelPick;
+            if (!code) { say('Pick the country you’re going to.', true); render(); return; }
+            const until = Math.floor(Date.now() / 1000) + Number(state.travelDays) * 86400;
+            state.travelPick = '';
+            saveTravel([...travel.filter(t => t.code !== code), {code, until}],
+              `${countryName(code)} is let through for ${TRAVEL_DAYS.find(([v]) => v === state.travelDays)[1]}.`);
+          }}, 'Let through'))));
+  }
 
-      s.paired ? renderAllowed() : null,
-      renderLockdown(),
-      renderLocations(),
-      renderNotifications(),
-
-      section(ICONS.update, 'Versions', 'The app updates through Home Assistant; the relay is updated by hand on the IIS host.', null,
-        factRow('Home Tunnel app', s.home_tunnel_version || 'unknown'),
-        el('div', {class: 'row'},
-          el('div', {class: 'grow'}, el('div', {class: 'title'}, 'Relay'),
-            el('div', {class: 'chips'}, chip(relayStatus, relayTone),
-              s.relay_compatible === false ? chip('Compatibility with this app version isn’t confirmed', 'warn') : null)),
-          el('div', {class: 'value'}, s.relay_version || '—')),
-        s.release_checked_at ? factRow('Last release check', null, ago(new Date(s.release_checked_at * 1000).toISOString())) : null,
-        el('div', {class: 'row'}, el('div', {class: 'actions'},
-          link(s.release_url, 'Releases'), link(s.changelog_url, 'Changelog'), link(s.manual_update_url, 'Relay update guide')))),
-
-      section(ICONS.info, 'About', null, null,
-        el('div', {class: 'pad'}, el('p', {class: 'sub', style: 'margin:0'},
-          'Home Tunnel forwards requests from your own relay to this Home Assistant over an outgoing WebSocket. The relay is not an identity provider: Home Assistant still handles sign-in, MFA and permissions, so keep strong passwords and MFA on every account that can sign in from outside.'))),
-    ];
+  async function saveTravel(travel, done) {
+    await act(async () => { await api('settings', {travel}); await refreshBlocks(); refreshTimeline(); }, done);
   }
 
   // What the relay and connector let through. Fixed in their code on purpose: shown, not editable.
@@ -997,7 +1250,7 @@
     const rule = (title, path, sub, tone, label) => el('div', {class: 'row'},
       el('div', {class: 'grow'}, el('div', {class: 'title'}, title), path ? el('div', {class: 'sub mono'}, path) : null, el('div', {class: `sub${tone === 'warn' ? ' warn' : ''}`}, sub)),
       chip(label, tone));
-    return section(ICONS.shield, 'What the tunnel lets through', 'Built into the relay and this app, so it can’t be widened by mistake', null,
+    return fold('allowed', 'What the tunnel lets through', 'Built into the relay and this app, so it can’t be widened by mistake',
       rule('Home Assistant pages and API', null, 'Every normal request goes to Home Assistant, which checks the sign-in.', 'ok', 'Allowed'),
       rule('Home Assistant WebSocket', '/api/websocket', 'The live connection the Home Assistant frontend uses, from browsers on your public address.', 'ok', 'Allowed'),
       wide
@@ -1016,42 +1269,98 @@
     const numberField = (key, label, min, max) => el('div', {style: 'min-width:150px'},
       el('label', {class: 'field', for: `lock-${key}`}, label),
       el('input', {type: 'number', id: `lock-${key}`, min: String(min), max: String(max), step: '1', value: String(draft[key]),
-        style: 'width:100%', disabled: !saved.enabled, oninput: e => { draft[key] = e.target.value; }}));
-    return section(ICONS.lock, 'Automatic lockdown',
-      'Blocks an address at the relay when it keeps failing. Home Assistant’s own IP ban can’t do this behind the tunnel: every request reaches it from this app.', null,
-      toggleRow('Block repeat offenders', saved.enabled
-        ? 'Addresses that have signed in to Home Assistant are never blocked automatically.'
-        : 'Off: noisy addresses are only reported.', saved.enabled, on => saveLockdown({...saved, enabled: on}), state.busy),
-      saved.enabled ? el('form', {onsubmit: e => { e.preventDefault(); saveLockdown({...saved, denied: Number(draft.denied), logins: Number(draft.logins), minutes: Number(draft.minutes)}); }},
-        el('div', {class: 'fields', style: 'padding-top:12px'},
-          numberField('denied', 'Denied answers in 10 min', 5, 1000),
-          numberField('logins', 'Login attempts in 10 min', 5, 1000),
-          numberField('minutes', 'Block for (minutes)', 5, 10080),
-          el('div', {style: 'flex:0 0 auto;min-width:0'}, el('button', {class: 'btn primary', type: 'submit', disabled: state.busy}, 'Save'))),
-        el('div', {class: 'pad sub', style: 'margin-top:-6px'}, 'A login takes 2 to 3 attempts, so 15 attempts is about 5 failed logins.')) : null);
+        style: 'width:100%', oninput: e => { draft[key] = e.target.value; }}));
+    return el('section', {class: 'card'},
+      toggleRow('Automatic lockdown', saved.enabled
+        ? `Blocks an address for ${duration(num(saved.minutes) * 60)} after ${saved.denied} denied answers or ${saved.logins} login attempts in 10 minutes. Signed-in addresses are never blocked automatically.`
+        : 'Off: noisy addresses are only reported. Home Assistant’s own IP ban can’t work behind the tunnel.', saved.enabled, on => saveLockdown({...saved, enabled: on}), state.busy, '', true),
+      saved.enabled ? more('lockdown', 'Change thresholds',
+        el('form', {onsubmit: e => { e.preventDefault(); saveLockdown({...saved, denied: Number(draft.denied), logins: Number(draft.logins), minutes: Number(draft.minutes)}); }},
+          el('div', {class: 'fields'},
+            numberField('denied', 'Denied answers in 10 min', 5, 1000),
+            numberField('logins', 'Login attempts in 10 min', 5, 1000),
+            numberField('minutes', 'Block for (minutes)', 5, 10080),
+            el('div', {style: 'flex:0 0 auto;min-width:0'}, el('button', {class: 'btn primary', type: 'submit', disabled: state.busy}, 'Save'))),
+          el('div', {class: 'pad sub', style: 'margin-top:-6px'}, 'A login takes 2 to 3 attempts, so 15 attempts is about 5 failed logins.'))) : null);
+  }
+
+  // ----- Settings -----
+  function renderSettings() {
+    const s = state.status;
+    const latestDev = /-dev(?:\.|$)/i.test(s.latest_relay_version || '');
+    const features = s.relay_features || [];
+    let relayStatus, relayTone;
+    if (!s.relay_version) { relayStatus = s.paired ? 'Waiting for the relay to report its version' : 'Not paired'; relayTone = ''; }
+    else if (!s.latest_relay_version) { relayStatus = 'Release information isn’t available yet'; relayTone = ''; }
+    else if (latestDev) { relayStatus = `Development build ${s.latest_relay_version} is the latest`; relayTone = 'info'; }
+    else if (s.relay_update_available) { relayStatus = `Update available: ${s.latest_relay_version}`; relayTone = 'warn'; }
+    else { relayStatus = 'Up to date'; relayTone = 'ok'; }
+    const link = (href, text) => href ? el('a', {class: 'btn text', href, target: '_blank', rel: 'noopener noreferrer'}, text, icon(ICONS.open)) : null;
+    const health = s.relay_health || {};
+    const certificate = health.certificate_error === 'not_trusted' ? ['Not trusted by this system', 'bad']
+      : health.certificate_error ? ['Couldn’t be checked', 'warn']
+      : typeof health.certificate_days_left === 'number'
+        ? [`Expires in ${plural(health.certificate_days_left, 'day')} (${new Date(health.certificate_expires_at * 1000).toLocaleDateString([], {dateStyle: 'medium'})})${health.certificate_issuer ? ` · ${health.certificate_issuer}` : ''}`,
+          health.certificate_days_left < 14 ? 'warn' : '']
+        : ['Checked after pairing', ''];
+    const needsRelay = feature => features.includes(feature) ? null : 'Needs relay 0.5.0 or newer.';
+    const callers = state.telemetry?.metrics?.caller_ips || [];
+
+    return [
+      section('Relay', s.paired ? s.relay_url : 'Not paired', null,
+        s.paired ? factRow('Connection', s.relay_latency_ms != null ? `${fmt(s.relay_latency_ms)} ms` : '—',
+          `HTTPS certificate: ${certificate[0].charAt(0).toLowerCase()}${certificate[0].slice(1)}`, certificate[1]) : null,
+        el('div', {class: 'row'},
+          el('div', {class: 'grow'}, el('div', {class: 'title'}, 'Versions'),
+            el('div', {class: 'sub'}, `Relay ${s.relay_version || '—'} · app ${s.home_tunnel_version || 'unknown'}`),
+            s.relay_compatible === false ? el('div', {class: 'sub warn'}, 'Compatibility with this app version isn’t confirmed.') : null),
+          chip(relayStatus, relayTone)),
+        more('relay-links', 'Release notes and update guide',
+          el('div', {class: 'pad sub'}, `The app updates through Home Assistant; the relay is updated by hand on the IIS host.${s.release_checked_at ? ` Releases checked ${ago(new Date(s.release_checked_at * 1000).toISOString())}.` : ''}`),
+          el('div', {class: 'pad actions', style: 'padding-top:0'},
+            link(s.release_url, 'Releases'), link(s.changelog_url, 'Changelog'), link(s.manual_update_url, 'Relay update guide')))),
+
+      renderNotifications(),
+      renderLocations(),
+
+      section('Maintenance', null, null,
+        s.paired ? el('div', {class: 'row'},
+          el('div', {class: 'grow'}, el('div', {class: 'title'}, 'Rotate the connector key'),
+            el('div', {class: `sub${needsRelay('rotate') ? ' warn' : ''}`}, needsRelay('rotate') ||
+              (s.rotation_pending ? 'A new key is waiting for the relay to confirm it.' : 'The tunnel reconnects in a few seconds.'))),
+          el('button', {class: 'btn', disabled: state.busy || !!needsRelay('rotate'), onclick: rotateKey}, icon(ICONS.key), 'Rotate')) : null,
+        el('div', {class: 'row'},
+          el('div', {class: 'grow'}, el('div', {class: 'title'}, 'Clear caller history'),
+            el('div', {class: 'sub'}, 'Forgets every stored caller address and sign-in marker. Blocks stay. Can’t be undone.')),
+          el('button', {class: 'btn danger', disabled: state.busy || !callers.length, onclick: clearHistory}, icon(ICONS.delete), 'Clear')),
+        s.paired ? el('div', {class: 'row'},
+          el('div', {class: 'grow'}, el('div', {class: 'title'}, 'Unpair'),
+            el('div', {class: 'sub'}, 'Stops the tunnel; this app and the relay forget each other. Pairing again needs a new setup code.')),
+          el('button', {class: 'btn danger', disabled: state.busy, onclick: unpairRelay}, icon(ICONS.delete), 'Unpair')) : null),
+    ];
   }
 
   function renderNotifications() {
     const s = state.status;
     const n = s.notifications;
     if (!s.notifications_available) {
-      return section(ICONS.bell, 'Notifications', null, null, el('div', {class: 'row'}, el('div', {class: 'grow sub warn'},
+      return section('Notifications', null, null, el('div', {class: 'row'}, el('div', {class: 'grow sub warn'},
         'Home Assistant didn’t give this app API access, so it can’t send notifications. Restart the app after updating it; if this stays, reinstall it.')));
     }
     if (state.targets == null) loadTargets();
     const targets = state.targets?.targets || ['persistent_notification'];
     const label = target => target === 'persistent_notification' ? 'Home Assistant notifications (bell)' : target.replace(/^notify\./, 'Notify: ');
     const save = changes => saveNotifications({...n, ...changes});
-    return section(ICONS.bell, 'Notifications', 'Alerts sent through Home Assistant', null,
-      el('div', {class: 'fields', style: 'padding-top:4px'},
-        el('div', {}, el('label', {class: 'field', for: 'notify-target'}, 'Send to'),
-          el('select', {id: 'notify-target', style: 'width:100%', disabled: state.busy, onchange: e => save({target: e.target.value})},
-            el('option', {value: '', selected: !n.target}, 'Don’t send notifications'),
-            [...new Set([...targets, ...(n.target ? [n.target] : [])])].map(target => el('option', {value: target, selected: target === n.target}, label(target))))),
-        el('div', {style: 'flex:0 0 auto;min-width:0'}, el('button', {class: 'btn', disabled: state.busy || !n.target, onclick: testNotification}, 'Send test'))),
+    const on = NOTIFY_EVENTS.filter(([key]) => n.events[key]).length;
+    return section('Notifications', null, null,
+      el('div', {class: 'row'},
+        el('select', {id: 'notify-target', class: 'grow', 'aria-label': 'Send notifications to', disabled: state.busy, onchange: e => save({target: e.target.value})},
+          el('option', {value: '', selected: !n.target}, 'Don’t send notifications'),
+          [...new Set([...targets, ...(n.target ? [n.target] : [])])].map(target => el('option', {value: target, selected: target === n.target}, label(target)))),
+        el('button', {class: 'btn', disabled: state.busy || !n.target, onclick: testNotification}, 'Send test')),
       state.targets?.error ? el('div', {class: 'pad sub warn'}, 'Couldn’t list notify services from Home Assistant; only the built-in option is shown.') : null,
-      n.target ? NOTIFY_EVENTS.map(([key, title, sub]) => toggleRow(title, sub, !!n.events[key],
-        on => save({events: {...n.events, [key]: on}}), state.busy)) : null);
+      n.target ? more('notify', `Alerts · ${on} of ${NOTIFY_EVENTS.length} on`, NOTIFY_EVENTS.map(([key, title, sub]) => toggleRow(title, sub, !!n.events[key],
+        value => save({events: {...n.events, [key]: value}}), state.busy))) : null);
   }
 
   async function loadTargets() {
@@ -1101,69 +1410,22 @@
 
   function renderLocations() {
     const s = state.status;
-    const c = s.countries || {mode: 'off', codes: [], minutes: 43200};
     const db = s.country_db || {};
     const cities = !!s.geolocation_enabled;
-    const save = changes => saveCountries({...c, ...changes});
-    const available = COUNTRY_CODES.filter(code => !c.codes.includes(code))
-      .map(code => [code, countryName(code)]).sort((a, b) => a[1].localeCompare(b[1]));
-    const add = () => {
-      const code = state.countryPick;
-      if (!code) return;
-      state.countryPick = '';
-      save({codes: [...c.codes, code]});
-    };
-    const myCountry = state.myIp ? state.countries[state.myIp] : null;
-    const selfRisk = myCountry && c.mode !== 'off' && (c.mode === 'block' ? c.codes.includes(myCountry) : !c.codes.includes(myCountry));
     const edition = db.month ? new Date(`${db.month}-15T00:00:00Z`).toLocaleDateString([], {month: 'long', year: 'numeric'}) : null;
-    const dbRow = el('div', {class: 'row'},
-      el('div', {class: 'grow'}, el('div', {class: 'title'}, 'Country data'),
-        el('div', {class: `sub${db.available ? '' : ' warn'}`}, db.available
-          ? `${edition} edition, updated ${ago(new Date(db.downloaded_at * 1000).toISOString())}. Looked up inside this app: no caller address is sent anywhere. Refreshed monthly.`
-          : db.error === 'download_failed' ? 'Couldn’t download the country database. Retrying every 15 minutes.'
-          : 'Downloading the country database (about 5 MB)…'),
-        el('div', {class: 'sub'}, el('a', {href: 'https://db-ip.com', target: '_blank', rel: 'noopener noreferrer'}, 'IP geolocation by DB-IP'),
-          ', licensed CC BY 4.0.')),
-      chip(db.available ? 'Ready' : db.error ? 'Unavailable' : 'Downloading', db.available ? 'ok' : 'warn'));
-    const rules = !countriesReady() ? [
-      el('div', {class: 'row'}, el('div', {class: 'grow sub warn'}, 'Country rules start working once the country database has downloaded.')),
-    ] : [
-      el('div', {class: 'group'}, el('span', {class: 'grow'}, 'Block by country')),
+    return section('Locations', null, null,
       el('div', {class: 'row'},
-        el('div', {class: 'grow'}, el('div', {class: 'title'}, 'Rule'),
-          el('div', {class: 'sub'}, c.mode === 'off' ? 'Countries are shown, but nothing is blocked by country.'
-            : c.mode === 'block' ? 'Callers from the listed countries are blocked the first time they’re seen.'
-            : 'Callers from any country not listed are blocked the first time they’re seen.')),
-        segmented(COUNTRY_MODES, c.mode, mode => {
-          if (mode === 'allow' && !c.codes.length) { say('Add at least one country first, then pick Allow only listed.', true); render(); return; }
-          save({mode});
-        }, 'Country rule')),
-      el('div', {class: 'row'},
-        el('div', {class: 'grow'}, el('div', {class: 'title'}, c.mode === 'allow' ? 'Allowed countries' : 'Countries'),
-          c.codes.length ? el('div', {class: 'chips'}, c.codes.map(code => el('span', {class: 'chip info'}, countryTag(code), countryName(code),
-            el('button', {class: 'chip-x', type: 'button', 'aria-label': `Remove ${countryName(code)}`, title: 'Remove', disabled: state.busy,
-              onclick: () => save({codes: c.codes.filter(x => x !== code), mode: c.mode === 'allow' && c.codes.length === 1 ? 'off' : c.mode})}, '×'))))
-            : el('div', {class: 'sub'}, 'None yet.'))),
-      el('div', {class: 'fields', style: 'padding-top:12px'},
-        el('div', {}, el('label', {class: 'field', for: 'country-pick'}, 'Add a country'),
-          el('select', {id: 'country-pick', style: 'width:100%', onchange: e => { state.countryPick = e.target.value; }},
-            el('option', {value: '', selected: !state.countryPick}, 'Pick a country…'),
-            available.map(([code, name]) => el('option', {value: code, selected: code === state.countryPick}, `${name} (${code})`)))),
-        el('div', {style: 'flex:0 0 auto;min-width:0'}, el('button', {class: 'btn', type: 'button', disabled: state.busy, onclick: add}, 'Add')),
-        el('div', {style: 'min-width:160px'}, el('label', {class: 'field', for: 'country-minutes'}, 'Block for'),
-          el('select', {id: 'country-minutes', style: 'width:100%', disabled: state.busy, onchange: e => save({minutes: Number(e.target.value) || null})},
-            BLOCK_DURATIONS.filter(([value]) => value !== '60').map(([value, text]) =>
-              el('option', {value, selected: String(c.minutes ?? '') === value}, text))))),
-      selfRisk ? el('div', {class: 'pad sub warn'}, `This rule blocks you: you are connecting from ${countryName(myCountry)}. Saving it cuts this browser off until you change the rule from your home network.`) : null,
-      el('div', {class: 'pad sub'}, 'Each address is checked within about 15 seconds of being seen, so its first requests get through. The rule applies to every address, including ones that have signed in to Home Assistant.'),
-    ];
-    return section(ICONS.shield, 'Countries and locations', 'Where callers come from', null,
-      dbRow,
+        el('div', {class: 'grow'}, el('div', {class: 'title'}, 'Country data'),
+          el('div', {class: `sub${db.available ? '' : ' warn'}`}, db.available
+            ? `${edition} edition, updated ${ago(new Date(db.downloaded_at * 1000).toISOString())}. Looked up inside this app, so no address is sent anywhere.`
+            : db.error === 'download_failed' ? 'Couldn’t download the country database. Retrying every 15 minutes.'
+            : 'Downloading the country database (about 5 MB)…'),
+          el('div', {class: 'sub'}, el('a', {href: 'https://db-ip.com', target: '_blank', rel: 'noopener noreferrer'}, 'IP geolocation by DB-IP'), ', CC BY 4.0.')),
+        chip(db.available ? 'Ready' : db.error ? 'Unavailable' : 'Downloading', db.available ? 'ok' : 'warn')),
       toggleRow('Show city names',
-        state.geoSaving ? 'Saving…' : 'Optional. Sends public caller addresses to ipapi.co for an approximate city and region, shown on Activity. Countries don’t need this. Cached for a day, at most 200 new addresses a day.',
+        state.geoSaving ? 'Saving…' : 'Optional. Sends public caller addresses to ipapi.co for an approximate city. Countries don’t need this.',
         cities, setGeolocation, state.geoSaving),
-      cities ? geoProblem(s.geolocation_status) : null,
-      rules);
+      cities ? geoProblem(s.geolocation_status) : null);
   }
 
   function geoProblem(status) {
@@ -1174,12 +1436,21 @@
     return null;
   }
 
-  async function saveCountries(value) {
+  // Saves a country rule, first saying plainly who it newly blocks.
+  async function saveCountries(value, done = 'Country rule saved.', lead = null) {
+    const current = state.status.countries;
     const mine = state.myIp ? state.countries[state.myIp] : null;
-    const blocksMe = mine && value.mode !== 'off' && (value.mode === 'block' ? value.codes.includes(mine) : !value.codes.includes(mine));
-    if (blocksMe && !confirm(`This rule blocks ${countryName(mine)}, where you are connecting from. This browser will be cut off from Home Assistant until you change the rule from your home network. Save it anyway?`)) { render(); return; }
-    await act(() => api('settings', {countries: value}),
-      value.mode === 'off' ? 'Country blocking is off.' : 'Country rule saved.');
+    const callers = state.telemetry?.metrics?.caller_ips || [];
+    const newly = callers.filter(row => ruleBlocks(value, state.countries[row.ip]) && !ruleBlocks(current, state.countries[row.ip]));
+    const signed = newly.filter(row => row.status === 'authenticated').length;
+    const lines = [lead,
+      ruleBlocks(value, mine) && !ruleBlocks(current, mine) ? `This blocks ${countryName(mine)}, where you are connecting from: this browser will be cut off until you change the rule from your home network.` : null,
+      newly.length ? `${plural(newly.length, 'caller')} from ${nameList([...new Set(newly.map(row => state.countries[row.ip]))])} will be blocked within 15 seconds${signed ? `, including ${signed} that signed in to Home Assistant` : ''}.` : null,
+    ].filter(Boolean);
+    if (lines.length && !confirm(`${lines.join('\n\n')}\n\nSave the rule?`)) { render(); return; }
+    let lifted = 0, ok = false;
+    await act(async () => { lifted = (await api('settings', {countries: value})).lifted || 0; ok = true; await refreshBlocks(); });
+    if (ok) { say(`${done}${lifted ? ` Lifted ${plural(lifted, 'existing block')}.` : ''}`); render(); }
   }
 
   async function setGeolocation(on, input) {
@@ -1226,6 +1497,11 @@
     render();
   }
 
+  async function refreshTimeline() {
+    if (!state.status?.paired) return;
+    try { state.timeline = await api('timeline'); render(); } catch (error) { /* keep the last one */ }
+  }
+
   async function refreshBlocks() {
     try { state.blocks = await api('blocks'); } catch (error) { /* keep the last list */ }
     render();
@@ -1267,9 +1543,10 @@
   // ---------- start ----------
   syncTheme(); syncNarrow();
   render();
-  refreshStatus().then(findMyIp); refreshTelemetry(); refreshHistory(); refreshBlocks();
+  refreshStatus().then(() => { findMyIp(); refreshTimeline(); }); refreshTelemetry(); refreshHistory(); refreshBlocks();
   setInterval(() => { if (!document.hidden) refreshStatus(); }, 3000);
   setInterval(() => { if (!document.hidden) refreshTelemetry(); }, 10000);
+  setInterval(() => { if (!document.hidden) refreshTimeline(); }, 20000);
   setInterval(() => { if (!document.hidden) { refreshHistory(); refreshBlocks(); } }, 60000);
   setInterval(() => { syncTheme(); syncNarrow(); }, 2000);
   window.addEventListener('resize', syncNarrow);

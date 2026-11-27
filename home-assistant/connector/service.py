@@ -31,6 +31,8 @@ TOKEN = STATE / "tunnel-token.txt"
 TOKEN_NEXT = STATE / "tunnel-token.next"
 BLOCKS = STATE / "blocks.json"
 ALERTS = STATE / "alerts.json"
+EVENTS = STATE / "events.json"
+UPTIME = STATE / "uptime.json"
 RELAY_HEALTH = STATE / "relay-health.json"
 COUNTRY_DB_FILE = STATE / "dbip-country-lite.csv.gz"
 COUNTRY_DB_META = STATE / "country-db.json"
@@ -60,6 +62,13 @@ DEFAULT_LOCKDOWN = {"enabled": True, "denied": 20, "logins": 15, "minutes": 60}
 DEFAULT_NOTIFICATIONS = {"target": "", "events": {name: True for name in NOTIFY_EVENTS}}
 COUNTRY_PATTERN = re.compile(r"\A[A-Z]{2}\Z")
 DEFAULT_COUNTRIES = {"mode": "off", "codes": [], "minutes": 30 * 24 * 60}
+TRAVEL_MAX_DAYS = 90
+TRAVEL_LIMIT = 20
+EVENT_LIMIT = 100
+EVENT_KINDS = ("offline", "online", "signin", "attention", "blocked", "unblocked", "relay_update", "certificate",
+               "forwarding", "rule", "travel")
+UPTIME_MINUTES = 24 * 60
+COUNTRY_REASON = re.compile(r"\ACountry: (?:[^()]*\(([A-Z]{2})\)|([A-Z]{2})) is ")
 GEOLOCATION_CACHE_TTL = 24 * 60 * 60
 GEOLOCATION_CACHE_LIMIT = 512
 GEOLOCATION_LOOKUP_LIMIT = 200
@@ -480,8 +489,28 @@ def valid_countries(value):
     return {"mode": value["mode"], "codes": sorted(set(codes)), "minutes": minutes}
 
 
+def valid_travel(value, now=None):
+    """Countries allowed for a while despite the country rule. Expired entries are dropped, not refused."""
+    now = time.time() if now is None else now
+    if not isinstance(value, list) or len(value) > TRAVEL_LIMIT:
+        raise ValueError("Invalid travel list")
+    allowed = {}
+    for item in value:
+        if (not isinstance(item, dict) or set(item) != {"code", "until"} or not isinstance(item["code"], str)
+                or not COUNTRY_PATTERN.fullmatch(item["code"]) or type(item["until"]) not in (int, float)
+                or item["until"] > now + TRAVEL_MAX_DAYS * 86400 + 3600):
+            raise ValueError(f"Pick a country and how long you'll be there, up to {TRAVEL_MAX_DAYS} days")
+        if item["until"] > now:
+            allowed[item["code"]] = max(allowed.get(item["code"], 0), int(item["until"]))
+    return [{"code": code, "until": until} for code, until in sorted(allowed.items())]
+
+
 def app_settings():
     settings = read_json(SETTINGS) or {}
+    try:
+        travel = valid_travel(settings.get("travel", []))
+    except ValueError:
+        travel = []
     lockdown, notifications = settings.get("lockdown"), settings.get("notifications")
     try:
         countries = valid_countries(settings.get("countries"))
@@ -496,25 +525,37 @@ def app_settings():
     except ValueError:
         notifications = {"target": "", "events": dict(DEFAULT_NOTIFICATIONS["events"])}
     return {"geolocation_enabled": settings.get("geolocation_enabled", False) is True,
-            "lockdown": lockdown, "notifications": notifications, "countries": countries}
+            "lockdown": lockdown, "notifications": notifications, "countries": countries, "travel": travel}
 
 
 async def update_settings(request):
     data = await request.json()
-    simple = {"geolocation_enabled", "lockdown", "notifications", "countries"}
+    simple = {"geolocation_enabled", "lockdown", "notifications", "countries", "travel"}
     if isinstance(data, dict) and data and set(data) <= simple:
         try:
             if "geolocation_enabled" in data and type(data["geolocation_enabled"]) is not bool:
                 raise ValueError("geolocation_enabled must be true or false")
-            validators = {"lockdown": valid_lockdown, "notifications": valid_notifications, "countries": valid_countries}
+            validators = {"lockdown": valid_lockdown, "notifications": valid_notifications, "countries": valid_countries,
+                          "travel": valid_travel}
             changes = {key: validators[key](value) if key in validators else value for key, value in data.items()}
         except ValueError as error:
             raise web.HTTPBadRequest(text=str(error))
         ensure_settings()
+        before = app_settings()
         settings = read_json(SETTINGS) or {}
         settings.update(changes)
         save_json(SETTINGS, settings)
-        return web.json_response(app_settings(), headers={"Cache-Control": "no-store"})
+        if "countries" in changes and changes["countries"] != before["countries"]:
+            log_event("rule", "Country rule changed", describe_country_rule(changes["countries"]))
+        if "travel" in changes:
+            await travel_changed(before["travel"], changes["travel"])
+        saved = app_settings()
+        lifted = 0
+        if "countries" in changes or "travel" in changes:
+            lifted = await lift_country_blocks(saved["countries"], saved["travel"],
+                                               "Travel mode lets these countries through." if "travel" in changes and "countries" not in changes
+                                               else "The country rule no longer blocks these countries.")
+        return web.json_response({**saved, "lifted": lifted}, headers={"Cache-Control": "no-store"})
     if not isinstance(data, dict) or set(data) != {"homeassistant_url"}:
         raise web.HTTPBadRequest(text="Set a supported Home Tunnel setting")
     try:
@@ -707,15 +748,30 @@ async def geolocation(request):
                               "locations": locations, "countries": countries}, headers={"Cache-Control": "no-store"})
 
 
-def apply_country_rules(found, rows, policy, now=None):
-    """Block addresses seen from a blocked (or not allowed) country, signed in or not. Returns new blocks."""
+def describe_country_rule(policy):
+    if policy["mode"] == "off":
+        return "Off: nothing is blocked by country."
+    codes = ", ".join(policy["codes"])
+    return f"Blocking {codes}." if policy["mode"] == "block" else f"Allowing only {codes}."
+
+
+def block_country(row):
+    """The country a country-rule block was made for, from its reason."""
+    match = COUNTRY_REASON.match(row.get("reason") or "") if row.get("source") == "country" else None
+    return (match.group(1) or match.group(2)) if match else None
+
+
+def apply_country_rules(found, rows, policy, now=None, travel=()):
+    """Block addresses seen from a blocked (or not allowed) country, signed in or not. Returns new blocks.
+    Countries in travel mode are allowed until their time runs out."""
     now = time.time() if now is None else now
     if policy["mode"] == "off":
         return []
     codes = set(policy["codes"])
+    visiting = {item["code"] for item in travel if item["until"] > now}
     added = []
     for ip, (label, code) in found.items():
-        if not code or blocked(rows, ip) or len(rows) >= BLOCK_LIMIT:
+        if not code or code in visiting or blocked(rows, ip) or len(rows) >= BLOCK_LIMIT:
             continue
         listed = code in codes
         if listed if policy["mode"] == "block" else not listed:
@@ -909,6 +965,8 @@ async def set_forwarding(request, enabled):
         raise web.HTTPBadGateway(text="Could not reach the paired relay") from error
     if status_code != 200:
         raise web.HTTPBadGateway(text="The relay rejected the forwarding change")
+    log_event("forwarding", "Forwarding turned on" if enabled else "Forwarding turned off",
+              "The public URL reaches Home Assistant." if enabled else "The public URL no longer reaches Home Assistant.")
     return web.json_response({"forwarding_enabled": enabled}, headers={"Cache-Control": "no-store"})
 
 
@@ -991,8 +1049,10 @@ async def ha_api(method, path, payload=None):
             return json.loads(raw) if raw else None
 
 
-async def notify(event, title, message, target=None):
-    """Send one notification if this event type is turned on. Never raises."""
+async def notify(event, title, message, target=None, kind=None):
+    """Log the event, then send one notification if this event type is turned on. Never raises."""
+    if event != "test":
+        log_event(kind or event, title, message)
     settings = app_settings()["notifications"]
     target = target or settings["target"]
     if not target or (event != "test" and not settings["events"].get(event)):
@@ -1225,6 +1285,8 @@ async def add_block(request):
     rows.insert(0, {"cidr": cidr, "until": now + minutes * 60 if minutes else None, "reason": str(data.get("reason") or "Blocked by you")[:120],
                     "source": "manual", "created": now})
     save_blocks(rows)
+    log_event("blocked", f"You blocked {cidr}", f"For {round(minutes / 60)} hours." if minutes and minutes < 2880 else
+              f"For {round(minutes / 1440)} days." if minutes else "Until you unblock it.")
     await push_blocks(rows)
     return blocks_response(rows)
 
@@ -1237,8 +1299,127 @@ async def remove_block(request):
     if len(remaining) == len(rows):
         raise web.HTTPNotFound(text="That address isn't blocked")
     save_blocks(remaining)
+    log_event("unblocked", f"You unblocked {cidr}")
     await push_blocks(remaining)
     return blocks_response(remaining)
+
+
+# ---------- event log ----------
+def read_events(limit=EVENT_LIMIT):
+    rows = read_json(EVENTS, 256 * 1024)
+    return [row for row in rows if isinstance(row, dict) and row.get("kind") in EVENT_KINDS
+            and type(row.get("at")) in (int, float)][:limit] if isinstance(rows, list) else []
+
+
+def log_event(kind, title, detail="", now=None):
+    """Remember what happened, newest first, for the dashboard's timeline. Never raises."""
+    rows = read_events()
+    rows.insert(0, {"at": time.time() if now is None else now, "kind": kind, "title": str(title)[:120], "detail": str(detail)[:300]})
+    try:
+        save_json(EVENTS, rows[:EVENT_LIMIT])
+    except OSError:
+        LOG.warning("Could not save the event log")
+
+
+# ---------- uptime: per-minute tunnel state for 24 hours, as runs of [first, last, state] ----------
+# 2 = online and forwarding, 1 = connected with forwarding off, 0 = offline. Minutes the app wasn't running are missing.
+def read_uptime(now=None):
+    oldest = int((time.time() if now is None else now) // 60) - UPTIME_MINUTES
+    rows = read_json(UPTIME, 64 * 1024)
+    return [row for row in rows if isinstance(row, list) and len(row) == 3 and all(type(v) is int for v in row)
+            and row[2] in (0, 1, 2) and row[0] <= row[1] and row[1] > oldest] if isinstance(rows, list) else []
+
+
+def record_uptime(now=None):
+    now = time.time() if now is None else now
+    if not (read_json(CONNECTION) and TOKEN.exists()):
+        return
+    live = read_json(STATUS) or {}
+    connected = live.get("connection") == "connected" and now - live.get("updated_at", 0) < 20
+    state = 2 if connected and live.get("forwarding_enabled") else 1 if connected else 0
+    minute = int(now // 60)
+    runs = read_uptime(now)
+    last = runs[-1] if runs else None
+    if last and last[1] >= minute:
+        if state >= last[2]:  # a minute keeps its worst state
+            return
+        if last[0] == minute:
+            last[2] = state
+        else:
+            last[1] = minute - 1
+            runs.append([minute, minute, state])
+    elif last and last[1] == minute - 1 and last[2] == state:
+        last[1] = minute
+    else:
+        runs.append([minute, minute, state])
+    try:
+        save_json(UPTIME, runs[-2000:])
+    except OSError:
+        LOG.warning("Could not save uptime")
+
+
+async def timeline(request):
+    return web.json_response({"events": read_events(50), "uptime": read_uptime(), "minute": int(time.time() // 60)},
+                             headers={"Cache-Control": "no-store"})
+
+
+# ---------- travel mode ----------
+def days_left(until, now=None):
+    days = max(1, round((until - (time.time() if now is None else now)) / 86400))
+    return f"{days} day{'s' if days != 1 else ''}"
+
+
+async def travel_changed(before, after):
+    """Log travel changes and lift country blocks for countries now allowed."""
+    old = {item["code"]: item["until"] for item in before}
+    new = {item["code"]: item["until"] for item in after}
+    for code, until in new.items():
+        if old.get(code) != until:
+            log_event("travel", f"Travel mode: {code} allowed", f"Callers from {code} aren't blocked by the country rule for {days_left(until)}.")
+    for code in old.keys() - new.keys():
+        log_event("travel", f"Travel mode for {code} turned off", "The country rule applies again.")
+
+
+def country_blocked(policy, code, travel=(), now=None):
+    """Whether the country rule (with travel mode) blocks callers from this country now."""
+    now = time.time() if now is None else now
+    if not code or policy["mode"] == "off" or any(item["code"] == code and item["until"] > now for item in travel):
+        return False
+    listed = code in policy["codes"]
+    return listed if policy["mode"] == "block" else not listed
+
+
+async def lift_country_blocks(policy, travel, why):
+    """Drop blocks made by the country rule for countries it no longer blocks, so changing the rule takes effect at once."""
+    rows = read_blocks()
+    remaining = [row for row in rows if not (block_country(row) and not country_blocked(policy, block_country(row), travel))]
+    lifted = len(rows) - len(remaining)
+    if not lifted:
+        return 0
+    save_blocks(remaining)
+    log_event("unblocked", f"Lifted {lifted} country block{'s' if lifted != 1 else ''}", why)
+    if read_json(CONNECTION) and TOKEN.exists():
+        await push_blocks(remaining)
+    return lifted
+
+
+def expire_travel(now=None):
+    now = time.time() if now is None else now
+    settings = read_json(SETTINGS) or {}
+    raw = settings.get("travel")
+    if not isinstance(raw, list):
+        return
+    try:
+        kept = valid_travel(raw, now)
+    except ValueError:
+        kept = []
+    ended = {item.get("code") for item in raw if isinstance(item, dict)} - {item["code"] for item in kept}
+    if not ended and len(kept) == len(raw):
+        return
+    for code in sorted(code for code in ended if isinstance(code, str)):
+        log_event("travel", f"Travel mode for {code} ended", "The country rule applies again.", now)
+    settings["travel"] = kept
+    save_json(SETTINGS, settings)
 
 
 # ---------- background watcher: lockdowns, relay sync and alerts ----------
@@ -1308,7 +1489,7 @@ async def evaluate_alerts(metrics, now=None):
         alerts["offline_notified"] = True
         changed = True
     elif offline == 0 and alerts.get("offline_notified"):
-        await notify("offline", "Home Tunnel is back online", "The connector reached the relay again.")
+        await notify("offline", "Home Tunnel is back online", "The connector reached the relay again.", kind="online")
         alerts["offline_notified"] = False
         changed = True
     if metrics:
@@ -1392,6 +1573,8 @@ async def watcher():
     while True:
         try:
             now = time.time()
+            record_uptime(now)
+            expire_travel(now)
             stored = read_json(BLOCKS, 128 * 1024)
             rows = read_blocks(now)
             changed = isinstance(stored, list) and len(stored) != len(rows)  # expired entries dropped
@@ -1408,7 +1591,7 @@ async def watcher():
                     found = {ip: ("", code) for ip in fresh if (code := local_country(ip))}
                 else:
                     found = await lookup_locations(fresh[:100])
-                added += apply_country_rules(found, rows, settings["countries"], now)
+                added += apply_country_rules(found, rows, settings["countries"], now, settings["travel"])
             if added or changed:
                 save_blocks(rows)
             paired = bool(read_json(CONNECTION) and TOKEN.exists())
@@ -1500,6 +1683,7 @@ def make_app():
     app.router.add_post("/api/blocks", add_block)
     app.router.add_post("/api/blocks/remove", remove_block)
     app.router.add_get("/api/history", history)
+    app.router.add_get("/api/timeline", timeline)
     app.router.add_get("/api/notify/targets", notify_targets)
     app.router.add_post("/api/notify/test", notify_test)
     return app

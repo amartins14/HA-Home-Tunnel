@@ -2,6 +2,20 @@
 
 Release notes for Home Tunnel. This copy is read by Home Assistant Supervisor. Relay releases are installed manually on IIS; the Home Assistant app is updated through Supervisor.
 
+## 0.7.7
+
+- Redesigned the dashboard to be less cluttered. A new **Security** tab holds blocked addresses, the country rule, automatic lockdown and what the tunnel lets through.
+- Overview is one status card and one traffic chart: select a number to chart it. Connection details fold away.
+- Activity is one list that switches between callers, requests and refused WebSockets, with one status per caller and a country filter.
+- Settings groups the relay and versions, notifications, locations and maintenance (key rotation, clearing history, unpairing).
+- Travel mode: let a country through the country rule for 1 to 90 days. It lifts that country's existing blocks and ends by itself.
+- Caller details: select an address for its country, devices, sign-in and first-seen times, recent requests and block controls.
+- **Problems only** on Activity's request list shows just the denied and failed requests.
+- A timeline on Overview lists sign-ins, blocks, outages, forwarding and rule changes, with anything that needs you pinned on top. The app keeps the last 100 events.
+- A 24-hour uptime strip on Overview shows when the tunnel was online, had forwarding off or was offline.
+- Overview shows the latest block. The About text in Settings is gone.
+- Clearer country rule: it says in plain words what it blocks and how many recent callers that hits, asks before a change blocks callers (or you), and confirms before switching between blocking and allowing. Removing a country, turning the rule off or using travel mode now lifts that country's existing blocks at once, instead of leaving them for up to 30 days.
+
 ## 0.7.6
 
 - Country rules now block addresses that have signed in to Home Assistant too. The dashboard asks before saving a rule that would block the browser you're using.
