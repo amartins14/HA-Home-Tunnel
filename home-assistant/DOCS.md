@@ -69,7 +69,7 @@ You can set a country rule:
 - **Block listed:** callers from the listed countries are blocked.
 - **Allow only listed:** callers from any other country are blocked.
 
-Each new address is checked within about 15 seconds of being seen, so its first requests get through. Addresses that have signed in are never blocked by country, so travelling won't lock you out. Country blocks last 30 days by default.
+Each address is checked within about 15 seconds of being seen, so its first requests get through. **The rule applies to every address, including ones that have signed in to Home Assistant.** If you'll be travelling, add the countries you'll visit first, or you'll be locked out until you change the rule from your home network. The card warns you, and the dashboard asks before saving, when a rule would block the browser you're using. Country blocks last 30 days by default.
 
 ### Notifications
 
@@ -120,7 +120,7 @@ Uninstalling the app or removing its data deletes all of this and unpairs it on 
 - **Pairing stuck with "rejected the setup code hash":** the `web.config` line doesn't match the current code. Paste it again, or make a new code.
 - **Public check failing:** the relay answers, but requests aren't coming back through this tunnel. Usually a proxy or CDN in front of IIS, or a second relay worker. The app reconnects on its own.
 - **An app's web UI doesn't load through the tunnel:** check **Activity → Refused WebSocket connections**. Home Assistant's own WebSocket and any WebSocket inside an app web UI are allowed (relay 0.5.1 or newer; older relays only allow Zigbee2MQTT's). **Settings → What the tunnel lets through** shows the rules.
-- **A country rule didn't block my test:** addresses that have signed in to Home Assistant are never blocked by country. Test from a device that hasn't signed in, and give it 15 seconds. **Settings → Countries and locations** shows whether the country database is ready.
+- **A country rule didn't block my test:** give it 15 seconds after the first request. **Settings → Countries and locations** shows whether the country database is ready.
 - **An iPhone offers to download a file called "authorize":** update the relay to 0.5.2. Older relays sent an empty error while Home Assistant reconnected, which Safari treats as a download.
 - **Notifications say there's no API access:** restart the app; if that doesn't help, reinstall it so Home Assistant grants the permission again.
 

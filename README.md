@@ -54,7 +54,7 @@ The dashboard opens from the Home Assistant sidebar and follows your Home Assist
 | **App web UIs** | Zigbee2MQTT, Node-RED, ESPHome and other app web UIs work through the tunnel, live updates included. |
 | **Blocking** | Block an address or range at the relay, for an hour, a day or for good. Blocked callers never reach Home Assistant. |
 | **Automatic lockdown** | Blocks an address after too many denied answers or login attempts. Home Assistant's own IP ban can't do this behind a tunnel, because every request reaches it from the app. |
-| **Country rules** | Block listed countries, or allow only the ones you list, using an offline country database: no rate limits, and no caller address leaves your home. Addresses that have signed in are never blocked. |
+| **Country rules** | Block listed countries, or allow only the ones you list, using an offline country database: no rate limits, and no caller address leaves your home. The rule applies to everyone, signed in or not. |
 | **Notifications** | Through Home Assistant: tunnel offline, new sign-in location, attacks, blocks, relay updates and an expiring HTTPS certificate. |
 | **CSV export** | Callers, recent requests and traffic history. |
 | **Entities (optional)** | The Home Tunnel integration adds status, traffic and security sensors to Home Assistant. |

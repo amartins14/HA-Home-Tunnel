@@ -707,15 +707,15 @@ async def geolocation(request):
                               "locations": locations, "countries": countries}, headers={"Cache-Control": "no-store"})
 
 
-def apply_country_rules(found, rows, policy, trusted, now=None):
-    """Block addresses first seen from a blocked (or not allowed) country. Returns new blocks."""
+def apply_country_rules(found, rows, policy, now=None):
+    """Block addresses seen from a blocked (or not allowed) country, signed in or not. Returns new blocks."""
     now = time.time() if now is None else now
     if policy["mode"] == "off":
         return []
     codes = set(policy["codes"])
     added = []
     for ip, (label, code) in found.items():
-        if not code or ip in trusted or blocked(rows, ip) or len(rows) >= BLOCK_LIMIT:
+        if not code or blocked(rows, ip) or len(rows) >= BLOCK_LIMIT:
             continue
         listed = code in codes
         if listed if policy["mode"] == "block" else not listed:
@@ -1400,15 +1400,15 @@ async def watcher():
             added = apply_lockdown(metrics, rows, settings["lockdown"], now)
             # Country rules use the offline database; without it they fall back to ipapi.co lookups.
             if metrics and settings["countries"]["mode"] != "off" and (COUNTRY_DB is not None or settings["geolocation_enabled"]):
-                trusted = {row.get("ip") for row in metrics.get("caller_ips") or [] if isinstance(row, dict) and row.get("status") == "authenticated"}
+                # A country rule is the owner's explicit choice: it applies to signed-in addresses too.
                 recent = [event.get("ip") for event in reversed(metrics.get("recent_requests") or []) if isinstance(event, dict)]
                 callers = [row.get("ip") for row in metrics.get("caller_ips") or [] if isinstance(row, dict)]
-                fresh = [ip for ip in dict.fromkeys(recent + callers) if isinstance(ip, str) and ip not in trusted and not blocked(rows, ip)]
+                fresh = [ip for ip in dict.fromkeys(recent + callers) if isinstance(ip, str) and not blocked(rows, ip)]
                 if COUNTRY_DB is not None:
                     found = {ip: ("", code) for ip in fresh if (code := local_country(ip))}
                 else:
                     found = await lookup_locations(fresh[:100])
-                added += apply_country_rules(found, rows, settings["countries"], trusted, now)
+                added += apply_country_rules(found, rows, settings["countries"], now)
             if added or changed:
                 save_blocks(rows)
             paired = bool(read_json(CONNECTION) and TOKEN.exists())

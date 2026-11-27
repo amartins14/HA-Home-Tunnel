@@ -187,14 +187,15 @@ class ServiceFeatureTests(unittest.IsolatedAsyncioTestCase):
         found = {"203.0.113.7": ("Moscow, Russia", "RU"), "198.51.100.2": ("Porto, Portugal", "PT"),
                  "192.0.2.5": ("", ""), "192.0.2.9": ("Berlin, Germany", "DE")}
         rows = []
-        added = service.apply_country_rules(found, rows, {"mode": "block", "codes": ["RU", "DE"], "minutes": 60}, {"192.0.2.9"}, now=1000)
-        self.assertEqual([row["cidr"] for row in added], ["203.0.113.7"], "signed-in and unknown-country callers are skipped")
+        added = service.apply_country_rules(found, rows, {"mode": "block", "codes": ["RU", "DE"], "minutes": 60}, now=1000)
+        # Signed-in addresses are blocked too (192.0.2.9 stands for one); unknown countries are not.
+        self.assertEqual([row["cidr"] for row in added], ["203.0.113.7", "192.0.2.9"])
         self.assertEqual((added[0]["source"], added[0]["until"]), ("country", 1000 + 3600))
         self.assertIn("Russia (RU)", added[0]["reason"])
-        allow = service.apply_country_rules(found, [], {"mode": "allow", "codes": ["PT"], "minutes": None}, set(), now=1000)
+        allow = service.apply_country_rules(found, [], {"mode": "allow", "codes": ["PT"], "minutes": None}, now=1000)
         self.assertEqual(sorted(row["cidr"] for row in allow), ["192.0.2.9", "203.0.113.7"])
         self.assertIsNone(allow[0]["until"])
-        self.assertEqual(service.apply_country_rules(found, [], {"mode": "off", "codes": ["RU"], "minutes": 60}, set()), [])
+        self.assertEqual(service.apply_country_rules(found, [], {"mode": "off", "codes": ["RU"], "minutes": 60}), [])
 
     async def test_location_lookups_share_the_daily_cap_and_cache(self):
         with patch.object(service, "GEOLOCATION_CACHE", {"8.8.8.8": (time.monotonic(), "Porto, Portugal", "PT")}), \

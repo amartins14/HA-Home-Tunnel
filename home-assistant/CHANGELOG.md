@@ -2,6 +2,11 @@
 
 Release notes for Home Tunnel. This copy is read by Home Assistant Supervisor. Relay releases are installed manually on IIS; the Home Assistant app is updated through Supervisor.
 
+## 0.7.6
+
+- Country rules now block addresses that have signed in to Home Assistant too. The dashboard asks before saving a rule that would block the browser you're using.
+- Keep the page's scroll position when it refreshes; it no longer jumps to the top.
+
 ## 0.7.5
 
 - Look up countries offline with DB-IP's free country database (IP geolocation by DB-IP, CC BY 4.0), downloaded once a month. Every caller gets a country within seconds, with no rate limits or daily cap, and no caller address is sent anywhere. Country rules no longer depend on ipapi.co.

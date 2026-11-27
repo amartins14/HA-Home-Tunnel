@@ -126,7 +126,7 @@ class CountryDatabaseServiceTests(unittest.IsolatedAsyncioTestCase):
         self.files["2026-10"] = packed(SAMPLE)
         await service.download_country_db(["2026-10"])
         found = {ip: ("", code) for ip in ["95.93.1.1", "8.8.8.8"] if (code := service.local_country(ip))}
-        added = service.apply_country_rules(found, [], {"mode": "allow", "codes": ["PT"], "minutes": 60}, set(), now=1000)
+        added = service.apply_country_rules(found, [], {"mode": "allow", "codes": ["PT"], "minutes": 60}, now=1000)
         self.assertEqual([row["cidr"] for row in added], ["8.8.8.8"])
         self.assertIn("Country: US", added[0]["reason"])
 
