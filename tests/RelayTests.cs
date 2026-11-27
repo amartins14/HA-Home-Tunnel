@@ -78,6 +78,9 @@ public static class RelayTests
         Reject(() => RelayPolicy.Payload(Convert.ToBase64String(new byte[9]), 8), "decoded payload limit enforced");
         Reject(() => RelayPolicy.ValidateHeaders(new Dictionary<string, object> { { "Content-Type", "a\r\nb" } }, true), "response header injection rejected");
         Reject(() => RelayPolicy.ValidateHeaders(new Dictionary<string, object> { { "X-Forwarded-For", "127.0.0.1" } }, false), "forwarded identity rejected");
+        var security = RelayPolicy.ValidateHeaders(new Dictionary<string, object> { { "X-Frame-Options", "SAMEORIGIN" }, { "Content-Security-Policy", "frame-ancestors 'self'" } }, true);
+        Check(security.Count == 2 && security["X-Frame-Options"] == "SAMEORIGIN" && security["Content-Security-Policy"] == "frame-ancestors 'self'", "HA clickjacking headers pass through to the browser");
+        Reject(() => RelayPolicy.ValidateHeaders(new Dictionary<string, object> { { "Content-Security-Policy", "frame-ancestors 'none'" } }, false), "security response headers rejected on the request path");
         foreach (var raw in new[] { "{", "null", "[]", "{\"type\":\"unknown\"}", "{\"type\":\"ws_close\",\"id\":\"bad\"}", "{\"type\":\"ping\",\"extra\":1}", "{\"type\":\"http_response\",\"id\":\"" + new string('a', 32) + "\",\"status\":302,\"headers\":{},\"body\":\"\"}" }) Reject(() => RelayPolicy.Parse(raw), "malformed protocol rejected");
         Check(RelayPolicy.Parse("{\"type\":\"ping\"}")["type"].ToString() == "ping", "valid heartbeat accepted");
         Reject(() => RelayPolicy.Parse("{\"type\":\"bad\",\"type\":\"ping\"}"), "duplicate protocol keys rejected");

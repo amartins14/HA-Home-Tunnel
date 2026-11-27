@@ -34,7 +34,7 @@ public static class RelayPolicy
     public static readonly UTF8Encoding Utf8 = new UTF8Encoding(false, true);
     public static readonly HashSet<string> Methods = new HashSet<string> { "GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS" };
     public static readonly HashSet<string> RequestHeaders = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "Accept", "Accept-Language", "Authorization", "Cookie", "Content-Type", "Origin", "If-None-Match", "If-Modified-Since", "Range", "If-Range", "User-Agent" };
-    public static readonly HashSet<string> ResponseHeaders = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "Content-Type", "Content-Encoding", "Cache-Control", "ETag", "Last-Modified", "Vary", "Content-Range", "Accept-Ranges", "Expires", "Content-Disposition", "Set-Cookie" };
+    public static readonly HashSet<string> ResponseHeaders = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "Content-Type", "Content-Encoding", "Cache-Control", "ETag", "Last-Modified", "Vary", "Content-Range", "Accept-Ranges", "Expires", "Content-Disposition", "Set-Cookie", "X-Frame-Options", "Content-Security-Policy" };
     public static JavaScriptSerializer Json() { return new JavaScriptSerializer { MaxJsonLength = FrameLimit, RecursionLimit = 8 }; }
     public static bool GoodOrigin(string value)
     {
@@ -233,7 +233,7 @@ public static class RelayPolicy
 public static class RelayBuild
 {
     // Keep this aligned with release-manifest.json when publishing a relay build.
-    public const string Version = "0.5.2";
+    public const string Version = "0.5.3";
     // Pairing actions this build supports, so the app can tell what an older relay lacks.
     public static readonly string[] Features = { "rotate", "unpair", "blocks", "refused" };
     public static bool NativeClients { get { return ConfigurationManager.AppSettings["HaTunnelNativeClientsEnabled"] == "true"; } }
@@ -497,6 +497,17 @@ public static class HaTunnel
         }
         return true;
     }
+    // The relay owns the TLS edge, so it asserts HSTS on what it serves a browser. Home
+    // Assistant's own X-Frame-Options / Content-Security-Policy pass through the response
+    // whitelist; frameFallback only fills a frame default when a response carried neither.
+    public static void SecurityHeaders(HttpContext context, bool frameFallback = false)
+    {
+        var headers = context.Response.Headers;
+        if (context.Request.IsSecureConnection && headers["Strict-Transport-Security"] == null)
+            headers["Strict-Transport-Security"] = "max-age=31536000";
+        if (frameFallback && headers["X-Frame-Options"] == null && headers["Content-Security-Policy"] == null)
+            headers["X-Frame-Options"] = "SAMEORIGIN";
+    }
     public static Dictionary<string, string> Headers(HttpRequest request)
     {
         var values = new Dictionary<string, object>();
@@ -587,6 +598,7 @@ public class HaRelay : HttpTaskAsyncHandler
     }
     async Task RelayRequest(HttpContext context)
     {
+        HaTunnel.SecurityHeaders(context);
         // Addresses the app blocked never reach the connector, or even the setup page.
         if (RelayBlocks.IsBlocked(context.Request.UserHostAddress)) {
             HaTunnel.ErrorPage(context, 403, "Access from this address is blocked", ""); return;
@@ -673,6 +685,7 @@ public class HaRelay : HttpTaskAsyncHandler
                     else context.Response.Headers[entry.Key] = entry.Value;
                 }
                 context.Response.Headers["X-Content-Type-Options"] = "nosniff";
+                HaTunnel.SecurityHeaders(context, true);
                 if ((string)reply["type"] == "http_start") {
                     context.Items["HaStreaming"] = true;
                     context.Response.BufferOutput = false;
