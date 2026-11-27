@@ -32,6 +32,7 @@ When the connector shows **Connected**, turn on **Forwarding**. Then sign in fro
 - **Countries** (with caller locations on): callers and requests per country. Select a country to show only its callers, or block it straight from here.
 - **Callers:** every address that reached the relay in the last 30 days, up to 2,048. *Signed in to HA* means Home Assistant confirmed a sign-in from that address; *No sign-in seen* means it never did. Select an address to show only its requests. **Block** blocks it at the relay.
 - **Recent requests:** the last 20 requests, with method, path, status, time and address. Query strings, ingress tokens and login-flow IDs are never shown.
+- **Refused WebSocket connections:** appears when the relay has refused a WebSocket, with its path, address and reason. If an app's web UI doesn't load through the tunnel, look here first.
 - **Blocked addresses:** everything the relay is turning away, why, and for how long. Add an address or range (like `203.0.113.0/24`) here, or **Unblock** one.
 - The search box filters callers and requests by address, place or path. **CSV** exports either list.
 - **Clear caller history** forgets the caller list. Blocked addresses stay blocked.

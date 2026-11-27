@@ -6,6 +6,7 @@ Release notes for Home Tunnel. Relay releases are installed manually on IIS; the
 
 - Let crawlers fetch the IIS relay so they can read its no-index response header.
 - Add an app icon and logo for the Home Assistant app store, and rewrite the README, app documentation and architecture guide with screenshots, badges and My Home Assistant buttons.
+- Bring the configuration and security guides up to date with 0.7.2, and remove emoji from the documentation.
 
 ## 0.7.2
 

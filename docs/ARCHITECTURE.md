@@ -31,7 +31,7 @@ flowchart LR
 
 - `_relay.ashx` receives every public request (URL Rewrite sends everything there). It turns away blocked addresses, refuses everything while forwarding is off or the connector is missing, limits concurrency, and passes requests to the connector as framed messages.
 - `_connect.ashx` accepts the connector's WebSocket when it presents the connector key.
-- `_pair.ashx` handles pairing (challenge, claim, finalize), forwarding on and off, the version check, key rotation, unpairing and the block list. Everything after pairing needs the connector key.
+- `_pair.ashx` handles pairing (challenge, claim, finalize), forwarding on and off, the version check, key rotation, unpairing, the block list and the list of refused WebSockets. Everything after pairing needs the connector key.
 - State lives in `App_Data`: `home-tunnel-state.json` holds the origin, a hash of the key and the forwarding flag; `home-tunnel-blocks.json` holds the block list the app sent.
 
 **Connector** (`home-assistant/connector/connector.py`): runs as an unprivileged user with no capabilities, no Home Assistant configuration folder and no Home Assistant API token, and checks all of that before connecting. It validates every frame from the relay, joins each request path to the one configured Home Assistant origin, rejects redirects, and only allows Home Assistant's WebSocket and WebSockets below an app web UI's ingress address (no percent-encoded or dot segments). The relay applies the same rule and remembers its last 20 refusals for the dashboard. It also probes its own public address to prove requests return through this connection, and serves read-only metrics on the private app network (`metrics.py`, port 8100): per-caller history, 24-hour traffic and lockdown candidates.
@@ -40,7 +40,8 @@ flowchart LR
 
 - pairing, finalizing, and finishing interrupted key rotations;
 - checking the relay version every 5 minutes and its HTTPS certificate every 6 hours;
-- every 15 seconds: applying automatic lockdown and country rules, sending the block list to the relay when it changes, and raising notifications.
+- every 15 seconds: applying automatic lockdown and country rules, sending the block list to the relay when it changes, and raising notifications;
+- every minute: fetching the relay's refused WebSocket list for the Activity page.
 
 It holds the Home Assistant API token (from `homeassistant_api`) for notifications only. `start.sh` hands it the token under a private name; the service removes it from its environment, never passes it to the connector, and marks itself non-dumpable so the connector can't read it from `/proc`.
 

@@ -26,8 +26,8 @@
 
 ```mermaid
 flowchart LR
-    phone["📱 Browser or<br/>HA Companion app"] -- HTTPS --> relay["🌐 Your relay<br/>(IIS site)"]
-    app["🏠 Home Tunnel app<br/>(in Home Assistant)"] -- "outgoing WebSocket<br/>(keyed, TLS)" --> relay
+    phone["Browser or<br/>HA Companion app"] -- HTTPS --> relay["Your relay<br/>(IIS site)"]
+    app["Home Tunnel app<br/>(in Home Assistant)"] -- "outgoing WebSocket<br/>(keyed, TLS)" --> relay
     app -- "HTTP, one fixed origin" --> ha["Home Assistant"]
 ```
 
@@ -47,16 +47,17 @@ The dashboard opens from the Home Assistant sidebar and follows your Home Assist
 
 | | |
 | --- | --- |
-| 🔌 **Tunnel control** | One switch turns public forwarding on or off. A live health check confirms the public address really reaches your Home Assistant. |
-| 🔐 **Paired, not configured** | The app and relay pair with a one-time setup code using challenge-response; the code itself never leaves Home Assistant. Rotate the connector key or unpair from the dashboard. |
-| 📈 **Traffic history** | Requests, latency, data sent, denied and failed answers, and sign-ins, kept per minute for 24 hours. |
-| 👥 **Who's calling** | Every caller address for 30 days, with request counts and whether it ever signed in to Home Assistant. Optional city and country lookups. |
-| ⛔ **Blocking** | Block an address or range at the relay, for an hour, a day or for good. Blocked callers never reach Home Assistant. |
-| 🛡️ **Automatic lockdown** | Blocks an address after too many denied answers or login attempts. Home Assistant's own IP ban can't do this behind a tunnel, because every request reaches it from the app. |
-| 🌍 **Country rules** | Block listed countries, or allow only the ones you list. Addresses that have signed in are never blocked. |
-| 🔔 **Notifications** | Through Home Assistant: tunnel offline, new sign-in location, attacks, blocks, relay updates and an expiring HTTPS certificate. |
-| 📤 **CSV export** | Callers, recent requests and traffic history. |
-| 📊 **Entities (optional)** | The Home Tunnel integration adds status, traffic and security sensors to Home Assistant. |
+| **Tunnel control** | One switch turns public forwarding on or off. A live health check confirms the public address really reaches your Home Assistant. |
+| **Paired, not configured** | The app and relay pair with a one-time setup code using challenge-response; the code itself never leaves Home Assistant. Rotate the connector key or unpair from the dashboard. |
+| **Traffic history** | Requests, latency, data sent, denied and failed answers, and sign-ins, kept per minute for 24 hours. |
+| **Who's calling** | Every caller address for 30 days, with request counts and whether it ever signed in to Home Assistant. Optional city and country lookups. |
+| **App web UIs** | Zigbee2MQTT, Node-RED, ESPHome and other app web UIs work through the tunnel, live updates included. |
+| **Blocking** | Block an address or range at the relay, for an hour, a day or for good. Blocked callers never reach Home Assistant. |
+| **Automatic lockdown** | Blocks an address after too many denied answers or login attempts. Home Assistant's own IP ban can't do this behind a tunnel, because every request reaches it from the app. |
+| **Country rules** | Block listed countries, or allow only the ones you list. Addresses that have signed in are never blocked. |
+| **Notifications** | Through Home Assistant: tunnel offline, new sign-in location, attacks, blocks, relay updates and an expiring HTTPS certificate. |
+| **CSV export** | Callers, recent requests and traffic history. |
+| **Entities (optional)** | The Home Tunnel integration adds status, traffic and security sensors to Home Assistant. |
 
 ## Get started
 
@@ -92,6 +93,7 @@ The **Home Tunnel** integration reads the app's private metrics and creates stat
 - Only outgoing connections leave your network. The relay can reach exactly one Home Assistant address, chosen in the app, never by a request.
 - The connector runs unprivileged, with no Home Assistant API access, and checks that before it connects.
 - The setup service has Home Assistant API access only to send notifications; it keeps that token away from the connector.
+- WebSockets reach only Home Assistant's own socket and sockets inside app web UIs; the dashboard shows these rules and lists anything the relay refused.
 - Forwarding starts off after pairing, and the relay refuses anything once forwarding is off or the connector is gone.
 - The relay host can see traffic after TLS ends there, so run it somewhere you trust.
 

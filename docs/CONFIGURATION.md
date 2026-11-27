@@ -10,9 +10,9 @@ Set these through the Home Assistant app configuration UI:
 | `metrics_token` | 64 lowercase hexadecimal characters, or blank | Optional shared key for the Home Tunnel integration. Blank lets the app create a private key for its own dashboard automatically. |
 | `geolocation_lookup` | `false` by default | Enables approximate city/region/country lookups for public caller IPs through ipapi.co. The provider receives each IP looked up. Results are cached in memory for 24 hours, with a 200-new-IP daily cap. This can also be changed in the dashboard Settings page; changing this app option later resets the dashboard value. |
 
-Caller IP history is stored in the app's private state for up to 30 days and capped at 2,048 addresses. The Activity page can search and filter callers and clear the stored history. “Authenticated” is recorded only after the connector observes Home Assistant's `auth_ok` WebSocket response. “Unknown” means no such response was observed.
+Caller IP history is stored in the app's private state for up to 30 days and capped at 2,048 addresses. The Activity page can search and filter callers and clear the stored history. *Signed in to HA* is recorded only after the connector observes Home Assistant's `auth_ok` WebSocket response; *No sign-in seen* means no such response was observed.
 
-Enter the public HTTPS URL once in the app's ingress setup page. It derives the relay WebSocket address and the browser-facing origin from that URL. The app connects to Home Assistant automatically at `http://homeassistant:8123`; only change `homeassistant_url` in the app's Configuration tab for an unusual network layout.
+Enter the public HTTPS URL once, in the setup steps on the dashboard's Overview tab. It derives the relay WebSocket address and the browser-facing origin from that URL. The app connects to Home Assistant automatically at `http://homeassistant:8123`; only change `homeassistant_url` in the app's Configuration tab for an unusual network layout.
 
 The connector accepts only relative paths from the relay and joins them to the configured local HA origin. Redirects are rejected. The destination cannot be selected by a browser request.
 
@@ -20,6 +20,7 @@ The connector accepts only relative paths from the relay and joins them to the c
 
 The app's **Settings** tab holds settings that change while it runs and are stored in private app data:
 
+- **What the tunnel lets through**: read-only. Lists the requests and WebSockets that reach Home Assistant and whether Companion app connections are on. The rules are built into the relay and the connector, not settings.
 - **Automatic lockdown**: on by default. Blocks an address at the relay for 60 minutes after 20 denied (401/403) answers or 15 login attempts (`POST /auth/login_flow`) in 10 minutes. Thresholds and duration can be changed. Addresses with a confirmed Home Assistant sign-in are never blocked automatically.
 - **Caller locations and countries**: caller locations (ipapi.co, off by default) add each caller's city and country to Activity. With them on, a country rule can block listed countries or allow only listed ones. Each new address is looked up and, if the rule matches, blocked the first time it is seen, so its first requests still get through. Addresses with a confirmed Home Assistant sign-in are never blocked by country. Lookups share the 200-new-addresses-a-day cap. Turning caller locations off stops country data and country blocking; addresses already blocked stay blocked until their block ends.
 - **Notifications**: off until you pick where they go: Home Assistant's notification bell (`persistent_notification`) or any `notify.*` service. Each alert type can be turned off.
@@ -37,6 +38,6 @@ The relay stores its permanent key verifier and forwarding state in `App_Data`; 
 
 `relay/web.config` contains IIS routing and security settings plus the per-install `HaTunnelBootstrapCodeHash`. The public origin, pairing state, connector key verifier, and forwarding toggle are stored through the relay's private state store and managed by the app UI.
 
-Native HA Companion clients remain disabled in the shipped configuration.
+Native HA Companion clients remain disabled in the shipped configuration (`HaTunnelNativeClientsEnabled`). The dashboard shows the relay's current value.
 
 Configure HTTPS certificates and HTTP-to-HTTPS redirection in IIS or the upstream proxy. The relay itself rejects non-HTTPS requests and requests sent to a different host.

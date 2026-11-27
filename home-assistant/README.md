@@ -6,12 +6,13 @@ Reach your Home Assistant from anywhere through a relay you host. No open ports 
 
 ## What you get
 
-- 🔌 **One switch** to turn public access on or off, with a live check that your public address really reaches Home Assistant.
-- 🔐 **Pairing with a one-time code** that never leaves Home Assistant, plus key rotation and unpairing from the dashboard.
-- 📈 **24 hours of traffic charts**: requests, latency, data, denied and failed answers, sign-ins.
-- 👥 **Every caller for 30 days**, with sign-in status, optional city and country, and CSV export.
-- ⛔ **Blocking at the relay**: by address or range, automatically after repeated failures, or by country.
-- 🔔 **Notifications through Home Assistant** when the tunnel goes down, someone new signs in, or the relay needs attention.
+- **One switch** to turn public access on or off, with a live check that your public address really reaches Home Assistant.
+- **Pairing with a one-time code** that never leaves Home Assistant, plus key rotation and unpairing from the dashboard.
+- **24 hours of traffic charts**: requests, latency, data, denied and failed answers, sign-ins.
+- **Every caller for 30 days**, with sign-in status, optional city and country, and CSV export.
+- **Blocking at the relay**: by address or range, automatically after repeated failures, or by country.
+- **App web UIs through the tunnel**: Zigbee2MQTT, Node-RED, ESPHome and others.
+- **Notifications through Home Assistant** when the tunnel goes down, someone new signs in, or the relay needs attention.
 
 The dashboard lives in the sidebar and follows your Home Assistant theme.
 
