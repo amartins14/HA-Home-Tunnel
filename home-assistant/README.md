@@ -1,9 +1,28 @@
-# Home Tunnel app
+# Home Tunnel
 
-The Home Tunnel app creates an outbound encrypted connection to the configured relay and forwards only to the configured Home Assistant origin. It does not request the Home Assistant API, Supervisor API, Docker socket, host network, host PID, or host mounts. It requires Home Assistant Core 2026.9.0 or newer.
+Reach your Home Assistant from anywhere through a relay you host. No open ports at home and no third-party cloud; Home Assistant still handles every sign-in.
 
-The built-in ingress page is the single Home Tunnel dashboard for status, recent request IPs and full sanitized paths, settings, pairing, relay updates, and forwarding. Open it from the sidebar or from **Settings → Apps → Home Tunnel → Open Web UI**. The Activity page includes a searchable list of caller IPs, with observed HA login status and request counts; the same search filters recent activity, and selecting any IP filters both views. **This device** marks an IP from which Home Assistant confirmed a login; it does not identify the individual HA account. Caller history is stored privately for up to 30 days, capped at 2,048 addresses, and can be cleared from the dashboard. The Home Assistant URL, optional metrics token, and optional approximate geolocation lookups also remain available on the app's **Configuration** tab. Geolocation is off by default; enabling it sends public caller IPs to ipapi.co, with results that may be inaccurate, cached for 24 hours, and limited to 200 new IPs per day.
+![Supports aarch64](https://img.shields.io/badge/aarch64-yes-41BDF5?style=flat-square) ![Supports amd64](https://img.shields.io/badge/amd64-yes-41BDF5?style=flat-square) ![Home Assistant 2026.9+](https://img.shields.io/badge/Home%20Assistant-2026.9%2B-41BDF5?style=flat-square&logo=homeassistant&logoColor=white)
 
-Use **Settings → Appearance → Customize** to choose the system, light or dark theme and an accent color for this browser. Requests and caller IPs share the Activity search. Selecting a caller opens its requests.
+## What you get
 
-See [DOCS.md](DOCS.md) for installation, options, key setup, and limitations. See the repository's [security notes](../docs/SECURITY.md) before enabling the public relay.
+- 🔌 **One switch** to turn public access on or off, with a live check that your public address really reaches Home Assistant.
+- 🔐 **Pairing with a one-time code** that never leaves Home Assistant, plus key rotation and unpairing from the dashboard.
+- 📈 **24 hours of traffic charts**: requests, latency, data, denied and failed answers, sign-ins.
+- 👥 **Every caller for 30 days**, with sign-in status, optional city and country, and CSV export.
+- ⛔ **Blocking at the relay**: by address or range, automatically after repeated failures, or by country.
+- 🔔 **Notifications through Home Assistant** when the tunnel goes down, someone new signs in, or the relay needs attention.
+
+The dashboard lives in the sidebar and follows your Home Assistant theme.
+
+## Before you install
+
+You also need a relay: a Windows IIS site with ASP.NET Framework 4.8, WebSockets and URL Rewrite, on a hostname with a valid HTTPS certificate. The relay package is attached to each [GitHub release](https://github.com/amartins14/HA-Home-Tunnel/releases/latest).
+
+## Permissions
+
+- **Home Assistant API:** used only to list notify services and send notifications. The connector, which handles the public traffic, never receives this access and refuses to start if it finds it.
+- **Ingress:** the dashboard opens inside Home Assistant for administrators only.
+- No host network, Docker socket, privileged mode or Home Assistant configuration folder.
+
+Open the **Documentation** tab for setup and a tour of every screen.
