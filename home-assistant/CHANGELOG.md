@@ -2,6 +2,11 @@
 
 Release notes for Home Tunnel. This copy is read by Home Assistant Supervisor. Relay releases are installed manually on IIS; the Home Assistant app is updated through Supervisor.
 
+## 0.7.5
+
+- Look up countries offline with DB-IP's free country database (IP geolocation by DB-IP, CC BY 4.0), downloaded once a month. Every caller gets a country within seconds, with no rate limits or daily cap, and no caller address is sent anywhere. Country rules no longer depend on ipapi.co.
+- City names on Activity are now a separate, optional setting (*Show city names*) that still uses ipapi.co.
+
 ## 0.7.4
 
 - Show which kind of device used each caller address, such as "Safari · iPhone" or "Home Assistant app · iOS 18", from the User-Agent of the browser or app that opened Home Assistant. Only this short label is kept, up to four per address. Search, CSV export and new sign-in notifications include it.

@@ -828,9 +828,9 @@
 
   function renderCountries(callers) {
     const s = state.status;
-    if (!s.geolocation_enabled) {
+    if (!countriesReady()) {
       return section(ICONS.shield, 'Countries', null, null, el('div', {class: 'row'},
-        el('div', {class: 'grow sub'}, 'Turn on caller locations to see where callers come from and to block countries.'),
+        el('div', {class: 'grow sub'}, 'Country data is downloading. Countries appear here when it’s ready.'),
         el('button', {class: 'btn', onclick: () => setTab('settings')}, 'Settings')));
     }
     const c = s.countries || {mode: 'off', codes: []};
@@ -856,7 +856,9 @@
       return saveCountries({...c, codes, mode: c.mode === 'off' ? 'block' : c.mode});
     };
     return section(ICONS.shield, 'Countries', located
-      ? `${plural(located, 'caller')} located in ${plural(groups.size, 'country', 'countries')}${callers.length > located ? `; ${callers.length - located} still to look up` : ''}`
+      ? `${plural(located, 'caller')} located in ${plural(groups.size, 'country', 'countries')}${
+          callers.some(row => !(row.ip in state.countries)) ? `; ${callers.filter(row => !(row.ip in state.countries)).length} still to look up`
+          : callers.length > located ? `; ${callers.length - located} without a known country` : ''}`
       : 'Locations appear as callers are looked up.', null,
       sorted.slice(0, 12).map(g => {
         const pick = () => { state.country = state.country === g.code ? '' : g.code; state.callerShown = 25; render(); };
@@ -1092,10 +1094,14 @@
     }, 'Unpaired. Create a new setup code to pair again.');
   }
 
+  // Countries come from an offline database; city names optionally from ipapi.co.
+  const countriesReady = () => !!(state.status?.country_db?.available || state.status?.geolocation_enabled);
+
   function renderLocations() {
     const s = state.status;
     const c = s.countries || {mode: 'off', codes: [], minutes: 43200};
-    const on = !!s.geolocation_enabled;
+    const db = s.country_db || {};
+    const cities = !!s.geolocation_enabled;
     const save = changes => saveCountries({...c, ...changes});
     const available = COUNTRY_CODES.filter(code => !c.codes.includes(code))
       .map(code => [code, countryName(code)]).sort((a, b) => a[1].localeCompare(b[1]));
@@ -1107,9 +1113,18 @@
     };
     const myCountry = state.myIp ? state.countries[state.myIp] : null;
     const selfRisk = myCountry && c.mode !== 'off' && (c.mode === 'block' ? c.codes.includes(myCountry) : !c.codes.includes(myCountry));
-    const rules = !on ? [
-      el('div', {class: 'row'}, el('div', {class: 'grow sub warn'},
-        'Country data and country blocking need caller locations. Turn it on above to use them.')),
+    const edition = db.month ? new Date(`${db.month}-15T00:00:00Z`).toLocaleDateString([], {month: 'long', year: 'numeric'}) : null;
+    const dbRow = el('div', {class: 'row'},
+      el('div', {class: 'grow'}, el('div', {class: 'title'}, 'Country data'),
+        el('div', {class: `sub${db.available ? '' : ' warn'}`}, db.available
+          ? `${edition} edition, updated ${ago(new Date(db.downloaded_at * 1000).toISOString())}. Looked up inside this app: no caller address is sent anywhere. Refreshed monthly.`
+          : db.error === 'download_failed' ? 'Couldn’t download the country database. Retrying every 15 minutes.'
+          : 'Downloading the country database (about 5 MB)…'),
+        el('div', {class: 'sub'}, el('a', {href: 'https://db-ip.com', target: '_blank', rel: 'noopener noreferrer'}, 'IP geolocation by DB-IP'),
+          ', licensed CC BY 4.0.')),
+      chip(db.available ? 'Ready' : db.error ? 'Unavailable' : 'Downloading', db.available ? 'ok' : 'warn'));
+    const rules = !countriesReady() ? [
+      el('div', {class: 'row'}, el('div', {class: 'grow sub warn'}, 'Country rules start working once the country database has downloaded.')),
     ] : [
       el('div', {class: 'group'}, el('span', {class: 'grow'}, 'Block by country')),
       el('div', {class: 'row'},
@@ -1137,22 +1152,23 @@
           el('select', {id: 'country-minutes', style: 'width:100%', disabled: state.busy, onchange: e => save({minutes: Number(e.target.value) || null})},
             BLOCK_DURATIONS.filter(([value]) => value !== '60').map(([value, text]) =>
               el('option', {value, selected: String(c.minutes ?? '') === value}, text))))),
-      geoProblem(s.geolocation_status),
       selfRisk ? el('div', {class: 'pad sub warn'}, `You are connecting from ${countryName(myCountry)}. This rule would block you if you weren’t already signed in.`) : null,
-      el('div', {class: 'pad sub'}, 'Each address is checked the first time it’s seen, so its first requests get through. Addresses that have signed in to Home Assistant are never blocked by country. Lookups count toward the 200-a-day limit; once it’s reached, new addresses aren’t checked until the next day.'),
+      el('div', {class: 'pad sub'}, 'Each new address is checked within about 15 seconds of being seen, so its first requests get through. Addresses that have signed in to Home Assistant are never blocked by country.'),
     ];
-    return section(ICONS.shield, 'Caller locations and countries', 'What Home Tunnel looks up about callers', null,
-      toggleRow('Look up caller locations',
-        state.geoSaving ? 'Saving…' : 'Sends public caller addresses to ipapi.co for an approximate city, region and country. Results are cached for a day, at most 200 new addresses a day, and can be wrong. Turning this off also turns off country data and country blocking.',
-        on, setGeolocation, state.geoSaving),
+    return section(ICONS.shield, 'Countries and locations', 'Where callers come from', null,
+      dbRow,
+      toggleRow('Show city names',
+        state.geoSaving ? 'Saving…' : 'Optional. Sends public caller addresses to ipapi.co for an approximate city and region, shown on Activity. Countries don’t need this. Cached for a day, at most 200 new addresses a day.',
+        cities, setGeolocation, state.geoSaving),
+      cities ? geoProblem(s.geolocation_status) : null,
       rules);
   }
 
   function geoProblem(status) {
     if (!status) return null;
-    if (status.remaining_today === 0) return el('div', {class: 'pad sub warn'}, 'Today’s 200 location lookups are used up. New addresses get a country again tomorrow.');
-    if (status.error === 'rate_limited') return el('div', {class: 'pad sub warn'}, `ipapi.co is limiting lookups (${ago(new Date(status.at * 1000).toISOString())}). Addresses are checked as it allows.`);
-    if (status.error === 'failed') return el('div', {class: 'pad sub warn'}, `The last location lookup failed (${ago(new Date(status.at * 1000).toISOString())}). Failed addresses are retried after 15 minutes.`);
+    if (status.remaining_today === 0) return el('div', {class: 'pad sub warn'}, 'Today’s 200 city lookups are used up. New addresses get a city again tomorrow.');
+    if (status.error === 'rate_limited') return el('div', {class: 'pad sub warn'}, `ipapi.co is limiting city lookups (${ago(new Date(status.at * 1000).toISOString())}). Cities appear as it allows.`);
+    if (status.error === 'failed') return el('div', {class: 'pad sub warn'}, `The last city lookup failed (${ago(new Date(status.at * 1000).toISOString())}). Failed addresses are retried after 15 minutes.`);
     return null;
   }
 
@@ -1162,18 +1178,12 @@
   }
 
   async function setGeolocation(on, input) {
-    const c = state.status.countries;
-    if (!on && !confirm(c && c.mode !== 'off'
-      ? 'Turn off caller locations? This also turns off country data and country blocking: new callers won’t be checked by country. Addresses already blocked stay blocked until their block ends.'
-      : 'Turn off caller locations? Country data disappears from Activity, and country blocking can’t be used until you turn it back on.')) {
-      input.checked = true; return;
-    }
     state.geoSaving = true; render();
     try {
       await api('settings', {geolocation_enabled: on});
       state.status.geolocation_enabled = on;
-      if (!on) { state.locations = {}; state.countries = {}; state.country = ''; }
-      say(on ? 'Caller locations turned on.' : 'Caller locations turned off.');
+      if (!on) state.locations = {};
+      say(on ? 'City names turned on.' : 'City names turned off. Countries still show.');
       if (on) lookupLocations();
     } catch (error) {
       input.checked = !on;
@@ -1227,25 +1237,27 @@
     } catch (error) { /* only a convenience */ }
   }
 
-  // Ask for locations of addresses we don't know yet, newest first, 10 at a time.
+  // Countries for every address (offline, so all at once); city names for up to 10 at a time when turned on.
   async function lookupLocations() {
     const m = state.telemetry?.available ? state.telemetry.metrics : null;
-    if (!m || !state.status?.geolocation_enabled) return;
+    if (!m || !countriesReady()) return;
+    const cities = !!state.status.geolocation_enabled;
     const recent = (Array.isArray(m.recent_requests) ? m.recent_requests.slice().reverse() : []).map(e => e.ip);
     const callers = (Array.isArray(m.caller_ips) ? m.caller_ips : []).map(r => r.ip);
-    const ips = [...new Set([...recent, ...callers])].filter(ip => isIp(ip) && !(ip in state.locations)).slice(0, 10);
+    const needed = ip => isIp(ip) && (!(ip in state.countries) || (cities && !(ip in state.locations)));
+    const ips = [...new Set([...recent, ...callers])].filter(needed).slice(0, 50);
     if (!ips.length) return;
     try {
       // Repeated parameters: some hosting firewalls refuse a comma-separated list of IP addresses.
       const result = await api(`geolocation?${ips.map(ip => `ips=${encodeURIComponent(ip)}`).join('&')}`);
-      if (!result.enabled) return;
       for (const ip of ips) {
-        state.locations[ip] = (result.locations || {})[ip] || '';
-        if ((result.countries || {})[ip]) state.countries[ip] = result.countries[ip];
+        state.countries[ip] = (result.countries || {})[ip] || '';
+        if (result.enabled && ip in (result.locations || {})) state.locations[ip] = result.locations[ip] || '';
       }
       render();
     } catch (error) { /* locations are optional */ }
   }
+
 
   // ---------- start ----------
   syncTheme(); syncNarrow();

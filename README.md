@@ -50,11 +50,11 @@ The dashboard opens from the Home Assistant sidebar and follows your Home Assist
 | **Tunnel control** | One switch turns public forwarding on or off. A live health check confirms the public address really reaches your Home Assistant. |
 | **Paired, not configured** | The app and relay pair with a one-time setup code using challenge-response; the code itself never leaves Home Assistant. Rotate the connector key or unpair from the dashboard. |
 | **Traffic history** | Requests, latency, data sent, denied and failed answers, and sign-ins, kept per minute for 24 hours. |
-| **Who's calling** | Every caller address for 30 days, with request counts, the kind of device ("Safari · iPhone", "Home Assistant app · Android 14") and whether it ever signed in to Home Assistant. Optional city and country lookups. |
+| **Who's calling** | Every caller address for 30 days, with request counts, the kind of device ("Safari · iPhone", "Home Assistant app · Android 14") and whether it ever signed in to Home Assistant. Countries are looked up offline; city names are optional. |
 | **App web UIs** | Zigbee2MQTT, Node-RED, ESPHome and other app web UIs work through the tunnel, live updates included. |
 | **Blocking** | Block an address or range at the relay, for an hour, a day or for good. Blocked callers never reach Home Assistant. |
 | **Automatic lockdown** | Blocks an address after too many denied answers or login attempts. Home Assistant's own IP ban can't do this behind a tunnel, because every request reaches it from the app. |
-| **Country rules** | Block listed countries, or allow only the ones you list. Addresses that have signed in are never blocked. |
+| **Country rules** | Block listed countries, or allow only the ones you list, using an offline country database: no rate limits, and no caller address leaves your home. Addresses that have signed in are never blocked. |
 | **Notifications** | Through Home Assistant: tunnel offline, new sign-in location, attacks, blocks, relay updates and an expiring HTTPS certificate. |
 | **CSV export** | Callers, recent requests and traffic history. |
 | **Entities (optional)** | The Home Tunnel integration adds status, traffic and security sensors to Home Assistant. |
@@ -133,4 +133,4 @@ The relay checks compile with the .NET Framework 4.8 compiler on Windows; [CONTR
 
 ## License
 
-[MIT](LICENSE). Home Assistant is a trademark of the Open Home Foundation; this project is not affiliated with it.
+[MIT](LICENSE). Country data: [IP geolocation by DB-IP](https://db-ip.com), CC BY 4.0, downloaded by the app at run time. Home Assistant is a trademark of the Open Home Foundation; this project is not affiliated with it.

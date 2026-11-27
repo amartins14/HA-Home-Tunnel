@@ -29,7 +29,7 @@ When the connector shows **Connected**, turn on **Forwarding**. Then sign in fro
 
 ## Activity
 
-- **Countries** (with caller locations on): callers and requests per country. Select a country to show only its callers, or block it straight from here.
+- **Countries:** callers and requests per country. Select a country to show only its callers, or block it straight from here.
 - **Callers:** every address that reached the relay in the last 30 days, up to 2,048. *Signed in to HA* means Home Assistant confirmed a sign-in from that address; *No sign-in seen* means it never did. Device chips, such as *Safari · iPhone* or *Home Assistant app · iOS 18*, show which browsers and apps opened Home Assistant from that address. Select an address to show only its requests. **Block** blocks it at the relay.
 - **Recent requests:** the last 20 requests, with method, path, status, time and address. Query strings, ingress tokens and login-flow IDs are never shown.
 - **Refused WebSocket connections:** appears when the relay has refused a WebSocket, with its path, address and reason. If an app's web UI doesn't load through the tunnel, look here first.
@@ -58,18 +58,18 @@ On by default. An address is blocked for 60 minutes after **20 denied answers** 
 
 Don't use Home Assistant's own `ip_ban_enabled` for this: behind the tunnel every request reaches Home Assistant from this app, so an IP ban there would block the tunnel itself.
 
-### Caller locations and countries
+### Countries and locations
 
-**Look up caller locations** sends public caller addresses to [ipapi.co](https://ipapi.co) for an approximate city and country. It's off by default. Results are cached for a day, and at most 200 new addresses are looked up per day.
+**Country data** comes from DB-IP's free *IP to Country Lite* database ([IP geolocation by DB-IP](https://db-ip.com), CC BY 4.0). The app downloads it (about 5 MB) when it first starts and then once a month, and looks addresses up itself: no caller address is sent anywhere. If a download fails, it keeps using the last good copy. The card shows which edition is in use.
 
-With it on, you can set a country rule:
+**Show city names** is optional and off by default. It sends public caller addresses to [ipapi.co](https://ipapi.co) for an approximate city and region on the Activity page. Countries don't need it. Results are cached for a day, at most 200 new addresses are looked up per day, and the card says when ipapi.co is limiting lookups.
+
+You can set a country rule:
 
 - **Block listed:** callers from the listed countries are blocked.
 - **Allow only listed:** callers from any other country are blocked.
 
-Each address is checked the first time it's seen, so its first requests get through. Addresses that have signed in are never blocked by country, so travelling won't lock you out. Country blocks last 30 days by default.
-
-**Turning caller locations off also turns off country data and country blocking.** Addresses already blocked stay blocked until their block ends.
+Each new address is checked within about 15 seconds of being seen, so its first requests get through. Addresses that have signed in are never blocked by country, so travelling won't lock you out. Country blocks last 30 days by default.
 
 ### Notifications
 
@@ -96,7 +96,7 @@ Set these on the app's **Configuration** tab. Most installs never need to.
 | --- | --- | --- |
 | `homeassistant_url` | `http://homeassistant:8123` | The only Home Assistant address the connector may reach. Origin only: no path or credentials. Changing it restarts the connector. |
 | `metrics_token` | empty | A 64-character hex key for the optional Home Tunnel integration. Leave empty unless you use the integration; the dashboard makes its own private key. |
-| `geolocation_lookup` | `false` | The starting value of *Look up caller locations*. Changing this option later overrides the dashboard setting. |
+| `geolocation_lookup` | `false` | The starting value of *Show city names* (ipapi.co lookups). Countries don't depend on it. Changing this option later overrides the dashboard setting. |
 
 ## Optional integration
 
@@ -120,7 +120,7 @@ Uninstalling the app or removing its data deletes all of this and unpairs it on 
 - **Pairing stuck with "rejected the setup code hash":** the `web.config` line doesn't match the current code. Paste it again, or make a new code.
 - **Public check failing:** the relay answers, but requests aren't coming back through this tunnel. Usually a proxy or CDN in front of IIS, or a second relay worker. The app reconnects on its own.
 - **An app's web UI doesn't load through the tunnel:** check **Activity → Refused WebSocket connections**. Home Assistant's own WebSocket and any WebSocket inside an app web UI are allowed (relay 0.5.1 or newer; older relays only allow Zigbee2MQTT's). **Settings → What the tunnel lets through** shows the rules.
-- **A country rule didn't block my test:** addresses that have signed in to Home Assistant are never blocked by country. Test from a device that hasn't signed in, and give it 15 seconds. If the Settings card says lookups are limited or used up, new addresses wait for a country.
+- **A country rule didn't block my test:** addresses that have signed in to Home Assistant are never blocked by country. Test from a device that hasn't signed in, and give it 15 seconds. **Settings → Countries and locations** shows whether the country database is ready.
 - **An iPhone offers to download a file called "authorize":** update the relay to 0.5.2. Older relays sent an empty error while Home Assistant reconnected, which Safari treats as a download.
 - **Notifications say there's no API access:** restart the app; if that doesn't help, reinstall it so Home Assistant grants the permission again.
 

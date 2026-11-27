@@ -20,6 +20,7 @@ from urllib.parse import urlsplit
 
 import aiohttp
 from aiohttp import web
+import countrydb
 import policy
 
 STATE = Path("/data/state")
@@ -31,6 +32,8 @@ TOKEN_NEXT = STATE / "tunnel-token.next"
 BLOCKS = STATE / "blocks.json"
 ALERTS = STATE / "alerts.json"
 RELAY_HEALTH = STATE / "relay-health.json"
+COUNTRY_DB_FILE = STATE / "dbip-country-lite.csv.gz"
+COUNTRY_DB_META = STATE / "country-db.json"
 STATUS = STATE / "status.json"
 SETTINGS = STATE / "settings.json"
 METRICS_TOKEN = Path("/secrets/metrics-token.txt")
@@ -373,6 +376,7 @@ async def status(request):
         "error": live.get("error") if now - live.get("updated_at", 0) < 90 else None,
         "relay_features": relay_version.get("features") if isinstance(relay_version.get("features"), list) else [],
         "relay_native_clients": relay_version.get("native_clients"),
+        "country_db": {key: COUNTRY_DB_STATUS[key] for key in ("available", "month", "downloaded_at", "ranges", "error")},
         "geolocation_status": {"error": GEOLOCATION_STATUS["error"], "at": GEOLOCATION_STATUS["at"],
                                "remaining_today": max(0, GEOLOCATION_LOOKUP_LIMIT - GEOLOCATION_LOOKUP_COUNT)},
         "relay_refused": REFUSED["items"],
@@ -527,6 +531,76 @@ async def update_settings(request):
     return web.json_response({"homeassistant_url": value, "restarting": restarting}, headers={"Cache-Control": "no-store"})
 
 
+# ---------- offline country database ----------
+COUNTRY_DB = None
+COUNTRY_DB_STATUS = {"available": False, "month": None, "downloaded_at": None, "ranges": 0, "error": None, "checked_at": None}
+COUNTRY_DB_CHECK_INTERVAL = 6 * 60 * 60
+
+
+def local_country(ip):
+    return COUNTRY_DB.country(ip) if COUNTRY_DB is not None else ""
+
+
+async def load_country_db():
+    """Load the saved database, if any. Returns True when one is ready."""
+    global COUNTRY_DB
+    meta = read_json(COUNTRY_DB_META) or {}
+    try:
+        raw = await asyncio.to_thread(COUNTRY_DB_FILE.read_bytes)
+        COUNTRY_DB = await asyncio.to_thread(countrydb.CountryDB.parse, raw)
+    except FileNotFoundError:
+        return False
+    except (OSError, ValueError) as error:
+        COUNTRY_DB_STATUS["error"] = "unreadable"
+        LOG.warning("Saved country database is unusable (%s)", type(error).__name__)
+        return False
+    COUNTRY_DB_STATUS.update({"available": True, "month": meta.get("month"), "downloaded_at": meta.get("downloaded_at"),
+                              "ranges": COUNTRY_DB.ranges, "error": None})
+    return True
+
+
+async def download_country_db(months=None):
+    """Fetch the newest monthly edition; keep the current copy unless the new one parses."""
+    global COUNTRY_DB
+    COUNTRY_DB_STATUS["checked_at"] = time.time()
+    timeout = aiohttp.ClientTimeout(total=300, connect=15)
+    async with aiohttp.ClientSession(timeout=timeout, trust_env=False) as session:
+        for month in months or countrydb.months_to_try():
+            try:
+                async with session.get(countrydb.URL.format(month=month), allow_redirects=False) as response:
+                    if response.status != 200:
+                        continue
+                    raw = await read_limited(response, countrydb.MAX_DOWNLOAD)
+                fresh = await asyncio.to_thread(countrydb.CountryDB.parse, raw)
+            except (aiohttp.ClientError, asyncio.TimeoutError, ValueError, OSError) as error:
+                LOG.warning("Country database %s unavailable (%s)", month, type(error).__name__)
+                continue
+            STATE.mkdir(mode=0o700, parents=True, exist_ok=True)
+            temporary = COUNTRY_DB_FILE.with_suffix(".tmp")
+            temporary.write_bytes(raw)
+            os.chmod(temporary, 0o600)
+            os.replace(temporary, COUNTRY_DB_FILE)
+            save_json(COUNTRY_DB_META, {"month": month, "downloaded_at": time.time()})
+            COUNTRY_DB = fresh
+            COUNTRY_DB_STATUS.update({"available": True, "month": month, "downloaded_at": time.time(),
+                                      "ranges": fresh.ranges, "error": None})
+            LOG.info("Country database %s loaded (%d ranges)", month, fresh.ranges)
+            return True
+    COUNTRY_DB_STATUS["error"] = "download_failed"
+    return False
+
+
+async def country_db_updater():
+    await load_country_db()
+    while True:
+        current = countrydb.months_to_try()[0]
+        if COUNTRY_DB_STATUS["month"] != current:
+            # Before this month's edition is out, last month's is fine; keep checking for the new one.
+            months = countrydb.months_to_try() if COUNTRY_DB is None else [current]
+            await download_country_db(months)
+        await asyncio.sleep(COUNTRY_DB_CHECK_INTERVAL if COUNTRY_DB is not None else 15 * 60)
+
+
 GEOLOCATION_STATUS = {"error": None, "at": None, "paused_until": 0.0}
 
 
@@ -616,16 +690,21 @@ async def lookup_locations(ips, max_new=10):
 
 
 async def geolocation(request):
+    """Countries come from the offline database; city names from ipapi.co only when turned on."""
     settings = read_json(SETTINGS) or {}
-    if settings.get("geolocation_enabled") is not True:
-        return web.json_response({"enabled": False, "locations": {}, "countries": {}}, headers={"Cache-Control": "no-store"})
+    cities = settings.get("geolocation_enabled") is True
     ips = list(dict.fromkeys(ip for value in request.query.getall("ips", []) for ip in value.split(",") if ip))
-    if not ips or len(ips) > 10:
-        raise web.HTTPBadRequest(text="Request up to 10 recent IP addresses")
-    found = await lookup_locations(ips)
-    return web.json_response({"enabled": True, "locations": {ip: label for ip, (label, _) in found.items()},
-                              "countries": {ip: code for ip, (_, code) in found.items() if code}},
-                             headers={"Cache-Control": "no-store"})
+    if not ips or len(ips) > 50:
+        raise web.HTTPBadRequest(text="Request up to 50 IP addresses")
+    countries = {ip: code for ip in ips if (code := local_country(ip))}
+    locations = {}
+    if cities:
+        for ip, (label, code) in (await lookup_locations(ips[:10])).items():
+            locations[ip] = label
+            if code and ip not in countries:
+                countries[ip] = code
+    return web.json_response({"enabled": cities, "countries_available": COUNTRY_DB is not None,
+                              "locations": locations, "countries": countries}, headers={"Cache-Control": "no-store"})
 
 
 def apply_country_rules(found, rows, policy, trusted, now=None):
@@ -644,8 +723,8 @@ def apply_country_rules(found, rows, policy, trusted, now=None):
                 cidr = normalize_cidr(ip)
             except ValueError:
                 continue
-            place = label.rsplit(", ", 1)[-1] if label else code
-            reason = f"Country: {place} ({code}) is {'blocked' if policy['mode'] == 'block' else 'not on the allowed list'}"
+            place = f"{label.rsplit(', ', 1)[-1]} ({code})" if label else code
+            reason = f"Country: {place} is {'blocked' if policy['mode'] == 'block' else 'not on the allowed list'}"
             row = {"cidr": cidr, "until": now + policy["minutes"] * 60 if policy["minutes"] else None,
                    "reason": reason, "source": "country", "created": now}
             rows.insert(0, row)
@@ -1319,13 +1398,16 @@ async def watcher():
             metrics = await fetch_metrics()
             settings = app_settings()
             added = apply_lockdown(metrics, rows, settings["lockdown"], now)
-            # Country rules only work while caller locations are on: they need ipapi.co lookups.
-            if metrics and settings["geolocation_enabled"] and settings["countries"]["mode"] != "off":
+            # Country rules use the offline database; without it they fall back to ipapi.co lookups.
+            if metrics and settings["countries"]["mode"] != "off" and (COUNTRY_DB is not None or settings["geolocation_enabled"]):
                 trusted = {row.get("ip") for row in metrics.get("caller_ips") or [] if isinstance(row, dict) and row.get("status") == "authenticated"}
                 recent = [event.get("ip") for event in reversed(metrics.get("recent_requests") or []) if isinstance(event, dict)]
                 callers = [row.get("ip") for row in metrics.get("caller_ips") or [] if isinstance(row, dict)]
                 fresh = [ip for ip in dict.fromkeys(recent + callers) if isinstance(ip, str) and ip not in trusted and not blocked(rows, ip)]
-                found = await lookup_locations(fresh[:100])
+                if COUNTRY_DB is not None:
+                    found = {ip: ("", code) for ip in fresh if (code := local_country(ip))}
+                else:
+                    found = await lookup_locations(fresh[:100])
                 added += apply_country_rules(found, rows, settings["countries"], trusted, now)
             if added or changed:
                 save_blocks(rows)
@@ -1436,7 +1518,8 @@ async def main():
     await web.TCPSite(runner, "0.0.0.0", 8099).start()
     app["tasks"].extend([asyncio.create_task(pair_worker()), asyncio.create_task(connector_supervisor()),
                          asyncio.create_task(release_checker()), asyncio.create_task(relay_version_checker()),
-                         asyncio.create_task(watcher()), asyncio.create_task(certificate_checker())])
+                         asyncio.create_task(watcher()), asyncio.create_task(certificate_checker()),
+                         asyncio.create_task(country_db_updater())])
     LOG.info("Home Tunnel setup UI is available through Home Assistant ingress")
     stop = asyncio.Event()
     loop = asyncio.get_running_loop()

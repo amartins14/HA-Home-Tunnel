@@ -41,7 +41,8 @@ flowchart LR
 - pairing, finalizing, and finishing interrupted key rotations;
 - checking the relay version every 5 minutes and its HTTPS certificate every 6 hours;
 - every 15 seconds: applying automatic lockdown and country rules, sending the block list to the relay when it changes, and raising notifications;
-- every minute: fetching the relay's refused WebSocket list for the Activity page.
+- every minute: fetching the relay's refused WebSocket list for the Activity page;
+- monthly: downloading DB-IP's free country database, which `countrydb.py` loads into compact arrays (about 15 MB) for offline country lookups.
 
 It holds the Home Assistant API token (from `homeassistant_api`) for notifications only. `start.sh` hands it the token under a private name; the service removes it from its environment, never passes it to the connector, and marks itself non-dumpable so the connector can't read it from `/proc`.
 
