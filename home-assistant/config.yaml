@@ -1,5 +1,5 @@
 name: Home Tunnel
-version: "0.7.7"
+version: "0.7.8"
 slug: home_tunnel
 description: Reach Home Assistant from anywhere through a relay you host
 homeassistant: "2026.9.0"

@@ -2,7 +2,7 @@
 
 Release notes for Home Tunnel. Relay releases are installed manually on IIS; the Home Assistant app is updated through Supervisor.
 
-## Unreleased
+## 0.7.8
 
 - Relay 0.5.3: pass Home Assistant's `X-Frame-Options` and `Content-Security-Policy` through to the browser, and set `Strict-Transport-Security` on what the relay serves over HTTPS. Earlier relays dropped these, so the tunnelled frontend had no clickjacking or HSTS protection. From a pen test of the staging relay.
 - Let crawlers fetch the IIS relay so they can read its no-index response header.
