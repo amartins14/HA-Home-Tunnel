@@ -180,6 +180,71 @@ class ServiceFeatureTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(service.REFUSED["items"][0]["route"], "/api/events/websocket")
             service.REFUSED.update({"items": [], "at": None, "checked": 0.0})
 
+    async def fake_ipapi(self, answers):
+        """A local stand-in for ipapi.co; answers maps IP -> (status, json)."""
+        seen = []
+
+        async def handler(request):
+            ip = request.match_info["ip"]
+            seen.append(ip)
+            status, body = answers.get(ip, (200, {"country_code": "PT", "country_name": "Portugal", "city": "Porto"}))
+            return web.json_response(body, status=status)
+        app = web.Application()
+        app.router.add_get("/{ip}/json/", handler)
+        runner = web.AppRunner(app)
+        await runner.setup()
+        site = web.TCPSite(runner, "127.0.0.1", 0)
+        await site.start()
+        self.addAsyncCleanup(runner.cleanup)
+        port = site._server.sockets[0].getsockname()[1]
+        return f"http://127.0.0.1:{port}/{{}}/json/", seen
+
+    async def test_lookups_run_one_at_a_time_and_pause_when_rate_limited(self):
+        url, seen = await self.fake_ipapi({"1.1.1.1": (429, {"error": True, "reason": "RateLimited"})})
+        state = {"GEOLOCATION_URL": url, "GEOLOCATION_CACHE": {}, "GEOLOCATION_LOOKUP_COUNT": 0,
+                 "GEOLOCATION_WINDOW_STARTED": time.monotonic(),
+                 "GEOLOCATION_STATUS": {"error": None, "at": None, "paused_until": 0.0}}
+        with patch.multiple(service, **state):
+            found = await service.lookup_locations(["8.8.8.8", "1.1.1.1", "9.9.9.9"])
+            self.assertEqual(found, {"8.8.8.8": ("Porto, Portugal", "PT")})
+            self.assertEqual(seen, ["8.8.8.8", "1.1.1.1"], "lookups stop at the first rate-limit answer")
+            self.assertNotIn("1.1.1.1", service.GEOLOCATION_CACHE, "a rate-limited address is retried, not cached empty")
+            self.assertEqual(service.GEOLOCATION_LOOKUP_COUNT, 1, "unused lookups go back to the daily budget")
+            self.assertEqual(service.GEOLOCATION_STATUS["error"], "rate_limited")
+            self.assertEqual(await service.lookup_locations(["9.9.9.9"]), {}, "no new lookups while paused")
+            self.assertEqual(len(seen), 2)
+
+    async def test_geolocation_endpoint_accepts_repeated_parameters(self):
+        url, _ = await self.fake_ipapi({})
+        with tempfile.TemporaryDirectory() as directory:
+            settings = Path(directory) / "settings.json"
+            settings.write_text(json.dumps({"geolocation_enabled": True}))
+            state = {"GEOLOCATION_URL": url, "GEOLOCATION_CACHE": {}, "GEOLOCATION_LOOKUP_COUNT": 0, "SETTINGS": settings,
+                     "GEOLOCATION_WINDOW_STARTED": time.monotonic(), "GEOLOCATION_STATUS": {"error": None, "at": None, "paused_until": 0.0}}
+            from aiohttp.test_utils import make_mocked_request
+            with patch.multiple(service, **state):
+                response = await service.geolocation(make_mocked_request("GET", "/api/geolocation?ips=8.8.8.8&ips=1.1.1.1,9.9.9.9"))
+            self.assertEqual(json.loads(response.text)["countries"], {"8.8.8.8": "PT", "1.1.1.1": "PT", "9.9.9.9": "PT"})
+
+    async def test_large_home_assistant_answers_are_read_whole(self):
+        services = [{"domain": f"domain_{n}", "services": {f"service_{m}": {"description": "x" * 200} for m in range(40)}} for n in range(60)]
+        services.append({"domain": "notify", "services": {"mobile_app_phone": {}, "send_message": {}}})
+
+        async def handler(request):
+            return web.json_response(services)
+        app = web.Application()
+        app.router.add_get("/core/api/services", handler)
+        runner = web.AppRunner(app)
+        await runner.setup()
+        site = web.TCPSite(runner, "127.0.0.1", 0)
+        await site.start()
+        self.addAsyncCleanup(runner.cleanup)
+        port = site._server.sockets[0].getsockname()[1]
+        with patch.object(service, "SUPERVISOR_API", f"http://127.0.0.1:{port}/core/api"), patch.object(service, "SUPERVISOR_TOKEN", "t"):
+            data = json.loads((await service.notify_targets(None)).text)
+        self.assertGreater(len(json.dumps(services)), 300000)
+        self.assertEqual(data, {"targets": ["persistent_notification", "notify.mobile_app_phone"], "error": None})
+
     def test_supervisor_token_is_taken_out_of_the_environment(self):
         with patch.dict(os.environ, {"HOME_TUNNEL_SUPERVISOR_TOKEN": "secret", "SUPERVISOR_TOKEN": "x"}):
             service.take_supervisor_token()

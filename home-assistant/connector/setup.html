@@ -67,6 +67,8 @@
     .chip.on,.chip.ok{background:rgba(var(--rgb-success-color),.15);color:var(--success-color)}
     .chip.warn{background:rgba(var(--rgb-warning-color),.15);color:var(--warning-color)}
     .chip.bad{background:rgba(var(--rgb-error-color),.15);color:var(--error-color)}
+    .cc{display:inline-block;min-width:24px;margin-right:6px;padding:0 4px;border-radius:4px;border:1px solid var(--divider-color);font-family:var(--code-font-family);font-size:11px;font-weight:600;line-height:16px;text-align:center;color:var(--secondary-text-color);vertical-align:1px}
+    .chip .cc{border-color:currentColor;color:inherit;margin-right:4px}
     .chip-x{border:0;background:none;color:inherit;font:inherit;font-size:14px;line-height:1;padding:0 0 0 6px;cursor:pointer}
     .chip.info{background:rgba(var(--rgb-primary-color),.15);color:var(--primary-color)}
     .method{font-family:var(--code-font-family);font-size:11px;font-weight:600;min-width:52px;text-align:center}
@@ -200,7 +202,8 @@
   let regionNames = null;
   try { regionNames = new Intl.DisplayNames([navigator.language || 'en', 'en'], {type: 'region'}); } catch (error) { /* older browser */ }
   const countryName = code => { try { return regionNames?.of(code) || code; } catch (error) { return code; } };
-  const flag = code => /^[A-Z]{2}$/.test(code || '') ? String.fromCodePoint(...[...code].map(c => 0x1F1E6 + c.charCodeAt(0) - 65)) : '';
+  // A two-letter country code, shown as a small tag in place of a flag.
+  const countryTag = code => /^[A-Z]{2}$/.test(code || '') ? el('span', {class: 'cc', title: countryName(code)}, code) : null;
   const COUNTRY_MODES = [['off', 'Off'], ['block', 'Block listed'], ['allow', 'Allow only listed']];
 
   const state = {
@@ -752,7 +755,7 @@
         'aria-pressed': String(!!selected), 'aria-label': selected ? 'Show all callers' : `Show requests from ${row.ip}`,
         onclick: pick, onkeydown: e => e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ') && (e.preventDefault(), pick())},
         el('div', {class: 'grow'},
-          el('div', {class: 'title mono'}, state.countries[row.ip] ? `${flag(state.countries[row.ip])} ` : '', row.ip),
+          el('div', {class: 'title mono'}, countryTag(state.countries[row.ip]), row.ip),
           el('div', {class: 'sub'}, [loc(row.ip), plural(num(row.requests), 'request'), `last seen ${ago(row.last_seen)}`].filter(Boolean).join(' · ')),
           el('div', {class: 'chips'},
             row.status === 'authenticated'
@@ -788,7 +791,7 @@
       el('div', {class: 'toolbar'}, search,
         segmented(CALLER_FILTERS, state.filter, value => { state.filter = value; state.callerShown = 25; render(); }, 'Caller filter'),
         state.country ? el('button', {class: 'btn', onclick: () => { state.country = ''; render(); }, 'aria-label': `Stop showing only ${countryName(state.country)}`},
-          `${flag(state.country)} ${countryName(state.country)} ×`) : null,
+          countryTag(state.country), `${countryName(state.country)} ×`) : null,
         el('button', {class: 'btn', id: 'refresh-activity', onclick: () => { refreshTelemetry(); refreshBlocks(); }, 'aria-label': 'Refresh', title: 'Refresh'}, icon(ICONS.refresh))),
       renderCountries(callers),
       section(ICONS.people, 'Callers', historyNote, callers.length ? csv('callers', () => exportCallers(m)) : null,
@@ -859,7 +862,7 @@
         return el('div', {class: `row clickable${state.country === g.code ? ' selected' : ''}`, tabindex: '0', role: 'button',
           'aria-label': `Show callers from ${countryName(g.code)}`, onclick: pick,
           onkeydown: e => e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ') && (e.preventDefault(), pick())},
-          el('div', {class: 'grow'}, el('div', {class: 'title'}, `${flag(g.code)} ${countryName(g.code)}`),
+          el('div', {class: 'grow'}, el('div', {class: 'title'}, countryTag(g.code), countryName(g.code)),
             el('div', {class: 'sub'}, [plural(g.callers, 'caller'), plural(g.requests, 'request'), g.signedIn ? `${g.signedIn} signed in` : null].filter(Boolean).join(' · ')),
             blockedHere ? el('div', {class: 'chips'}, chip(c.mode === 'allow' ? 'Not allowed' : 'Blocked country', 'bad')) : null),
           el('button', {class: `btn text${blockedHere ? '' : ' danger'}`, disabled: state.busy, onclick: e => { e.stopPropagation(); toggle(g.code); }, onkeydown: e => e.stopPropagation()},
@@ -1118,7 +1121,7 @@
         }, 'Country rule')),
       el('div', {class: 'row'},
         el('div', {class: 'grow'}, el('div', {class: 'title'}, c.mode === 'allow' ? 'Allowed countries' : 'Countries'),
-          c.codes.length ? el('div', {class: 'chips'}, c.codes.map(code => el('span', {class: 'chip info'}, `${flag(code)} ${countryName(code)}`,
+          c.codes.length ? el('div', {class: 'chips'}, c.codes.map(code => el('span', {class: 'chip info'}, countryTag(code), countryName(code),
             el('button', {class: 'chip-x', type: 'button', 'aria-label': `Remove ${countryName(code)}`, title: 'Remove', disabled: state.busy,
               onclick: () => save({codes: c.codes.filter(x => x !== code), mode: c.mode === 'allow' && c.codes.length === 1 ? 'off' : c.mode})}, '×'))))
             : el('div', {class: 'sub'}, 'None yet.'))),
@@ -1126,12 +1129,13 @@
         el('div', {}, el('label', {class: 'field', for: 'country-pick'}, 'Add a country'),
           el('select', {id: 'country-pick', style: 'width:100%', onchange: e => { state.countryPick = e.target.value; }},
             el('option', {value: '', selected: !state.countryPick}, 'Pick a country…'),
-            available.map(([code, name]) => el('option', {value: code, selected: code === state.countryPick}, `${flag(code)} ${name}`)))),
+            available.map(([code, name]) => el('option', {value: code, selected: code === state.countryPick}, `${name} (${code})`)))),
         el('div', {style: 'flex:0 0 auto;min-width:0'}, el('button', {class: 'btn', type: 'button', disabled: state.busy, onclick: add}, 'Add')),
         el('div', {style: 'min-width:160px'}, el('label', {class: 'field', for: 'country-minutes'}, 'Block for'),
           el('select', {id: 'country-minutes', style: 'width:100%', disabled: state.busy, onchange: e => save({minutes: Number(e.target.value) || null})},
             BLOCK_DURATIONS.filter(([value]) => value !== '60').map(([value, text]) =>
               el('option', {value, selected: String(c.minutes ?? '') === value}, text))))),
+      geoProblem(s.geolocation_status),
       selfRisk ? el('div', {class: 'pad sub warn'}, `You are connecting from ${countryName(myCountry)}. This rule would block you if you weren’t already signed in.`) : null,
       el('div', {class: 'pad sub'}, 'Each address is checked the first time it’s seen, so its first requests get through. Addresses that have signed in to Home Assistant are never blocked by country. Lookups count toward the 200-a-day limit; once it’s reached, new addresses aren’t checked until the next day.'),
     ];
@@ -1140,6 +1144,14 @@
         state.geoSaving ? 'Saving…' : 'Sends public caller addresses to ipapi.co for an approximate city, region and country. Results are cached for a day, at most 200 new addresses a day, and can be wrong. Turning this off also turns off country data and country blocking.',
         on, setGeolocation, state.geoSaving),
       rules);
+  }
+
+  function geoProblem(status) {
+    if (!status) return null;
+    if (status.remaining_today === 0) return el('div', {class: 'pad sub warn'}, 'Today’s 200 location lookups are used up. New addresses get a country again tomorrow.');
+    if (status.error === 'rate_limited') return el('div', {class: 'pad sub warn'}, `ipapi.co is limiting lookups (${ago(new Date(status.at * 1000).toISOString())}). Addresses are checked as it allows.`);
+    if (status.error === 'failed') return el('div', {class: 'pad sub warn'}, `The last location lookup failed (${ago(new Date(status.at * 1000).toISOString())}). Failed addresses are retried after 15 minutes.`);
+    return null;
   }
 
   async function saveCountries(value) {
@@ -1222,7 +1234,8 @@
     const ips = [...new Set([...recent, ...callers])].filter(ip => isIp(ip) && !(ip in state.locations)).slice(0, 10);
     if (!ips.length) return;
     try {
-      const result = await api(`geolocation?ips=${encodeURIComponent(ips.join(','))}`);
+      // Repeated parameters: some hosting firewalls refuse a comma-separated list of IP addresses.
+      const result = await api(`geolocation?${ips.map(ip => `ips=${encodeURIComponent(ip)}`).join('&')}`);
       if (!result.enabled) return;
       for (const ip of ips) {
         state.locations[ip] = (result.locations || {})[ip] || '';

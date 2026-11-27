@@ -6,7 +6,14 @@ Release notes for Home Tunnel. Relay releases are installed manually on IIS; the
 
 - Let crawlers fetch the IIS relay so they can read its no-index response header.
 - Add an app icon and logo for the Home Assistant app store, and rewrite the README, app documentation and architecture guide with screenshots, badges and My Home Assistant buttons.
-- Bring the configuration and security guides up to date with 0.7.2, and remove emoji from the documentation.
+
+## 0.7.3
+
+- Bring the configuration and security guides up to date, and remove emoji from the documentation.
+- Show countries as two-letter codes instead of flag emoji on the Activity and Settings pages.
+- Fix country blocking missing most callers: location lookups now run one at a time, pause when ipapi.co rate-limits, and retry instead of remembering an empty answer for 15 minutes. The Settings page says when lookups are limited or used up.
+- Fix the dashboard's location lookups failing through the tunnel on hosts whose firewall refuses a comma-separated list of IP addresses.
+- Fix the notify service list failing on installs with many integrations, and the release check, which could read a partial answer.
 
 ## 0.7.2
 

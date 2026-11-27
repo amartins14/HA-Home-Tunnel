@@ -120,6 +120,7 @@ Uninstalling the app or removing its data deletes all of this and unpairs it on 
 - **Pairing stuck with "rejected the setup code hash":** the `web.config` line doesn't match the current code. Paste it again, or make a new code.
 - **Public check failing:** the relay answers, but requests aren't coming back through this tunnel. Usually a proxy or CDN in front of IIS, or a second relay worker. The app reconnects on its own.
 - **An app's web UI doesn't load through the tunnel:** check **Activity → Refused WebSocket connections**. Home Assistant's own WebSocket and any WebSocket inside an app web UI are allowed (relay 0.5.1 or newer; older relays only allow Zigbee2MQTT's). **Settings → What the tunnel lets through** shows the rules.
+- **A country rule didn't block my test:** addresses that have signed in to Home Assistant are never blocked by country. Test from a device that hasn't signed in, and give it 15 seconds. If the Settings card says lookups are limited or used up, new addresses wait for a country.
 - **Notifications say there's no API access:** restart the app; if that doesn't help, reinstall it so Home Assistant grants the permission again.
 
 ## Limits

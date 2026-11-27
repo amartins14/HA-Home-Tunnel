@@ -60,6 +60,7 @@ DEFAULT_COUNTRIES = {"mode": "off", "codes": [], "minutes": 30 * 24 * 60}
 GEOLOCATION_CACHE_TTL = 24 * 60 * 60
 GEOLOCATION_CACHE_LIMIT = 512
 GEOLOCATION_LOOKUP_LIMIT = 200
+GEOLOCATION_URL = "https://ipapi.co/{}/json/"
 GEOLOCATION_CACHE = {}
 GEOLOCATION_WINDOW_STARTED = 0
 GEOLOCATION_LOOKUP_COUNT = 0
@@ -72,6 +73,18 @@ VERSION_PATTERN = re.compile(r"\A(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]
 PAIR_LABEL = "home-tunnel-pair-v1"
 LOG = logging.getLogger("home-tunnel-service")
 child = None
+
+
+async def read_limited(response, limit):
+    """The whole response body, refusing anything larger than limit bytes."""
+    if response.content_length is not None and response.content_length > limit:
+        raise ValueError("response too large")
+    body = bytearray()
+    async for block in response.content.iter_chunked(65536):
+        body.extend(block)
+        if len(body) > limit:
+            raise ValueError("response too large")
+    return bytes(body)
 
 
 def read_json(path, limit=8192):
@@ -239,9 +252,7 @@ async def release_checker():
                 async with session.get(RELEASE_MANIFEST_URL, allow_redirects=False) as response:
                     if response.status != 200 or (response.content_length is not None and response.content_length > 16384):
                         raise ValueError("release metadata unavailable")
-                    raw = await response.content.read(16385)
-                    if len(raw) > 16384:
-                        raise ValueError("release metadata too large")
+                    raw = await read_limited(response, 16384)
                     metadata = valid_release_manifest(json.loads(raw))
                     if metadata is None:
                         raise ValueError("release metadata invalid")
@@ -362,6 +373,8 @@ async def status(request):
         "error": live.get("error") if now - live.get("updated_at", 0) < 90 else None,
         "relay_features": relay_version.get("features") if isinstance(relay_version.get("features"), list) else [],
         "relay_native_clients": relay_version.get("native_clients"),
+        "geolocation_status": {"error": GEOLOCATION_STATUS["error"], "at": GEOLOCATION_STATUS["at"],
+                               "remaining_today": max(0, GEOLOCATION_LOOKUP_LIMIT - GEOLOCATION_LOOKUP_COUNT)},
         "relay_refused": REFUSED["items"],
         "relay_refused_at": REFUSED["at"],
         "relay_latency_ms": relay_version.get("latency_ms"),
@@ -514,6 +527,14 @@ async def update_settings(request):
     return web.json_response({"homeassistant_url": value, "restarting": restarting}, headers={"Cache-Control": "no-store"})
 
 
+GEOLOCATION_STATUS = {"error": None, "at": None, "paused_until": 0.0}
+
+
+def refund_location_slots(count):
+    global GEOLOCATION_LOOKUP_COUNT
+    GEOLOCATION_LOOKUP_COUNT = max(0, GEOLOCATION_LOOKUP_COUNT - count)
+
+
 def fetch_location_slots(count, now):
     """Reserve up to `count` new ipapi.co lookups under the shared daily cap."""
     global GEOLOCATION_WINDOW_STARTED, GEOLOCATION_LOOKUP_COUNT
@@ -556,26 +577,41 @@ async def lookup_locations(ips, max_new=10):
             found[value] = (cached[1], cached[2] if len(cached) > 2 else "")
         else:
             missing.append(value)
+    if missing and time.monotonic() < GEOLOCATION_STATUS["paused_until"]:
+        return found  # the provider asked us to slow down
     missing = missing[:fetch_location_slots(min(len(missing), max_new), now)]
-    semaphore = asyncio.Semaphore(4)
 
-    async def lookup(session, value):
-        async with semaphore:
-            try:
-                async with session.get(f"https://ipapi.co/{value}/json/") as response:
-                    if response.status != 200:
-                        return value, ("", "")
-                    return value, parse_location(await response.json(content_type=None))
-            except (aiohttp.ClientError, asyncio.TimeoutError, ValueError, OSError):
-                return value, ("", "")
+    def remember(value, label, code):
+        if len(GEOLOCATION_CACHE) >= GEOLOCATION_CACHE_LIMIT:
+            GEOLOCATION_CACHE.pop(next(iter(GEOLOCATION_CACHE)))
+        GEOLOCATION_CACHE[value] = (now, label, code)
 
     if missing:
+        # One at a time: ipapi.co's free tier refuses bursts of parallel lookups.
         async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=5), trust_env=False) as session:
-            for value, (label, code) in await asyncio.gather(*(lookup(session, ip) for ip in missing)):
+            for index, value in enumerate(missing):
+                try:
+                    async with session.get(GEOLOCATION_URL.format(value)) as response:
+                        if response.status == 429:
+                            refund_location_slots(len(missing) - index)
+                            GEOLOCATION_STATUS.update({"error": "rate_limited", "at": time.time(), "paused_until": time.monotonic() + 120})
+                            LOG.info("Location lookups rate-limited by ipapi.co; pausing")
+                            break
+                        data = await response.json(content_type=None) if response.status == 200 else None
+                except (aiohttp.ClientError, asyncio.TimeoutError, ValueError, OSError):
+                    data = None
+                label, code = parse_location(data)
+                if isinstance(data, dict) and data.get("reason") == "RateLimited":
+                    refund_location_slots(len(missing) - index)
+                    GEOLOCATION_STATUS.update({"error": "rate_limited", "at": time.time(), "paused_until": time.monotonic() + 120})
+                    break
+                if code or label:
+                    GEOLOCATION_STATUS.update({"error": None, "at": time.time()})
+                else:
+                    GEOLOCATION_STATUS.update({"error": "failed", "at": time.time()})
                 found[value] = (label, code)
-                if len(GEOLOCATION_CACHE) >= GEOLOCATION_CACHE_LIMIT:
-                    GEOLOCATION_CACHE.pop(next(iter(GEOLOCATION_CACHE)))
-                GEOLOCATION_CACHE[value] = (now, label, code)
+                remember(value, label, code)
+                await asyncio.sleep(0.25)
     return found
 
 
@@ -583,7 +619,7 @@ async def geolocation(request):
     settings = read_json(SETTINGS) or {}
     if settings.get("geolocation_enabled") is not True:
         return web.json_response({"enabled": False, "locations": {}, "countries": {}}, headers={"Cache-Control": "no-store"})
-    ips = list(dict.fromkeys(request.query.get("ips", "").split(",")))
+    ips = list(dict.fromkeys(ip for value in request.query.getall("ips", []) for ip in value.split(",") if ip))
     if not ips or len(ips) > 10:
         raise web.HTTPBadRequest(text="Request up to 10 recent IP addresses")
     found = await lookup_locations(ips)
@@ -871,9 +907,8 @@ async def ha_api(method, path, payload=None):
                                    headers={"Authorization": f"Bearer {SUPERVISOR_TOKEN}"}) as response:
             if response.status >= 400:
                 raise aiohttp.ClientResponseError(response.request_info, (), status=response.status)
-            raw = await response.content.read(262145)
-            if len(raw) > 262144:
-                raise ValueError("Home Assistant response too large")
+            # The services list of a large install runs to megabytes.
+            raw = await read_limited(response, 8 * 1024 * 1024)
             return json.loads(raw) if raw else None
 
 
@@ -906,7 +941,9 @@ async def notify_targets(request):
                                   if NOTIFY_TARGET_PATTERN.fullmatch(f"notify.{name}") and name not in ("send_message", "persistent_notification"))
     except PermissionError:
         error = "unavailable"
-    except (aiohttp.ClientError, asyncio.TimeoutError, ValueError, OSError):
+    except (aiohttp.ClientError, asyncio.TimeoutError, ValueError, OSError) as failure:
+        LOG.warning("Could not list notify services (%s%s)", type(failure).__name__,
+                    f" {failure.status}" if isinstance(failure, aiohttp.ClientResponseError) else "")
         error = "unreachable"
     return web.json_response({"targets": targets, "error": error}, headers={"Cache-Control": "no-store"})
 
