@@ -2,6 +2,10 @@
 
 Release notes for Home Tunnel. This copy is read by Home Assistant Supervisor. Relay releases are installed manually on IIS; the Home Assistant app is updated through Supervisor.
 
+## 0.7.1
+
+- Fix the dashboard failing to load (`/api/status` returned an error) in 0.7.0.
+
 ## 0.7.0
 
 - Replace the MyStay-style dashboard with one that matches Home Assistant and the Access panel: theme colours, Overview / Activity / Settings tabs, and a step-by-step relay setup.

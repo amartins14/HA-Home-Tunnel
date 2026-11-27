@@ -181,6 +181,27 @@ class ServiceFeatureTests(unittest.IsolatedAsyncioTestCase):
         self.addCleanup(lambda: [item.stop() for item in patches])
         return state
 
+    async def test_dashboard_read_endpoints_answer_on_a_paired_install(self):
+        with tempfile.TemporaryDirectory() as directory:
+            state = self.paired_state(directory)
+            extra = {name: state / f"{name.lower()}.json" for name in ("SETTINGS", "RELAY_RELEASE", "BLOCKS", "ALERTS")}
+            patches = [patch.object(service, name, path) for name, path in extra.items()]
+            patches.append(patch.object(service, "APP_CONFIG", state / "missing-config.yaml"))
+            patches.append(patch.dict(os.environ, {"HOMEASSISTANT_URL": "http://homeassistant:8123"}))
+            for item in patches:
+                item.start()
+            self.addCleanup(lambda: [item.stop() for item in patches])
+            (state / "settings.json").write_text(json.dumps({"homeassistant_url": "http://homeassistant:8123", "app_option_url": "http://homeassistant:8123", "geolocation_enabled": True, "app_option_geolocation": False,
+                                                              "countries": {"mode": "block", "codes": ["RU"], "minutes": 60}}))
+            data = json.loads((await service.status(None)).text)
+            self.assertTrue(data["paired"])
+            self.assertTrue(data["geolocation_enabled"])
+            self.assertEqual(data["countries"]["codes"], ["RU"])
+            self.assertEqual(set(data["lockdown"]), {"enabled", "denied", "logins", "minutes"})
+            self.assertIn("notifications_available", data)
+            blocks = json.loads((await service.list_blocks(None)).text)
+            self.assertEqual(blocks["blocks"], [])
+
     async def test_rotation_confirms_new_key_before_using_it(self):
         with tempfile.TemporaryDirectory() as directory:
             state = self.paired_state(directory)

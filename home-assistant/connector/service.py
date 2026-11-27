@@ -332,10 +332,10 @@ async def status(request):
     comparison = compare_versions(latest_relay, installed_relay) if latest_relay and installed_relay else None
     current_app = app_version()
     homeassistant_url = ensure_settings()
-    app_settings = read_json(SETTINGS) or {}
+    saved_settings = app_settings()
     result = {
         "homeassistant_url": homeassistant_url,
-        "geolocation_enabled": app_settings.get("geolocation_enabled", False) is True,
+        "geolocation_enabled": saved_settings["geolocation_enabled"],
         "paired": bool(connection and TOKEN.exists()),
         "claim_ready": bool(pairing and not pairing.get("started")),
         "pairing_pending": bool(pairing and pairing.get("started")),
@@ -361,7 +361,7 @@ async def status(request):
         "relay_health": read_json(RELAY_HEALTH) or {},
         "rotation_pending": TOKEN_NEXT.exists(),
         "notifications_available": bool(SUPERVISOR_TOKEN),
-        **{key: value for key, value in app_settings().items() if key != "geolocation_enabled"},
+        **{key: value for key, value in saved_settings.items() if key != "geolocation_enabled"},
     }
     return web.json_response(result, headers={"Cache-Control": "no-store"})
 
