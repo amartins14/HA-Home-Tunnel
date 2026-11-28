@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "latest_relay_version": "0.5.5",
-  "compatible_home_tunnel_versions": ["0.4.0-dev", "0.4.1-dev", "0.4.2-dev", "0.4.3-dev", "0.4.4-dev", "0.4.5-dev", "0.4.6-dev", "0.4.7-dev", "0.4.7", "0.4.8", "0.4.9", "0.5.0", "0.5.1", "0.6.0", "0.6.1", "0.7.0", "0.7.1", "0.7.2", "0.7.3", "0.7.4", "0.7.5", "0.7.6", "0.7.7", "0.7.8", "0.7.9", "0.7.10", "0.7.11"],
+  "compatible_home_tunnel_versions": ["0.7.10", "0.7.11"],
   "release_url": "https://github.com/amartins14/HA-Home-Tunnel/releases",
   "changelog_url": "https://github.com/amartins14/HA-Home-Tunnel/blob/main/CHANGELOG.md",
   "manual_update_url": "https://github.com/amartins14/HA-Home-Tunnel/blob/main/docs/RELAY-DEPLOYMENT.md"

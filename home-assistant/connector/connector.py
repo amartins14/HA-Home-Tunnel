@@ -90,6 +90,12 @@ async def bounded_read(content, maximum):
         body.extend(block)
     return bytes(body)
 
+def forward_client_ip():
+    """Whether the `forward_client_ip` option is on. The service passes it in the environment, since
+    this process can't read the app's options file; OPTIONS covers runs outside the app."""
+    return os.environ.get("HOME_TUNNEL_FORWARD_CLIENT_IP") == "1" or OPTIONS.get("forward_client_ip") is True
+
+
 def forwarded(message):
     """The request's headers plus the visitor's address as X-Forwarded-For, so Home Assistant sees who
     is calling instead of this app (for "Local network only" users, login bans and its logs). The
@@ -97,7 +103,7 @@ def forwarded(message):
     themselves (it isn't in policy.HEADERS). Off unless the `forward_client_ip` option is on: Home
     Assistant answers 400 to any request carrying the header until this app is in its trusted_proxies."""
     headers = dict(message["headers"])
-    if OPTIONS.get("forward_client_ip") is True and message.get("client_ip"):
+    if forward_client_ip() and message.get("client_ip"):
         headers["X-Forwarded-For"] = message["client_ip"]
     return headers
 
