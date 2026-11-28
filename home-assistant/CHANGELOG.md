@@ -7,6 +7,7 @@ Release notes for Home Tunnel. This copy is read by Home Assistant Supervisor. R
 - The tunnel’s size limits are now adjustable in the add-on **Configuration**: the largest request body, WebSocket message and response, in MB (up to the relay’s built-in ceilings). Lower them to cap resource use; changing one restarts the add-on briefly.
 - Removed the Developer section from the dashboard. The allow-list (“what the tunnel lets through”) is unchanged and still fixed in the relay and app; it is just no longer shown.
 - Use a neutral example address range in the country-database tests.
+- `forward_client_ip` now takes effect: the connector couldn’t read the option, so Home Assistant kept seeing every visitor as the app.
 
 ## 0.7.10
 
