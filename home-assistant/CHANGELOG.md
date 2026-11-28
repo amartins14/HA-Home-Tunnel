@@ -2,6 +2,11 @@
 
 Release notes for Home Tunnel. This copy is read by Home Assistant Supervisor. Relay releases are installed manually on IIS; the Home Assistant app is updated through Supervisor.
 
+## 0.7.12
+
+- `forward_client_ip` takes effect: 0.7.11 still couldn’t read the option, because the service also runs without root. The add-on now reads it (and the size limits) as root at start-up.
+- Added a Ko-fi support link.
+
 ## 0.7.11
 
 - The tunnel’s size limits are now adjustable in the add-on **Configuration**: the largest request body, WebSocket message and response, in MB (up to the relay’s built-in ceilings). Lower them to cap resource use; changing one restarts the add-on briefly.
