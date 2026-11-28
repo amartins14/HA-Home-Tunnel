@@ -167,8 +167,11 @@ def ensure_settings():
 
 
 def forward_client_ip_option(path=Path("/data/options.json")):
-    """The app's `forward_client_ip` option. The connector runs without root and can't read
-    /data/options.json, so the service passes this to it in HOME_TUNNEL_FORWARD_CLIENT_IP."""
+    """The app's `forward_client_ip` option, passed to the connector as HOME_TUNNEL_FORWARD_CLIENT_IP.
+    In the app neither this service nor the connector can read /data/options.json (both run without
+    root), so start.sh reads it as root and sets the variable; the file is a fallback for other runs."""
+    if os.environ.get("HOME_TUNNEL_FORWARD_CLIENT_IP") in ("0", "1"):
+        return os.environ["HOME_TUNNEL_FORWARD_CLIENT_IP"] == "1"
     try:
         return json.loads(path.read_text(encoding="utf-8")).get("forward_client_ip") is True
     except (FileNotFoundError, PermissionError, ValueError, AttributeError):
