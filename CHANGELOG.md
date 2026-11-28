@@ -2,6 +2,11 @@
 
 Release notes for Home Tunnel. Relay releases are installed manually on IIS; the Home Assistant app is updated through Supervisor.
 
+## 0.7.10
+
+- Relay 0.5.5 sends each visitor's address with HTTP requests too, not only WebSockets. It is the socket address; headers a visitor sends are still ignored.
+- New app option `forward_client_ip` (off by default): pass that address to Home Assistant as `X-Forwarded-For`. Without it, Home Assistant sees every tunnel visitor as this app's internal address, so a user's *Local network only* setting doesn't stop them signing in through the tunnel, and Home Assistant's login ban would block the app itself. Turn it on only after adding the `http:` settings in the app's documentation: until Home Assistant trusts the app, it refuses requests carrying the header.
+
 ## 0.7.9
 
 - Large frontend replies no longer drop the connection. The add-on store (HACS) catalogue and other multi-megabyte WebSocket messages were cut off by a 1 MB per-message limit; raised it to 8 MB (tunnel frame limit 12 MB). Needs relay 0.5.4.

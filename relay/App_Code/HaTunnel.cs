@@ -233,7 +233,7 @@ public static class RelayPolicy
 public static class RelayBuild
 {
     // Keep this aligned with release-manifest.json when publishing a relay build.
-    public const string Version = "0.5.4";
+    public const string Version = "0.5.5";
     // Pairing actions this build supports, so the app can tell what an older relay lacks.
     public static readonly string[] Features = { "rotate", "unpair", "blocks", "refused" };
     public static bool NativeClients { get { return ConfigurationManager.AppSettings["HaTunnelNativeClientsEnabled"] == "true"; } }
@@ -676,7 +676,12 @@ public class HaRelay : HttpTaskAsyncHandler
                     timer.CancelAfter(15000);
                     body = await RelayPolicy.BoundedRead(context.Request.InputStream, RelayPolicy.HttpLimit, timer.Token);
                 }
-                await HaTunnel.Send(connector, new { type = "http", id = id, method = context.Request.HttpMethod, path = path, headers = headers, body = Convert.ToBase64String(body) });
+                // The visitor's socket address, so Home Assistant can tell visitors apart (never a header they sent).
+                System.Net.IPAddress visitor;
+                if (System.Net.IPAddress.TryParse(context.Request.UserHostAddress, out visitor))
+                    await HaTunnel.Send(connector, new { type = "http", id = id, method = context.Request.HttpMethod, path = path, headers = headers, body = Convert.ToBase64String(body), client_ip = visitor.ToString() });
+                else
+                    await HaTunnel.Send(connector, new { type = "http", id = id, method = context.Request.HttpMethod, path = path, headers = headers, body = Convert.ToBase64String(body) });
                 if (await Task.WhenAny(pending.Completion.Task, Task.Delay(50000, connector.Lifetime.Token)) != pending.Completion.Task) { context.Response.StatusCode = connector.Lifetime.IsCancellationRequested ? 503 : 504; return; }
                 var reply = await pending.Completion.Task;
                 context.Response.StatusCode = (int)reply["status"];

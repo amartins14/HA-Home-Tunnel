@@ -107,7 +107,33 @@ Set these on the app's **Configuration** tab. Most installs never need to.
 | --- | --- | --- |
 | `homeassistant_url` | `http://homeassistant:8123` | The only Home Assistant address the connector may reach. Origin only: no path or credentials. Changing it restarts the connector. |
 | `metrics_token` | empty | A 64-character hex key for the optional Home Tunnel integration. Leave empty unless you use the integration; the dashboard makes its own private key. |
+| `forward_client_ip` | `false` | Tell Home Assistant each visitor's real address (see below). Turn on only after the `http:` settings below are in place. |
 | `geolocation_lookup` | `false` | The starting value of *Show city names* (ipapi.co lookups). Countries don't depend on it. Changing this option later overrides the dashboard setting. |
+
+### Visitors' real address
+
+Without this, Home Assistant sees every visitor through the tunnel as this app's internal address
+(for example `172.30.33.2`). That address is inside your network, so **a user set to *Local network
+only* can still sign in through the tunnel**, Home Assistant's own login ban would block the app
+(and so everyone outside), and HA's logs and sessions show the app instead of the visitor.
+
+1. Find the app's address: Home Assistant's *Settings → People → (user) → sessions* or the
+   `last_used_ip` of a session made through the tunnel. Add-ons are on `172.30.32.0/23`.
+2. Add to `configuration.yaml` and restart Home Assistant:
+
+   ```yaml
+   http:
+     use_x_forwarded_for: true
+     trusted_proxies:
+       - 172.30.33.2   # this app; or 172.30.32.0/23 for the add-on network
+   ```
+
+3. Install relay 0.5.5 or later, then turn on `forward_client_ip` on the **Configuration** tab.
+
+Check: sign in from outside your network; the new session's address should be your phone's, and a
+*Local network only* user should be refused. The relay takes the address from the connection,
+never from a header, so it can't be faked by a visitor. Trusting the whole add-on network also
+trusts other add-ons to report addresses, so prefer the app's own address.
 
 ## Optional integration
 

@@ -2,17 +2,22 @@
 
 Release notes for Home Tunnel. This copy is read by Home Assistant Supervisor. Relay releases are installed manually on IIS; the Home Assistant app is updated through Supervisor.
 
-## 0.7.8
+## 0.7.10
 
-- Relay 0.5.3: pass Home Assistant’s `X-Frame-Options` and `Content-Security-Policy` through to the browser, and set `Strict-Transport-Security` on what the relay serves over HTTPS. Earlier relays dropped these, so the tunnelled frontend had no clickjacking or HSTS protection. From a pen test of the staging relay.
-- Let crawlers fetch the IIS relay so they can read its no-index response header.
-- Add an app icon and logo for the Home Assistant app store, and rewrite the README, app documentation and architecture guide with screenshots, badges and My Home Assistant buttons.
+- Relay 0.5.5 sends each visitor's address with HTTP requests too, not only WebSockets. It is the socket address; headers a visitor sends are still ignored.
+- New app option `forward_client_ip` (off by default): pass that address to Home Assistant as `X-Forwarded-For`. Without it, Home Assistant sees every tunnel visitor as this app's internal address, so a user's *Local network only* setting doesn't stop them signing in through the tunnel, and Home Assistant's login ban would block the app itself. Turn it on only after adding the `http:` settings in the app's documentation: until Home Assistant trusts the app, it refuses requests carrying the header.
 
 ## 0.7.9
 
 - Large frontend replies no longer drop the connection. The add-on store (HACS) catalogue and other multi-megabyte WebSocket messages were cut off by a 1 MB per-message limit; raised it to 8 MB (tunnel frame limit 12 MB). Needs relay 0.5.4.
 - New **Developer** section in Settings: “What the tunnel lets through” moved here from Security, alongside the tunnel’s size limits (read-only).
 - Fixed a stray “null” shown at the bottom of the dashboard.
+
+## 0.7.8
+
+- Relay 0.5.3: pass Home Assistant’s `X-Frame-Options` and `Content-Security-Policy` through to the browser, and set `Strict-Transport-Security` on what the relay serves over HTTPS. Earlier relays dropped these, so the tunnelled frontend had no clickjacking or HSTS protection. From a pen test of the staging relay.
+- Let crawlers fetch the IIS relay so they can read its no-index response header.
+- Add an app icon and logo for the Home Assistant app store, and rewrite the README, app documentation and architecture guide with screenshots, badges and My Home Assistant buttons.
 
 ## 0.7.7
 

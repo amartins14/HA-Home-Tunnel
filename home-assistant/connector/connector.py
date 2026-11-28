@@ -90,6 +90,18 @@ async def bounded_read(content, maximum):
         body.extend(block)
     return bytes(body)
 
+def forwarded(message):
+    """The request's headers plus the visitor's address as X-Forwarded-For, so Home Assistant sees who
+    is calling instead of this app (for "Local network only" users, login bans and its logs). The
+    relay takes the address from the socket, never from a header; visitors can't send X-Forwarded-For
+    themselves (it isn't in policy.HEADERS). Off unless the `forward_client_ip` option is on: Home
+    Assistant answers 400 to any request carrying the header until this app is in its trusted_proxies."""
+    headers = dict(message["headers"])
+    if OPTIONS.get("forward_client_ip") is True and message.get("client_ip"):
+        headers["X-Forwarded-For"] = message["client_ip"]
+    return headers
+
+
 class Connector:
     def __init__(self, tunnel, local):
         self.tunnel, self.local = tunnel, local
@@ -113,7 +125,7 @@ class Connector:
     async def http(self, message):
         streaming = False
         try:
-            headers = dict(message["headers"])
+            headers = forwarded(message)
             if message["method"] in {"GET", "HEAD"} and message["path"].startswith(("/local/", "/static/", "/frontend_")):
                 headers["Accept-Encoding"] = "gzip"
             async with self.local.request(message["method"], URL(local_url(message["path"]), encoded=True), headers=headers, data=payload(message["body"], MAX_HTTP), allow_redirects=False, auto_decompress=False) as response:
@@ -162,7 +174,7 @@ class Connector:
             METRICS.observe_device(message["client_ip"], message["headers"].get("user-agent"))
         try:
             async with asyncio.timeout(10):
-                socket = await self.local.ws_connect(URL(local_url(message["path"]), encoded=True), headers=message["headers"], max_msg_size=MAX_WS, heartbeat=30, compress=0, timeout=aiohttp.ClientWSTimeout(ws_receive=90, ws_close=5))
+                socket = await self.local.ws_connect(URL(local_url(message["path"]), encoded=True), headers=forwarded(message), max_msg_size=MAX_WS, heartbeat=30, compress=0, timeout=aiohttp.ClientWSTimeout(ws_receive=90, ws_close=5))
             async with socket:
                 auth_observed = False
                 self.sockets[connection_id] = socket

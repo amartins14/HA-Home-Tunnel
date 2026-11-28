@@ -1,5 +1,5 @@
 name: Home Tunnel
-version: "0.7.9"
+version: "0.7.10"
 slug: home_tunnel
 description: Reach Home Assistant from anywhere through a relay you host
 homeassistant: "2026.9.0"
@@ -31,7 +31,9 @@ options:
   homeassistant_url: http://homeassistant:8123
   metrics_token: ""
   geolocation_lookup: false
+  forward_client_ip: false
 schema:
   homeassistant_url: str
   metrics_token: password
   geolocation_lookup: bool
+  forward_client_ip: bool

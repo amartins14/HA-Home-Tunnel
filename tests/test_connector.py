@@ -140,6 +140,17 @@ class SecurityPolicyTests(unittest.TestCase):
         with self.assertRaises(policy.ProtocolError):
             policy.parse(json.dumps({**value, "client_ip": "not-an-IP"}))
 
+    def test_http_client_ip_from_relay(self):
+        value = request()
+        self.assertNotIn("client_ip", policy.parse(json.dumps(value)), "older relays send none")
+        value["client_ip"] = "2001:db8::7"
+        self.assertEqual(policy.parse(json.dumps(value))["client_ip"], "2001:db8::7")
+        for bad in ("not-an-IP", "", None, "203.0.113.1, 10.0.0.1"):
+            with self.subTest(bad=bad), self.assertRaises(policy.ProtocolError):
+                policy.parse(json.dumps({**value, "client_ip": bad}))
+        with self.assertRaises(policy.ProtocolError):
+            policy.parse(json.dumps({**value, "native_client": True}))
+
     def test_message_payload_limits_and_utf8(self):
         self.assertEqual(policy.payload(base64.b64encode(b"a" * 8).decode(), 8), b"a" * 8)
         with self.assertRaises(policy.ProtocolError):
@@ -322,6 +333,35 @@ class ConnectorAsyncTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(tunnel.sent[-1]['type'],'http_end')
         self.assertEqual(local.calls[0][1]['headers']['Accept-Encoding'],'gzip')
         self.assertFalse(relay.http_acks)
+
+    async def test_visitor_address_reaches_home_assistant(self):
+        # Off by default: Home Assistant refuses the header until it trusts this app.
+        local = FakeLocal(Response())
+        await connector.Connector(FakeTunnel(), local).http(request(client_ip="203.0.113.9"))
+        self.assertNotIn("X-Forwarded-For", local.calls[0][1]["headers"])
+        self.enterContext(patch.dict(connector.OPTIONS, {"forward_client_ip": True}))
+        # HTTP: the relay's client_ip becomes X-Forwarded-For; without it, nothing is added.
+        local = FakeLocal(Response())
+        await connector.Connector(FakeTunnel(), local).http(request(client_ip="203.0.113.9", headers={"User-Agent": "phone"}))
+        self.assertEqual(local.calls[0][1]["headers"], {"User-Agent": "phone", "X-Forwarded-For": "203.0.113.9"})
+        local = FakeLocal(Response())
+        await connector.Connector(FakeTunnel(), local).http(request())
+        self.assertNotIn("X-Forwarded-For", local.calls[0][1]["headers"])
+        # WebSocket: the same, so HA's websocket login sees the visitor too.
+        seen = []
+        class Socket:
+            async def __aenter__(self): return self
+            async def __aexit__(self, *args): pass
+            def __aiter__(self): return self.frames()
+            async def frames(self):
+                return
+                yield
+        class Local:
+            async def ws_connect(self, *args, **kwargs):
+                seen.append(kwargs["headers"])
+                return Socket()
+        await connector.Connector(FakeTunnel(), Local()).websocket({"id": RID, "path": "/api/websocket", "headers": {}, "client_ip": "198.51.100.4"})
+        self.assertEqual(seen, [{"X-Forwarded-For": "198.51.100.4"}])
 
     async def test_gzip_expansion_is_bounded_and_truncation_aborts(self):
         class AcknowledgingTunnel(FakeTunnel):

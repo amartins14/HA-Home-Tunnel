@@ -143,8 +143,9 @@ def parse(raw):
     kind = message.get("type")
     fields = {"telemetry": {"type", "events", "stats"}, "pong": {"type"}, "http_ack": {"type", "id", "sequence"}, "http": {"type", "id", "method", "path", "headers", "body"}, "ws_open": {"type", "id", "path", "headers"}, "ws_data": {"type", "id", "kind", "data"}, "ws_close": {"type", "id"}}
     valid_fields = fields.get(kind) if isinstance(kind, str) else None
-    if kind == "ws_open":
-        valid_fields = fields[kind] | ({"client_ip", "native_client"} & message.keys())
+    if kind in ("ws_open", "http"):
+        # The relay adds the visitor's socket address (never a header they sent); see forwarded().
+        valid_fields = fields[kind] | ({"client_ip", "native_client"} & message.keys() if kind == "ws_open" else {"client_ip"} & message.keys())
         if "client_ip" in message:
             try:
                 ipaddress.ip_address(message["client_ip"])
