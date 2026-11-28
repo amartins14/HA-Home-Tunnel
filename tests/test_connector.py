@@ -386,6 +386,14 @@ class ConnectorAsyncTests(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual({k: v for k, v in local.calls[0][1]["headers"].items() if k == "X-Forwarded-For"}, expected, value)
         with tempfile.TemporaryDirectory() as temporary:
             options = Path(temporary) / "options.json"
+            # In the app, start.sh passes the option in the environment; that wins over the file.
+            options.write_text(json.dumps({"forward_client_ip": False}))
+            for value, expected in (("1", True), ("0", False)):
+                with patch.dict("os.environ", {"HOME_TUNNEL_FORWARD_CLIENT_IP": value}):
+                    self.assertIs(service.forward_client_ip_option(options), expected, value)
+            self.enterContext(patch.dict("os.environ", {}, clear=False))
+            os.environ.pop("HOME_TUNNEL_FORWARD_CLIENT_IP", None)
+            options.unlink()
             self.assertFalse(service.forward_client_ip_option(options), "missing file")
             options.write_text(json.dumps({"forward_client_ip": True}))
             self.assertTrue(service.forward_client_ip_option(options))

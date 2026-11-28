@@ -23,6 +23,8 @@ metrics_token="$(python -c 'import json; print(json.loads(open("/data/options.js
 ws_limit_mb="$(python -c 'import json; print(json.loads(open("/data/options.json", encoding="utf-8").read()).get("websocket_limit_mb", ""))')"
 req_limit_mb="$(python -c 'import json; print(json.loads(open("/data/options.json", encoding="utf-8").read()).get("request_limit_mb", ""))')"
 resp_limit_mb="$(python -c 'import json; print(json.loads(open("/data/options.json", encoding="utf-8").read()).get("response_limit_mb", ""))')"
+# Same for forward_client_ip: "1" only when the option is exactly true.
+forward_client_ip="$(python -c 'import json; print("1" if json.loads(open("/data/options.json", encoding="utf-8").read()).get("forward_client_ip") is True else "0")')"
 if [ -z "$homeassistant_url" ]; then
     echo 'Home Assistant URL option is missing' >&2
     exit 1
@@ -30,4 +32,4 @@ fi
 # The Supervisor token (homeassistant_api, used only to send notifications) is renamed so
 # nothing picks it up by accident; service.py takes it out of its environment at start
 # and never passes it to the connector, which verifies it has no such token.
-exec su-exec 10001:10001 env -u SUPERVISOR_TOKEN -u HASSIO_TOKEN HOME_TUNNEL_SUPERVISOR_TOKEN="${SUPERVISOR_TOKEN:-}" HOMEASSISTANT_URL="$homeassistant_url" HOME_TUNNEL_METRICS_TOKEN="$metrics_token" HOME_TUNNEL_WEBSOCKET_LIMIT_MB="$ws_limit_mb" HOME_TUNNEL_REQUEST_LIMIT_MB="$req_limit_mb" HOME_TUNNEL_RESPONSE_LIMIT_MB="$resp_limit_mb" "$@"
+exec su-exec 10001:10001 env -u SUPERVISOR_TOKEN -u HASSIO_TOKEN HOME_TUNNEL_SUPERVISOR_TOKEN="${SUPERVISOR_TOKEN:-}" HOMEASSISTANT_URL="$homeassistant_url" HOME_TUNNEL_METRICS_TOKEN="$metrics_token" HOME_TUNNEL_WEBSOCKET_LIMIT_MB="$ws_limit_mb" HOME_TUNNEL_REQUEST_LIMIT_MB="$req_limit_mb" HOME_TUNNEL_RESPONSE_LIMIT_MB="$resp_limit_mb" HOME_TUNNEL_FORWARD_CLIENT_IP="$forward_client_ip" "$@"
