@@ -2,6 +2,12 @@
 
 Release notes for Home Tunnel. Relay releases are installed manually on IIS; the Home Assistant app is updated through Supervisor.
 
+## 0.7.11
+
+- The tunnel’s size limits are now adjustable in the add-on **Configuration**: the largest request body, WebSocket message and response, in MB (up to the relay’s built-in ceilings). Lower them to cap resource use; changing one restarts the add-on briefly.
+- Removed the Developer section from the dashboard. The allow-list (“what the tunnel lets through”) is unchanged and still fixed in the relay and app; it is just no longer shown.
+- Use a neutral example address range in the country-database tests.
+
 ## 0.7.10
 
 - Relay 0.5.5 sends each visitor's address with HTTP requests too, not only WebSockets. It is the socket address; headers a visitor sends are still ignored.

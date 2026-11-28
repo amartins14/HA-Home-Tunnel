@@ -58,11 +58,20 @@ _remote = urlsplit(REMOTE) if isinstance(REMOTE, str) else None
 if REMOTE is not None and (_remote is None or _remote.scheme != 'wss' or not _remote.hostname or _remote.username or _remote.password
         or _remote.path != '/_connect.ashx' or _remote.query or _remote.fragment):
     raise ValueError('relay_url must be wss://host/_connect.ashx')
-MAX_HTTP = 4 * 1024 * 1024
-MAX_RESPONSE = 64 * 1024 * 1024
+def _limit_mb(value, ceiling):
+    """A configured size cap in MB, clamped to the hard ceiling. 0 or invalid means the ceiling."""
+    try:
+        megabytes = int(value)
+    except (TypeError, ValueError):
+        megabytes = 0
+    return min(ceiling, megabytes * 1024 * 1024) if megabytes > 0 else ceiling
+# Read from the environment, not /data/options.json: the isolated connector runs non-root and
+# can't read options.json, so start.sh passes these in (and they reach the connector via its env).
+MAX_HTTP = _limit_mb(os.environ.get('HOME_TUNNEL_REQUEST_LIMIT_MB'), 4 * 1024 * 1024)
+MAX_RESPONSE = _limit_mb(os.environ.get('HOME_TUNNEL_RESPONSE_LIMIT_MB'), 64 * 1024 * 1024)
 HTTP_CHUNK = 64 * 1024
-MAX_WS = 8 * 1024 * 1024
-MAX_FRAME = 12 * 1024 * 1024  # must exceed base64(MAX_WS) + protocol overhead (~10.7 MiB for 8 MiB)
+MAX_WS = _limit_mb(os.environ.get('HOME_TUNNEL_WEBSOCKET_LIMIT_MB'), 8 * 1024 * 1024)
+MAX_FRAME = 12 * 1024 * 1024  # fixed ceiling: must exceed base64(MAX_WS cap) + protocol overhead (~10.7 MiB for 8 MiB)
 MAX_HEADERS = 16 * 1024
 METHODS = frozenset({"GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"})
 HEADERS = frozenset({"accept", "accept-language", "authorization", "cookie", "content-type", "origin", "if-none-match", "if-modified-since", "range", "if-range", "user-agent"})

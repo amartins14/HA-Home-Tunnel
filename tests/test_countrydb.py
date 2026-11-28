@@ -18,7 +18,7 @@ import service
 SAMPLE = """0.0.0.0,0.255.255.255,ZZ
 1.0.0.0,1.0.0.255,AU
 8.8.8.0,8.8.8.255,US
-95.93.0.0,95.93.255.255,PT
+185.100.0.0,185.100.255.255,PT
 203.0.113.0,203.0.113.255,ZZ
 2001:4860::,2001:4860:ffff:ffff:ffff:ffff:ffff:ffff,US
 2a01:4f8::,2a01:4f8:ffff:ffff:ffff:ffff:ffff:ffff,DE
@@ -38,7 +38,7 @@ class CountryDatabaseTests(unittest.TestCase):
     def test_lookups_cover_ipv4_ipv6_and_mapped_addresses(self):
         db = countrydb.CountryDB.parse(packed(SAMPLE))
         self.assertEqual(db.ranges, 7)
-        expected = {"95.93.1.1": "PT", "8.8.8.8": "US", "1.0.0.1": "AU", "::ffff:95.93.1.1": "PT",
+        expected = {"185.100.0.1": "PT", "8.8.8.8": "US", "1.0.0.1": "AU", "::ffff:185.100.0.1": "PT",
                     "2001:4860:4860::8888": "US", "2a01:4f8:1:2::3": "DE",
                     "9.9.9.9": "", "10.0.0.1": "", "2001:db8::1": "", "not an ip": "", None: ""}
         for ip, code in expected.items():
@@ -98,7 +98,7 @@ class CountryDatabaseServiceTests(unittest.IsolatedAsyncioTestCase):
         self.files["2026-10"] = packed(SAMPLE)
         self.assertTrue(await service.download_country_db(["2026-11", "2026-10"]))
         self.assertEqual(self.seen, ["2026-11", "2026-10"])
-        self.assertEqual(service.local_country("95.93.1.1"), "PT")
+        self.assertEqual(service.local_country("185.100.0.1"), "PT")
         self.assertEqual(service.COUNTRY_DB_STATUS["month"], "2026-10")
         service.COUNTRY_DB = None
         self.assertTrue(await service.load_country_db())
@@ -109,7 +109,7 @@ class CountryDatabaseServiceTests(unittest.IsolatedAsyncioTestCase):
         await service.download_country_db(["2026-10"])
         self.files["2026-11"] = b"broken"
         self.assertFalse(await service.download_country_db(["2026-11"]))
-        self.assertEqual(service.local_country("95.93.1.1"), "PT")
+        self.assertEqual(service.local_country("185.100.0.1"), "PT")
         self.assertEqual(service.COUNTRY_DB_STATUS["error"], "download_failed")
         self.assertEqual(gzip.decompress((self.state / "db.csv.gz").read_bytes()).decode(), SAMPLE)
 
@@ -117,15 +117,15 @@ class CountryDatabaseServiceTests(unittest.IsolatedAsyncioTestCase):
         self.files["2026-10"] = packed(SAMPLE)
         await service.download_country_db(["2026-10"])
         (self.state / "settings.json").write_text(json.dumps({"geolocation_enabled": False}))
-        response = await service.geolocation(make_mocked_request("GET", "/api/geolocation?ips=95.93.1.1&ips=8.8.8.8&ips=10.0.0.1"))
+        response = await service.geolocation(make_mocked_request("GET", "/api/geolocation?ips=185.100.0.1&ips=8.8.8.8&ips=10.0.0.1"))
         data = json.loads(response.text)
-        self.assertEqual(data["countries"], {"95.93.1.1": "PT", "8.8.8.8": "US"})
+        self.assertEqual(data["countries"], {"185.100.0.1": "PT", "8.8.8.8": "US"})
         self.assertEqual((data["enabled"], data["locations"]), (False, {}))
 
     async def test_country_rules_use_the_local_database(self):
         self.files["2026-10"] = packed(SAMPLE)
         await service.download_country_db(["2026-10"])
-        found = {ip: ("", code) for ip in ["95.93.1.1", "8.8.8.8"] if (code := service.local_country(ip))}
+        found = {ip: ("", code) for ip in ["185.100.0.1", "8.8.8.8"] if (code := service.local_country(ip))}
         added = service.apply_country_rules(found, [], {"mode": "allow", "codes": ["PT"], "minutes": 60}, now=1000)
         self.assertEqual([row["cidr"] for row in added], ["8.8.8.8"])
         self.assertIn("Country: US", added[0]["reason"])

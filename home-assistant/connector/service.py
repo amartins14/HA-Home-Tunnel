@@ -385,7 +385,6 @@ async def status(request):
         "error": live.get("error") if now - live.get("updated_at", 0) < 90 else None,
         "relay_features": relay_version.get("features") if isinstance(relay_version.get("features"), list) else [],
         "relay_native_clients": relay_version.get("native_clients"),
-        "limits": {"request": policy.MAX_HTTP, "websocket": policy.MAX_WS, "response": policy.MAX_RESPONSE},
         "country_db": {key: COUNTRY_DB_STATUS[key] for key in ("available", "month", "downloaded_at", "ranges", "error")},
         "geolocation_status": {"error": GEOLOCATION_STATUS["error"], "at": GEOLOCATION_STATUS["at"],
                                "remaining_today": max(0, GEOLOCATION_LOOKUP_LIMIT - GEOLOCATION_LOOKUP_COUNT)},

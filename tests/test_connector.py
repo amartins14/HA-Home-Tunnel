@@ -36,6 +36,14 @@ def request(**changes):
     return message
 
 class SecurityPolicyTests(unittest.TestCase):
+    def test_configured_size_limits_are_clamped_to_the_ceiling(self):
+        ceiling = 8 * 1024 * 1024
+        self.assertEqual(policy._limit_mb(2, ceiling), 2 * 1024 * 1024)      # a lower value is honoured
+        self.assertEqual(policy._limit_mb(16, ceiling), ceiling)            # above the ceiling is clamped down
+        self.assertEqual(policy._limit_mb(8, ceiling), ceiling)            # the default equals the ceiling
+        for bad in (0, -1, None, "", "x"):                                 # 0 or invalid means the ceiling
+            self.assertEqual(policy._limit_mb(bad, ceiling), ceiling)
+
     def test_root_only_options_use_the_explicit_url_environment(self):
         original_read_text = Path.read_text
         def read_text(path, *args, **kwargs):
