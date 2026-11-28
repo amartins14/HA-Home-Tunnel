@@ -28,3 +28,7 @@ You also need a relay: a Windows IIS site with ASP.NET Framework 4.8, WebSockets
 - No host network, Docker socket, privileged mode or Home Assistant configuration folder.
 
 Open the **Documentation** tab for setup and a tour of every screen.
+
+## Support
+
+If Home Tunnel is useful to you, you can support its development on [Ko-fi](https://ko-fi.com/amdeploy). Thank you.

@@ -9,6 +9,7 @@
   <img alt="Architectures" src="https://img.shields.io/badge/arch-aarch64%20%7C%20amd64-41BDF5?style=flat-square">
   <img alt="Relay: IIS" src="https://img.shields.io/badge/relay-IIS%20%2F%20ASP.NET%204.8-5C2D91?style=flat-square&logo=dotnet&logoColor=white">
   <a href="LICENSE"><img alt="MIT license" src="https://img.shields.io/github/license/amartins14/HA-Home-Tunnel?style=flat-square"></a>
+  <a href="https://ko-fi.com/amdeploy"><img alt="Support on Ko-fi" src="https://img.shields.io/badge/Ko--fi-support-FF5E5B?style=flat-square&logo=ko-fi&logoColor=white"></a>
 </p>
 
 <p align="center">
@@ -130,6 +131,10 @@ python3 -m venv .venv
 ```
 
 The relay checks compile with the .NET Framework 4.8 compiler on Windows; [CONTRIBUTING.md](CONTRIBUTING.md) has the command and the release process. GitHub Actions runs both on every push.
+
+## Support
+
+If Home Tunnel is useful to you, you can support its development on [Ko-fi](https://ko-fi.com/amdeploy). Thank you.
 
 ## License
 
