@@ -2,6 +2,12 @@
 
 Release notes for Home Tunnel. Relay releases are installed manually on IIS; the Home Assistant app is updated through Supervisor.
 
+## 0.7.9
+
+- Large frontend replies no longer drop the connection. The add-on store (HACS) catalogue and other multi-megabyte WebSocket messages were cut off by a 1 MB per-message limit; raised it to 8 MB (tunnel frame limit 12 MB). Needs relay 0.5.4.
+- New **Developer** section in Settings: “What the tunnel lets through” moved here from Security, alongside the tunnel’s size limits (read-only).
+- Fixed a stray “null” shown at the bottom of the dashboard.
+
 ## 0.7.8
 
 - Relay 0.5.3: pass Home Assistant's `X-Frame-Options` and `Content-Security-Policy` through to the browser, and set `Strict-Transport-Security` on what the relay serves over HTTPS. Earlier relays dropped these, so the tunnelled frontend had no clickjacking or HSTS protection. From a pen test of the staging relay.

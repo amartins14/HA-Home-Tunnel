@@ -8,6 +8,12 @@ Release notes for Home Tunnel. This copy is read by Home Assistant Supervisor. R
 - Let crawlers fetch the IIS relay so they can read its no-index response header.
 - Add an app icon and logo for the Home Assistant app store, and rewrite the README, app documentation and architecture guide with screenshots, badges and My Home Assistant buttons.
 
+## 0.7.9
+
+- Large frontend replies no longer drop the connection. The add-on store (HACS) catalogue and other multi-megabyte WebSocket messages were cut off by a 1 MB per-message limit; raised it to 8 MB (tunnel frame limit 12 MB). Needs relay 0.5.4.
+- New **Developer** section in Settings: “What the tunnel lets through” moved here from Security, alongside the tunnel’s size limits (read-only).
+- Fixed a stray “null” shown at the bottom of the dashboard.
+
 ## 0.7.7
 
 - Redesigned the dashboard to be less cluttered. A new **Security** tab holds blocked addresses, the country rule, automatic lockdown and what the tunnel lets through.

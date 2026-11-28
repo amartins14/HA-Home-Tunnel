@@ -532,7 +532,7 @@
     const scroll = window.scrollY;
     const panelScroll = document.querySelector('.panel-body')?.scrollTop || 0;
     const panel = state.caller && state.status?.paired ? renderCallerPanel() : null;
-    document.getElementById('app').replaceChildren(top, el('main', {}, status, body), panel);
+    document.getElementById('app').replaceChildren(...[top, el('main', {}, status, body), panel].filter(Boolean));
     document.body.classList.toggle('locked', !!panel);
     if (scroll) window.scrollTo(0, scroll);
     const panelBody = document.querySelector('.panel-body');
@@ -1062,7 +1062,7 @@
 
   // ----- Security -----
   function renderSecurity() {
-    return [renderBlocks(), renderCountryRule(), renderLockdown(), state.status.paired ? renderAllowed() : null];
+    return [renderBlocks(), renderCountryRule(), renderLockdown()];
   }
 
   function renderBlocks() {
@@ -1243,14 +1243,17 @@
   }
 
   // What the relay and connector let through. Fixed in their code on purpose: shown, not editable.
-  function renderAllowed() {
+  function renderDeveloper() {
     const s = state.status;
     const wide = (s.relay_features || []).includes('refused');
     const native = s.relay_native_clients;
+    const limits = s.limits || {};
     const rule = (title, path, sub, tone, label) => el('div', {class: 'row'},
       el('div', {class: 'grow'}, el('div', {class: 'title'}, title), path ? el('div', {class: 'sub mono'}, path) : null, el('div', {class: `sub${tone === 'warn' ? ' warn' : ''}`}, sub)),
       chip(label, tone));
-    return fold('allowed', 'What the tunnel lets through', 'Built into the relay and this app, so it can’t be widened by mistake',
+    const sizeRow = (label, value, sub) => factRow(label, value != null ? bytes(value) : '—', sub);
+    return fold('developer', 'Developer', 'Technical details, fixed in the relay and this app. Nothing here can be changed.',
+      el('div', {class: 'group'}, 'What the tunnel lets through'),
       rule('Home Assistant pages and API', null, 'Every normal request goes to Home Assistant, which checks the sign-in.', 'ok', 'Allowed'),
       rule('Home Assistant WebSocket', '/api/websocket', 'The live connection the Home Assistant frontend uses, from browsers on your public address.', 'ok', 'Allowed'),
       wide
@@ -1260,7 +1263,11 @@
         native === true ? 'Turned on in the relay’s web.config (HaTunnelNativeClientsEnabled).'
           : native === false ? 'Off. Turn on HaTunnelNativeClientsEnabled in the relay’s web.config to allow them.'
           : 'This relay doesn’t report it.', native === true ? 'ok' : '', native === true ? 'Allowed' : native === false ? 'Off' : 'Unknown'),
-      rule('Any other WebSocket', null, 'Refused at the relay. Refused attempts are listed on the Activity tab.', 'bad', 'Refused'));
+      rule('Any other WebSocket', null, 'Refused at the relay. Refused attempts are listed on the Activity tab.', 'bad', 'Refused'),
+      el('div', {class: 'group'}, 'Size limits'),
+      sizeRow('Largest request body', limits.request),
+      sizeRow('Largest WebSocket message', limits.websocket, 'Big frontend replies, like the add-on store catalogue, need headroom here.'),
+      sizeRow('Largest response', limits.response));
   }
 
   function renderLockdown() {
@@ -1337,6 +1344,8 @@
           el('div', {class: 'grow'}, el('div', {class: 'title'}, 'Unpair'),
             el('div', {class: 'sub'}, 'Stops the tunnel; this app and the relay forget each other. Pairing again needs a new setup code.')),
           el('button', {class: 'btn danger', disabled: state.busy, onclick: unpairRelay}, icon(ICONS.delete), 'Unpair')) : null),
+
+      s.paired ? renderDeveloper() : null,
     ];
   }
 

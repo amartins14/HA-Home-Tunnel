@@ -59,10 +59,6 @@ On by default. An address is blocked for 60 minutes after **20 denied answers** 
 
 Don't use Home Assistant's own `ip_ban_enabled` for this: behind the tunnel every request reaches Home Assistant from this app, so an IP ban there would block the tunnel itself.
 
-### What the tunnel lets through
-
-Expand it for a read-only list of what reaches Home Assistant: its pages and API, its WebSocket, WebSockets inside app web UIs (Zigbee2MQTT, Node-RED, ESPHome and others), and whether Companion app connections are on. Everything else is refused. These rules are built into the relay and this app, so a mistake can't open Home Assistant further.
-
 ## Settings
 
 ### Relay
@@ -96,6 +92,13 @@ Pick where alerts go: Home Assistant's notification bell or any `notify` service
 
 Rotation, unpairing and blocking need relay 0.5.0 or newer. The dashboard says so if the relay is older.
 
+### Developer
+
+Collapsed by default. Technical details, all fixed in the relay and this app:
+
+- **What the tunnel lets through** — a read-only list of what reaches Home Assistant: its pages and API, its WebSocket, WebSockets inside app web UIs (Zigbee2MQTT, Node-RED, ESPHome and others), and whether Companion app connections are on. Everything else is refused, so a mistake can't open Home Assistant further.
+- **Size limits** — the largest request body, WebSocket message and response the tunnel passes. The WebSocket limit (8 MB, with relay 0.5.4 or newer) gives multi-megabyte frontend replies, such as the add-on store catalogue, room to come through.
+
 ## App options
 
 Set these on the app's **Configuration** tab. Most installs never need to.
@@ -128,7 +131,8 @@ Uninstalling the app or removing its data deletes all of this and unpairs it on 
 - **Connector offline:** check the relay address opens in a browser, the IIS site has WebSockets on, and its app pool can write to `App_Data`.
 - **Pairing stuck with "rejected the setup code hash":** the `web.config` line doesn't match the current code. Paste it again, or make a new code.
 - **Public check failing:** the relay answers, but requests aren't coming back through this tunnel. Usually a proxy or CDN in front of IIS, or a second relay worker. The app reconnects on its own.
-- **An app's web UI doesn't load through the tunnel:** check **Activity → Refused**. Home Assistant's own WebSocket and any WebSocket inside an app web UI are allowed (relay 0.5.1 or newer; older relays only allow Zigbee2MQTT's). **Security → What the tunnel lets through** shows the rules.
+- **An app's web UI doesn't load through the tunnel:** check **Activity → Refused**. Home Assistant's own WebSocket and any WebSocket inside an app web UI are allowed (relay 0.5.1 or newer; older relays only allow Zigbee2MQTT's). **Settings → Developer → What the tunnel lets through** shows the rules.
+- **A data-heavy page (like the add-on store) shows "Connection lost":** update to app 0.7.9 and relay 0.5.4. Older versions cut off WebSocket messages over 1 MB, and the catalogue reply is several MB.
 - **A country rule didn't block my test:** give it 15 seconds after the first request. **Settings → Locations** shows whether the country database is ready.
 - **An iPhone offers to download a file called "authorize":** update the relay to 0.5.2. Older relays sent an empty error while Home Assistant reconnected, which Safari treats as a download.
 - **Notifications say there's no API access:** restart the app; if that doesn't help, reinstall it so Home Assistant grants the permission again.

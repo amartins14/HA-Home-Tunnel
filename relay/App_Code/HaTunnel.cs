@@ -29,7 +29,7 @@ public static class RelayPolicy
             } catch { return ""; }
         }
     }
-    public const int HttpLimit = 4 * 1024 * 1024, WsLimit = 1024 * 1024, FrameLimit = 6 * 1024 * 1024;
+    public const int HttpLimit = 4 * 1024 * 1024, WsLimit = 8 * 1024 * 1024, FrameLimit = 12 * 1024 * 1024;
     public const int ResponseLimit = 64 * 1024 * 1024, HttpChunkLimit = 64 * 1024;
     public static readonly UTF8Encoding Utf8 = new UTF8Encoding(false, true);
     public static readonly HashSet<string> Methods = new HashSet<string> { "GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS" };
@@ -233,7 +233,7 @@ public static class RelayPolicy
 public static class RelayBuild
 {
     // Keep this aligned with release-manifest.json when publishing a relay build.
-    public const string Version = "0.5.3";
+    public const string Version = "0.5.4";
     // Pairing actions this build supports, so the app can tell what an older relay lacks.
     public static readonly string[] Features = { "rotate", "unpair", "blocks", "refused" };
     public static bool NativeClients { get { return ConfigurationManager.AppSettings["HaTunnelNativeClientsEnabled"] == "true"; } }
