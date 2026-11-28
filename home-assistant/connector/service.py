@@ -166,6 +166,15 @@ def ensure_settings():
     return value
 
 
+def forward_client_ip_option(path=Path("/data/options.json")):
+    """The app's `forward_client_ip` option. The connector runs without root and can't read
+    /data/options.json, so the service passes this to it in HOME_TUNNEL_FORWARD_CLIENT_IP."""
+    try:
+        return json.loads(path.read_text(encoding="utf-8")).get("forward_client_ip") is True
+    except (FileNotFoundError, PermissionError, ValueError, AttributeError):
+        return False
+
+
 def ensure_metrics_token():
     configured = os.environ.get("HOME_TUNNEL_METRICS_TOKEN", "").strip()
     if configured:
@@ -992,6 +1001,7 @@ async def connector_supervisor():
                 env["HOME_TUNNEL_PUBLIC_ORIGIN"] = connection["public_origin"]
                 env["HOME_TUNNEL_TOKEN_FILE"] = str(TOKEN)
                 env["HOME_TUNNEL_METRICS_TOKEN"] = ensure_metrics_token()
+                env["HOME_TUNNEL_FORWARD_CLIENT_IP"] = "1" if forward_client_ip_option() else "0"
                 child = await asyncio.create_subprocess_exec(sys.executable, "-u", "/app/connector.py", env=env)
                 LOG.info("Home Tunnel connector process started")
                 await child.wait()

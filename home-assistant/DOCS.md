@@ -128,7 +128,10 @@ only* can still sign in through the tunnel**, Home Assistant's own login ban wou
        - 172.30.33.2   # this app; or 172.30.32.0/23 for the add-on network
    ```
 
-3. Install relay 0.5.5 or later, then turn on `forward_client_ip` on the **Configuration** tab.
+3. Update this app to 0.7.11 or later **first**, then install relay 0.5.5 or later. Relay 0.5.5
+   sends a field that apps before 0.7.10 refuse, so in the other order every request fails until
+   the app catches up. (0.7.10 accepts the field but doesn't apply the option; use 0.7.11.)
+4. Turn on `forward_client_ip` on the **Configuration** tab. The app restarts its connection.
 
 Check: sign in from outside your network; the new session's address should be your phone's, and a
 *Local network only* user should be refused. The relay takes the address from the connection,

@@ -5,6 +5,7 @@ import json
 import gzip
 import random
 import logging
+import os
 from pathlib import Path
 import ssl
 import sys
@@ -362,6 +363,27 @@ class ConnectorAsyncTests(unittest.IsolatedAsyncioTestCase):
                 return Socket()
         await connector.Connector(FakeTunnel(), Local()).websocket({"id": RID, "path": "/api/websocket", "headers": {}, "client_ip": "198.51.100.4"})
         self.assertEqual(seen, [{"X-Forwarded-For": "198.51.100.4"}])
+
+    async def test_option_reaches_the_isolated_connector(self):
+        # In the app the connector can't read /data/options.json, so OPTIONS lacks the option; the
+        # service reads it and passes HOME_TUNNEL_FORWARD_CLIENT_IP when it starts the connector.
+        self.enterContext(patch.dict(connector.OPTIONS, {}, clear=True))
+        for value, expected in (("1", {"X-Forwarded-For": "203.0.113.9"}), ("0", {}), (None, {})):
+            env = {"HOME_TUNNEL_FORWARD_CLIENT_IP": value} if value else {}
+            with patch.dict("os.environ", env, clear=False):
+                if value is None:
+                    os.environ.pop("HOME_TUNNEL_FORWARD_CLIENT_IP", None)
+                local = FakeLocal(Response())
+                await connector.Connector(FakeTunnel(), local).http(request(client_ip="203.0.113.9"))
+                self.assertEqual({k: v for k, v in local.calls[0][1]["headers"].items() if k == "X-Forwarded-For"}, expected, value)
+        with tempfile.TemporaryDirectory() as temporary:
+            options = Path(temporary) / "options.json"
+            self.assertFalse(service.forward_client_ip_option(options), "missing file")
+            options.write_text(json.dumps({"forward_client_ip": True}))
+            self.assertTrue(service.forward_client_ip_option(options))
+            for text in (json.dumps({"forward_client_ip": "true"}), json.dumps({}), "[]", "{"):
+                options.write_text(text)
+                self.assertFalse(service.forward_client_ip_option(options), text)
 
     async def test_gzip_expansion_is_bounded_and_truncation_aborts(self):
         class AcknowledgingTunnel(FakeTunnel):
